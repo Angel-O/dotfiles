@@ -1,0 +1,13 @@
+# Paths are relative to $HOME. Missing paths are skipped.
+.zshrc
+.gitconfig
+.gitignore_global
+.config/zsh
+.config/starship
+.config/git
+.config/herdr
+.config/opencode
+.local/bin/opencode-env
+.oh-my-zsh
+.zsh/completions
+Library/Application Support/com.mitchellh.ghostty/config

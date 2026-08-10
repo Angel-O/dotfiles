@@ -14,6 +14,50 @@ Status: implemented and container-validated; real-machine adoption remains pendi
 
 Before adopting OpenCode personally, remove plugin declarations from the unmanaged global config when the same plugin is now pinned in `portable.jsonc`. Provider/model settings may remain because the personal portable layer intentionally overrides the approved shared keys.
 
+## Pre-Apply Backup
+
+Chezmoi does not automatically back up existing destination files. Before the first apply, list the enabled modules and back up the existing paths for each enabled module:
+
+```sh
+chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled }}{{ $name }} {{ end }}{{ end }}'
+```
+
+| Module | Existing paths to back up |
+| --- | --- |
+| Ghostty | `~/Library/Application Support/com.mitchellh.ghostty/config` |
+| Herdr | `~/.config/herdr` |
+| OpenCode | `~/.config/opencode`, `~/.local/bin/opencode-env` |
+| Starship | `~/.config/starship` |
+| Shell | `~/.zshrc`, `~/.config/zsh`, `~/.oh-my-zsh`, `~/.zsh/completions` |
+| Git | `~/.gitconfig`, `~/.gitignore_global`, `~/.config/git` |
+
+Only existing paths need a backup. Store backups locally because Herdr and OpenCode directories may contain private machine state that must not enter this repository.
+
+The repository includes a backup utility with the table's paths as its default list:
+
+```sh
+scripts/backup-home-paths.sh
+```
+
+To use a different list, create a text file containing one home-relative path per line, then pass it to the script. Blank lines and lines beginning with `#` are ignored:
+
+```sh
+scripts/backup-home-paths.sh \
+  --paths-file "$HOME/my-backup-paths.txt" \
+  --destination "$HOME/my-chezmoi-backup"
+```
+
+The script skips missing paths, preserves file metadata, and refuses absolute paths or entries containing `..`. The destination must not already exist.
+
+Review both direct file changes and script effects before applying:
+
+```sh
+chezmoi diff
+chezmoi apply --dry-run --verbose
+```
+
+The apply scripts install missing Homebrew packages additively, install pinned shell externals under `~/.oh-my-zsh`, install or replace pinned Herdr plugins under `~/.config/herdr`, and generate shell completions under `~/.zsh/completions` when their modules are enabled. The optional SDKMAN installer writes under `~/.sdkman`. These script effects may not appear as ordinary managed-file diffs.
+
 ## Existing Work-Machine Adoption
 
 Do not initialize and apply in one step. First initialize the source and select one module without modifying target files:

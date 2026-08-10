@@ -8,6 +8,8 @@ WORKFLOW.md
 OPEN-QUESTIONS.md
 tests
 tests/**
+scripts
+scripts/**
 .idea
 .idea/**
 

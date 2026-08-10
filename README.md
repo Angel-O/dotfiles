@@ -61,10 +61,11 @@ chezmoi init --source "$HOME/workspace/source/dotfiles" --prompt
 chezmoi diff
 ```
 
-Select one or more modules when prompted. Apply only after reviewing the diff:
+Select one or more modules when prompted. Before the first apply, follow the [pre-apply backup](WORKFLOW.md#pre-apply-backup) checklist, then review the diff:
 
 ```sh
-chezmoi apply
+chezmoi apply --dry-run --verbose
+chezmoi apply --interactive --verbose
 ```
 
 To change the selected modules later:
