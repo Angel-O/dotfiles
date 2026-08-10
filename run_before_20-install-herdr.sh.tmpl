@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+{{- if not .modules.herdr }}
+exit 0
+{{- else }}
+if command -v herdr >/dev/null 2>&1; then
+  exit 0
+fi
+
+installer=$(mktemp)
+trap 'rm -f "$installer"' EXIT
+curl -fsSL https://herdr.dev/install.sh -o "$installer"
+sh "$installer"
+{{- end }}

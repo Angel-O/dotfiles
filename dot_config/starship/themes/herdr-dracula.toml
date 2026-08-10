@@ -1,0 +1,101 @@
+# Custom palette matching Herdr's built-in Dracula theme.
+"$schema" = "https://starship.rs/config-schema.json"
+
+format = """
+[░▒▓](surface1)\
+$os\
+[](bg:accent fg:surface1)\
+$directory\
+[](fg:accent bg:surface0)\
+$git_branch\
+$git_status\
+[](fg:surface0 bg:panel)\
+$nodejs\
+$bun\
+$rust\
+$golang\
+$php\
+[ ](fg:panel)\
+\n$character"""
+
+palette = "herdr_dracula"
+
+[directory]
+style = "bold fg:panel bg:accent"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+
+[git_branch]
+symbol = ""
+style = "bg:surface0"
+format = "[[ $symbol $branch ](fg:accent bg:surface0)]($style)"
+
+[git_status]
+style = "bg:surface0"
+format = "[[($all_status$ahead_behind )](fg:accent bg:surface0)]($style)"
+
+[nodejs]
+symbol = ""
+style = "bg:panel"
+format = "[[ $symbol ($version) ](fg:cyan bg:panel)]($style)"
+
+[bun]
+symbol = ""
+style = "bg:panel"
+format = "[[ $symbol ($version) ](fg:cyan bg:panel)]($style)"
+
+[rust]
+symbol = ""
+style = "bg:panel"
+format = "[[ $symbol ($version) ](fg:orange bg:panel)]($style)"
+
+[golang]
+symbol = ""
+style = "bg:panel"
+format = "[[ $symbol ($version) ](fg:cyan bg:panel)]($style)"
+
+[php]
+symbol = ""
+style = "bg:panel"
+format = "[[ $symbol ($version) ](fg:pink bg:panel)]($style)"
+
+[time]
+disabled = true
+time_format = "%R"
+style = "bg:panel"
+format = "[[  $time ](fg:subtext bg:panel)]($style)"
+
+[os]
+style = "bg:surface1 fg:panel"
+format = "[ $symbol ]($style)"
+disabled = false
+
+[os.symbols]
+Macos = "󰀵"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold accent)"
+
+[palettes.herdr_dracula]
+accent = "#BD93F9"
+panel = "#282A36"
+surface0 = "#44475A"
+surface1 = "#6272A4"
+overlay1 = "#828CB4"
+text = "#F8F8F2"
+subtext = "#D2D2DC"
+pink = "#FF79C6"
+green = "#50FA7B"
+yellow = "#F1FA8C"
+red = "#FF5555"
+cyan = "#8BE9FD"
+orange = "#FFB86C"

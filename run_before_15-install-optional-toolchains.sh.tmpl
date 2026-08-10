@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+{{- if and .modules.shell .features.nodeDevelopment }}
+mkdir -p "$HOME/.nvm"
+{{- end }}
+
+{{- if and .modules.shell .features.jvmDevelopment }}
+if [ ! -s "$HOME/.sdkman/bin/sdkman-init.sh" ]; then
+  installer=$(mktemp)
+  trap 'rm -f "$installer"' EXIT
+  curl -fsSL https://get.sdkman.io -o "$installer"
+  SDKMAN_DIR="$HOME/.sdkman" bash "$installer"
+fi
+{{- end }}

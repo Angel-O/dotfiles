@@ -1,0 +1,33 @@
+{{- $role := promptChoiceOnce . "role" "Machine role" (list "personal" "work") "personal" -}}
+{{- $ghostty := promptBoolOnce . "modules.ghostty" "Enable the Ghostty module" false -}}
+{{- $herdr := promptBoolOnce . "modules.herdr" "Enable the Herdr module" false -}}
+{{- $opencode := promptBoolOnce . "modules.opencode" "Enable the OpenCode module" false -}}
+{{- $starship := promptBoolOnce . "modules.starship" "Enable the Starship module" false -}}
+{{- $shell := promptBoolOnce . "modules.shell" "Enable the Zsh shell module" false -}}
+{{- $git := promptBoolOnce . "modules.git" "Enable the Git module" false -}}
+{{- $nodeDevelopment := false -}}
+{{- $jvmDevelopment := false -}}
+{{- $herdrFileViewer := false -}}
+{{- if $shell -}}
+{{- $nodeDevelopment = promptBoolOnce . "features.nodeDevelopment" "Enable optional Node development setup" false -}}
+{{- $jvmDevelopment = promptBoolOnce . "features.jvmDevelopment" "Enable optional JVM development setup" false -}}
+{{- end -}}
+{{- if and $herdr (eq $role "personal") -}}
+{{- $herdrFileViewer = promptBoolOnce . "features.herdrFileViewer" "Enable the optional Herdr File Viewer" false -}}
+{{- end -}}
+
+[data]
+role = {{ $role | quote }}
+
+[data.modules]
+ghostty = {{ $ghostty }}
+herdr = {{ $herdr }}
+opencode = {{ $opencode }}
+starship = {{ $starship }}
+shell = {{ $shell }}
+git = {{ $git }}
+
+[data.features]
+nodeDevelopment = {{ $nodeDevelopment }}
+jvmDevelopment = {{ $jvmDevelopment }}
+herdrFileViewer = {{ $herdrFileViewer }}

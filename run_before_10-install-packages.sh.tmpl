@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+# Rechecking on every apply repairs missing packages while remaining a no-op
+# when the selected module package set is already installed.
+brewfile=$(mktemp)
+trap 'rm -f "$brewfile"' EXIT
+cat >"$brewfile" <<'BREWFILE'
+{{ template "Brewfile.tmpl" . }}
+BREWFILE
+
+if [ ! -s "$brewfile" ]; then
+  exit 0
+fi
+
+if ! command -v brew >/dev/null 2>&1; then
+  printf 'Homebrew is required before applying selected dotfile modules.\n' >&2
+  exit 1
+fi
+
+export HOMEBREW_BUNDLE_NO_UPGRADE=1
+if ! brew bundle check --file="$brewfile" >/dev/null 2>&1; then
+  brew bundle install --file="$brewfile"
+fi

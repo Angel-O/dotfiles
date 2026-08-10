@@ -1,0 +1,69 @@
+#!/bin/sh
+set -eu
+
+{{- if not .modules.herdr }}
+exit 0
+{{- else }}
+if ! command -v herdr >/dev/null 2>&1; then
+  printf 'Herdr is required before installing Herdr plugins.\n' >&2
+  exit 1
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  printf 'jq is required before installing Herdr plugins.\n' >&2
+  exit 1
+fi
+if ! command -v cargo >/dev/null 2>&1; then
+  if ! command -v brew >/dev/null 2>&1; then
+    printf 'Cargo is required to build selected Herdr plugins.\n' >&2
+    exit 1
+  fi
+  brew install rust
+fi
+
+ensure_github_plugin() {
+  plugin_id=$1
+  source=$2
+  wanted_ref=$3
+  installed=$(herdr plugin list --json)
+  current_kind=$(printf '%s' "$installed" | jq -r --arg id "$plugin_id" '.result.plugins[] | select(.plugin_id == $id) | .source.kind // empty')
+  current_ref=$(printf '%s' "$installed" | jq -r --arg id "$plugin_id" '.result.plugins[] | select(.plugin_id == $id) | (.source.requested_ref // .source.resolved_commit // empty)')
+
+  if [ "$current_kind" = "github" ] && [ "$current_ref" = "$wanted_ref" ]; then
+    return
+  fi
+  if [ -n "$current_kind" ]; then
+    herdr plugin uninstall "$plugin_id"
+  fi
+  herdr plugin install "$source" --ref "$wanted_ref" --yes
+}
+
+ensure_github_plugin angel-o.agent-resume {{ .pins.herdrPlugins.agentResume.source | quote }} {{ .pins.herdrPlugins.agentResume.ref | quote }}
+ensure_github_plugin angel-o.labels {{ .pins.herdrPlugins.labels.source | quote }} {{ .pins.herdrPlugins.labels.ref | quote }}
+ensure_github_plugin beyondlex.herdr-recent-navigator {{ .pins.herdrPlugins.recentNavigator.source | quote }} {{ .pins.herdrPlugins.recentNavigator.ref | quote }}
+ensure_github_plugin ez-corp.space-usage {{ .pins.herdrPlugins.spaceUsage.source | quote }} {{ .pins.herdrPlugins.spaceUsage.ref | quote }}
+ensure_github_plugin herdr-bar {{ .pins.herdrPlugins.bar.source | quote }} {{ .pins.herdrPlugins.bar.ref | quote }}
+
+{{- if eq .role "work" }}
+ensure_github_plugin persiyanov.reviewr {{ .pins.herdrPlugins.reviewr.source | quote }} {{ .pins.herdrPlugins.reviewr.ref | quote }}
+{{- else }}
+reviewr_root="$HOME/workspace/source/herdr-reviewr"
+reviewr_state=$(herdr plugin list --json)
+reviewr_kind=$(printf '%s' "$reviewr_state" | jq -r '.result.plugins[] | select(.plugin_id == "persiyanov.reviewr") | .source.kind // empty')
+reviewr_plugin_root=$(printf '%s' "$reviewr_state" | jq -r '.result.plugins[] | select(.plugin_id == "persiyanov.reviewr") | .plugin_root // empty')
+if [ "$reviewr_kind" != "local" ] || [ "$reviewr_plugin_root" != "$reviewr_root" ]; then
+  if [ -n "$reviewr_kind" ]; then
+    herdr plugin uninstall persiyanov.reviewr
+  fi
+  if [ ! -d "$reviewr_root/.git" ]; then
+    mkdir -p "$(dirname "$reviewr_root")"
+    git clone https://github.com/persiyanov/herdr-reviewr.git "$reviewr_root"
+  fi
+  herdr plugin link --enabled "$reviewr_root"
+fi
+ensure_github_plugin herdr-logbook {{ .pins.herdrPlugins.logbook.source | quote }} {{ .pins.herdrPlugins.logbook.ref | quote }}
+ensure_github_plugin robert-flo.elio {{ .pins.herdrPlugins.elio.source | quote }} {{ .pins.herdrPlugins.elio.ref | quote }}
+{{- if .features.herdrFileViewer }}
+ensure_github_plugin herdr-file-viewer {{ .pins.herdrPlugins.fileViewer.source | quote }} {{ .pins.herdrPlugins.fileViewer.ref | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

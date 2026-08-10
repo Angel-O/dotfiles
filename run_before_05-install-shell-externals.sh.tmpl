@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+{{- if not .modules.shell }}
+exit 0
+{{- else }}
+ensure_checkout() {
+  url=$1
+  path=$2
+  wanted_ref=$3
+
+  if [ ! -e "$path" ]; then
+    mkdir -p "$(dirname "$path")"
+    git clone "$url" "$path"
+  elif [ ! -d "$path/.git" ]; then
+    printf '%s exists but is not a Git checkout; refusing to overwrite it.\n' "$path" >&2
+    exit 1
+  fi
+
+  current_ref=$(git -C "$path" rev-parse HEAD)
+  if [ "$current_ref" = "$wanted_ref" ]; then
+    return
+  fi
+  if [ -n "$(git -C "$path" status --porcelain --untracked-files=no)" ]; then
+    printf '%s has local changes; refusing to move it to pinned commit %s.\n' "$path" "$wanted_ref" >&2
+    exit 1
+  fi
+
+  git -C "$path" fetch --depth 1 origin "$wanted_ref"
+  git -C "$path" checkout --detach FETCH_HEAD
+}
+
+ensure_checkout \
+  https://github.com/ohmyzsh/ohmyzsh.git \
+  "$HOME/.oh-my-zsh" \
+  {{ .pins.ohMyZsh | quote }}
+
+{{- if .modules.starship }}
+ensure_checkout \
+  https://github.com/olets/zsh-transient-prompt.git \
+  "$HOME/.oh-my-zsh/custom/plugins/zsh-transient-prompt" \
+  {{ .pins.zshTransientPrompt | quote }}
+{{- end }}
+{{- end }}

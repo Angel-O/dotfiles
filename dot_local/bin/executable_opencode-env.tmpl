@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+set -u
+
+export EDITOR="${EDITOR:-vim}"
+export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS="${OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS:-true}"
+
+{{- if eq .role "personal" }}
+export LM_STUDIO_API_KEY="${LM_STUDIO_API_KEY:-dummy-api-key}"
+export LM_STUDIO_API_BASE="${LM_STUDIO_API_BASE:-http://localhost:1234/v1}"
+{{- end }}
+
+local_env="$HOME/.config/opencode/env.local"
+if [[ -r "$local_env" ]]; then
+  source "$local_env"
+fi
+
+export OPENCODE_CONFIG="$HOME/.config/opencode/portable.jsonc"
+
+if ! command git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  export OPENCODE_DISABLE_FFF=1
+fi
+
+command opencode "$@"

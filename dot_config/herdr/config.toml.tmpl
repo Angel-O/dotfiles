@@ -1,0 +1,110 @@
+onboarding = false
+
+[worktrees]
+directory = "~/workspace/worktrees"
+
+[keys]
+cycle_pane_previous = ["prefix+shift+tab", "alt+shift+["]
+cycle_pane_next = ["prefix+tab", "alt+shift+]"]
+zoom = ["prefix+z", "alt+shift+enter"]
+split_vertical = ["prefix+v", "alt+s"]
+split_horizontal = ["prefix+minus", "alt+shift+s"]
+close_pane = ["prefix+x", "alt+w"]
+previous_tab = ["prefix+p", "alt+["]
+next_tab = ["prefix+n", "alt+]"]
+new_tab = ["prefix+c", "alt+t"]
+previous_workspace = "alt+k"
+next_workspace = "alt+j"
+
+[ui]
+sidebar_width = 33
+agent_panel_sort = "priority"
+show_agent_labels_on_pane_borders = true
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace"], ["branch", "git_status"], ["$usage"]]
+row_gap = 1
+
+[ui.sidebar.agents]
+rows = [["workspace", "agent"], ["state_text", { token = "tab", dim = false }]]
+row_gap = 1
+
+[advanced]
+scrollback_limit_bytes = 50000000
+
+[experimental]
+pane_history = true
+switch_ascii_input_source_in_prefix = true
+
+[theme]
+name = "dracula"
+auto_switch = false
+dark_name = "tokyo-night"
+light_name = "tokyo-night-day"
+
+[ui.sound]
+enabled = true
+
+[ui.toast]
+delivery = "herdr"
+
+{{- if and (eq .role "personal") .features.herdrFileViewer }}
+[[keys.command]]
+key = "prefix+f"
+type = "shell"
+command = "herdr plugin action invoke open-file-viewer --plugin herdr-file-viewer"
+description = "open file viewer"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "shell"
+command = "herdr plugin action invoke open-file-viewer-tab --plugin herdr-file-viewer"
+description = "open file viewer tab"
+{{- end }}
+
+[[keys.command]]
+key = "prefix+u"
+type = "plugin_action"
+command = "persiyanov.reviewr.toggle"
+description = "toggle reviewr split"
+
+[[keys.command]]
+key = "prefix+shift+u"
+type = "shell"
+command = "{{ joinPath .chezmoi.homeDir ".config/herdr/reviewr-toggle-tab.sh" }}"
+description = "toggle reviewr tab"
+
+{{- if eq .role "personal" }}
+[[keys.command]]
+key = "prefix+m"
+type = "shell"
+command = "result=$(herdr plugin pane open --plugin herdr-logbook --entrypoint hub --placement tab --focus) && tab_id=$(printf '%s' \"$result\" | jq -r '.result.plugin_pane.pane.tab_id // empty') && [ -n \"$tab_id\" ] && herdr tab rename \"$tab_id\" logbook"
+description = "open logbook hub in a tab"
+{{- end }}
+
+[[keys.command]]
+key = "prefix+k"
+type = "plugin_action"
+command = "herdr-bar.open"
+description = "command bar"
+
+[[keys.command]]
+key = "prefix+j"
+type = "plugin_action"
+command = "beyondlex.herdr-recent-navigator.focus-workspaces"
+description = "open recent workspaces navigator"
+
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "angel-o.agent-resume.insert-resume"
+description = "insert agent resume command"
+
+[[keys.command]]
+key = "prefix+shift+a"
+type = "plugin_action"
+command = "angel-o.agent-resume.copy-resume"
+description = "copy agent resume command"
+
+[update]
+channel = "stable"

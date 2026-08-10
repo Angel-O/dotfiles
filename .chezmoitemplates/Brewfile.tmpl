@@ -1,0 +1,29 @@
+{{- if .modules.ghostty }}
+cask "ghostty"
+cask "font-hack"
+cask "font-jetbrains-mono"
+{{- end }}
+{{- if .modules.herdr }}
+brew "jq"
+{{- if eq .role "personal" }}
+brew "elio"
+brew "glow"
+{{- end }}
+{{- if and (eq .role "personal") .features.herdrFileViewer }}
+brew "bat"
+brew "git-delta"
+{{- end }}
+{{- end }}
+{{- if and .modules.opencode (eq .role "personal") }}
+cask "lm-studio"
+{{- end }}
+{{- if .modules.starship }}
+brew "starship"
+{{- end }}
+{{- if .modules.shell }}
+brew "fzf"
+brew "zoxide"
+{{- if .features.nodeDevelopment }}
+brew "nvm"
+{{- end }}
+{{- end }}

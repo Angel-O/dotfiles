@@ -1,0 +1,3 @@
+mode = "sidebar"
+interval_seconds = 5
+window_title_totals = true

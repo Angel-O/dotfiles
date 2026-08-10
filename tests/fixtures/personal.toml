@@ -1,0 +1,15 @@
+[data]
+role = "personal"
+
+[data.modules]
+ghostty = true
+herdr = true
+opencode = true
+starship = true
+shell = true
+git = true
+
+[data.features]
+nodeDevelopment = true
+jvmDevelopment = true
+herdrFileViewer = true

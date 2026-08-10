@@ -1,0 +1,56 @@
+# Repository-only documentation and validation assets.
+README.md
+INVENTORY.md
+REQUIREMENTS.md
+DECISIONS.md
+DESIGN.md
+WORKFLOW.md
+OPEN-QUESTIONS.md
+tests
+tests/**
+.idea
+.idea/**
+
+{{- if not .modules.ghostty }}
+Library/Application Support/com.mitchellh.ghostty/**
+{{- end }}
+
+{{- if not .modules.herdr }}
+.config/herdr/**
+{{- end }}
+
+{{- if or (not .modules.herdr) (ne .role "personal") (not .features.herdrFileViewer) }}
+.config/herdr/plugins/config/herdr-file-viewer/**
+{{- end }}
+
+{{- if not .modules.opencode }}
+.config/opencode/**
+.local/bin/opencode-env
+{{- end }}
+
+{{- if eq .role "work" }}
+.config/opencode/tui.jsonc
+{{- end }}
+
+{{- if or (not .modules.opencode) (not .modules.herdr) }}
+.config/opencode/commands/herdr-name.md
+.config/opencode/skills/herdr-agent-name/**
+{{- end }}
+
+.config/opencode/env.local
+
+{{- if not .modules.starship }}
+.config/starship/**
+{{- end }}
+
+{{- if not .modules.shell }}
+.config/zsh/**
+.zshrc
+.oh-my-zsh/**
+{{- end }}
+
+{{- if not .modules.git }}
+.config/git/**
+.gitconfig
+.gitignore_global
+{{- end }}

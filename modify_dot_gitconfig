@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+start='# >>> portable chezmoi setup >>>'
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+cat >"$tmp"
+
+if grep -Fq "$start" "$tmp"; then
+  cat "$tmp"
+  exit 0
+fi
+
+cat "$tmp"
+if [ -s "$tmp" ]; then
+  printf '\n'
+fi
+cat <<'BLOCK'
+# >>> portable chezmoi setup >>>
+[include]
+	path = ~/.config/git/portable.inc
+# <<< portable chezmoi setup <<<
+BLOCK

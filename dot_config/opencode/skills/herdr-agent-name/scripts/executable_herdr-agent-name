@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: herdr-agent-name <name>" >&2
+  exit 2
+fi
+
+if [[ "${HERDR_ENV:-}" != "1" || -z "${HERDR_PANE_ID:-}" ]]; then
+  echo "not running inside a Herdr-managed pane" >&2
+  exit 1
+fi
+
+name=$1
+if [[ ! "$name" =~ ^[a-z][a-z0-9_-]{0,31}$ ]]; then
+  echo "invalid agent name: $name" >&2
+  exit 2
+fi
+
+exec herdr agent rename "$HERDR_PANE_ID" "$name"
