@@ -65,8 +65,10 @@ Select one or more modules when prompted. Before the first apply, follow the [pr
 
 ```sh
 chezmoi apply --dry-run --verbose
-chezmoi apply --interactive --verbose
+chezmoi apply --interactive --verbose --no-tty
 ```
+
+`--no-tty` uses a line-based `yes/no/all/quit` prompt. Type the complete choice and press Enter; this avoids terminal input issues with chezmoi's interactive text widget.
 
 To change the selected modules later:
 
