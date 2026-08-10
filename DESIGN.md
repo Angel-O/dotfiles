@@ -54,9 +54,10 @@ The current monolithic `.zshrc` mixes several scopes. A possible target structur
 
 ```text
 ~/.config/zsh/
+├── early.zsh
 ├── core.zsh
-├── aliases.zsh
 ├── git-worktrees.zsh
+├── herdr-labels.zsh
 ├── herdr.zsh
 ├── opencode.zsh
 ├── starship.zsh
@@ -65,7 +66,7 @@ The current monolithic `.zshrc` mixes several scopes. A possible target structur
 └── local.zsh
 ```
 
-`local.zsh` would remain unmanaged. Role-specific fragments could be conditionally rendered or ignored. The work machine's existing `.zshrc` could source managed fragments instead of being replaced wholesale.
+Chezmoi preserves the work machine's existing `.zshrc` and manages two marker blocks around it. The first sources `early.zsh` before machine-owned initialization; this currently loads only the dependency-free, latency-sensitive Herdr Labels hook. The normal block at the end sources the remaining fragments through `portable.zsh`. `local.zsh` remains unmanaged, and role-specific fragments can be conditionally rendered or ignored.
 
 ## Git Composition
 

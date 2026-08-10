@@ -1,22 +1,31 @@
 #!/bin/sh
 set -eu
 
-start='# >>> portable chezmoi setup >>>'
+early_start='# >>> portable chezmoi early setup >>>'
+normal_start='# >>> portable chezmoi setup >>>'
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
 cat >"$tmp"
 
-if grep -Fq "$start" "$tmp"; then
-  cat "$tmp"
-  exit 0
+if ! grep -Fq "$early_start" "$tmp"; then
+  cat <<'BLOCK'
+# >>> portable chezmoi early setup >>>
+source "$HOME/.config/zsh/early.zsh"
+# <<< portable chezmoi early setup <<<
+BLOCK
+  if [ -s "$tmp" ]; then
+    printf '\n'
+  fi
 fi
 
 cat "$tmp"
-if [ -s "$tmp" ]; then
-  printf '\n'
-fi
-cat <<'BLOCK'
+if ! grep -Fq "$normal_start" "$tmp"; then
+  if [ -s "$tmp" ]; then
+    printf '\n'
+  fi
+  cat <<'BLOCK'
 # >>> portable chezmoi setup >>>
 source "$HOME/.config/zsh/portable.zsh"
 # <<< portable chezmoi setup <<<
 BLOCK
+fi

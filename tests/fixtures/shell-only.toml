@@ -1,0 +1,15 @@
+[data]
+role = "work"
+
+[data.modules]
+ghostty = false
+herdr = false
+opencode = false
+starship = false
+shell = true
+git = false
+
+[data.features]
+nodeDevelopment = false
+jvmDevelopment = false
+herdrFileViewer = false

@@ -67,6 +67,21 @@ assert_not_contains() {
   fi
 }
 
+migration_dir="$root/zshrc-migration"
+mkdir -p "$migration_dir"
+cat >"$migration_dir/before" <<'EOF'
+ZSH_THEME="agnoster"
+# >>> portable chezmoi setup >>>
+source "$HOME/.config/zsh/portable.zsh"
+# <<< portable chezmoi setup <<<
+EOF
+sh "$source_dir/modify_dot_zshrc" <"$migration_dir/before" >"$migration_dir/after"
+sh "$source_dir/modify_dot_zshrc" <"$migration_dir/after" >"$migration_dir/second-apply"
+cmp -s "$migration_dir/after" "$migration_dir/second-apply"
+test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$migration_dir/after")" -eq 1
+test "$(grep -Fc '# >>> portable chezmoi setup >>>' "$migration_dir/after")" -eq 1
+test "$(grep -Fc 'ZSH_THEME="agnoster"' "$migration_dir/after")" -eq 1
+
 personal_home="$root/personal/home"
 render_scripts personal
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
@@ -121,7 +136,11 @@ EOF
 apply_fixture work
 assert_contains "$work_home/.zshrc" 'ZSH_THEME="agnoster"'
 assert_contains "$work_home/.zshrc" 'direnv hook zsh'
+assert_contains "$work_home/.zshrc" 'portable chezmoi early setup'
 assert_contains "$work_home/.zshrc" 'portable chezmoi setup'
+assert_contains "$work_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
+assert_contains "$work_home/.config/zsh/herdr-labels.zsh" 'angel-o.labels-*/shell/hook.zsh'
+assert_not_contains "$work_home/.config/zsh/herdr.zsh" 'hook.zsh'
 assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
@@ -147,8 +166,21 @@ remaining_diff=$(chezmoi diff \
   --persistent-state "$root/work/chezmoistate.boltdb" \
   --exclude scripts,externals)
 test -z "$remaining_diff"
+test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$work_home/.zshrc")" -eq 1
 test "$(grep -Fc '# >>> portable chezmoi setup >>>' "$work_home/.zshrc")" -eq 1
 test "$(grep -Fc '# >>> portable chezmoi setup >>>' "$work_home/.gitconfig")" -eq 1
+early_line=$(grep -nF '# >>> portable chezmoi early setup >>>' "$work_home/.zshrc" | cut -d: -f1)
+work_line=$(grep -nF 'ZSH_THEME="agnoster"' "$work_home/.zshrc" | cut -d: -f1)
+normal_line=$(grep -nF '# >>> portable chezmoi setup >>>' "$work_home/.zshrc" | cut -d: -f1)
+test "$early_line" -lt "$work_line"
+test "$work_line" -lt "$normal_line"
+
+shell_home="$root/shell-only/home"
+apply_fixture shell-only
+test -f "$shell_home/.config/zsh/early.zsh"
+assert_not_contains "$shell_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
+assert_not_contains "$shell_home/.config/zsh/portable.zsh" 'herdr.zsh'
+test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$shell_home/.zshrc")" -eq 1
 
 ghostty_home="$root/ghostty-only/home"
 render_scripts ghostty-only
