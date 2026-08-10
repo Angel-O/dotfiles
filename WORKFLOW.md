@@ -33,16 +33,19 @@ chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled 
 
 Only existing paths need a backup. Store backups locally because Herdr and OpenCode directories may contain private machine state that must not enter this repository.
 
-The repository includes a backup utility with the table's paths as its default list:
+The repository includes a backup utility with every path in the table as its default list. On an initialized target machine, pull the latest source without applying it, then run the utility from the chezmoi source directory:
 
 ```sh
-scripts/backup-home-paths.sh
+git -C "$(chezmoi source-path)" pull --ff-only
+"$(chezmoi source-path)/scripts/backup-home-paths.sh"
 ```
+
+Using Git directly updates only the source checkout; it does not apply the configuration. The utility skips missing paths and prints its timestamped destination when complete, normally `~/chezmoi-backup-YYYYMMDD-HHMMSS`.
 
 To use a different list, create a text file containing one home-relative path per line, then pass it to the script. Blank lines and lines beginning with `#` are ignored:
 
 ```sh
-scripts/backup-home-paths.sh \
+"$(chezmoi source-path)/scripts/backup-home-paths.sh" \
   --paths-file "$HOME/my-backup-paths.txt" \
   --destination "$HOME/my-chezmoi-backup"
 ```
