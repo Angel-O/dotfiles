@@ -1,10 +1,14 @@
-zconfig() {
-  code ~/.zshrc
-}
+if (( ! $+aliases[zconfig] && ! $+functions[zconfig] )); then
+  function zconfig {
+    code ~/.zshrc
+  }
+fi
 
-reload() {
-  source ~/.zshrc
-}
+if (( ! $+aliases[reload] && ! $+functions[reload] )); then
+  function reload {
+    source ~/.zshrc
+  }
+fi
 
 {{- if .features.nodeDevelopment }}
 export NVM_DIR="$HOME/.nvm"

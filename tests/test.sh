@@ -95,6 +95,8 @@ cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"
 eval "$(direnv hook zsh)"
 export PRIVATE_WORK_SHELL_VALUE=present
+alias zconfig='code ~/.zshrc'
+alias reload='source ~/.zshrc'
 EOF
 cat >"$work_home/.gitconfig" <<'EOF'
 [user]
@@ -130,6 +132,7 @@ test ! -e "$work_home/.config/herdr/plugins/config/herdr-file-viewer/config.toml
 jq -e '(.plugin | index("opencode-handoff@0.5.0"))' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
+HOME="$work_home" zsh -dfc 'alias zconfig="code ~/.zshrc"; alias reload="source ~/.zshrc"; source "$HOME/.config/zsh/helpers.zsh"'
 
 before=$(find "$work_home" -type f -exec sha256sum {} + | sort)
 apply_fixture work
