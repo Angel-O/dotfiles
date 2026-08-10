@@ -74,6 +74,7 @@ assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
 apply_fixture personal
 
 test -f "$personal_home/Library/Application Support/com.mitchellh.ghostty/config"
+assert_contains "$personal_home/Library/Application Support/com.mitchellh.ghostty/config" 'macos-option-as-alt = true'
 test -f "$personal_home/.config/herdr/plugins/config/herdr-file-viewer/config.toml"
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
