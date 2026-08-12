@@ -13,6 +13,7 @@ lmStudio = "1.0.0-rc.2"
 
 [pins.herdrPlugins.agentResume]
 source = "Angel-O/herdr-agent-resume"
+branch = "main"
 ref = "0485314f97d75f17ce25eab817b2cd23dafa6985"
 
 [pins.herdrPlugins.labels]
@@ -21,18 +22,22 @@ ref = "v0.2.5"
 
 [pins.herdrPlugins.recentNavigator]
 source = "beyondlex/herdr-recent-navigator"
+branch = "main"
 ref = "79cd2feaa8e493da32c230950545ec4c5ce2743b"
 
 [pins.herdrPlugins.spaceUsage]
 source = "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"
+branch = "main"
 ref = "fcfb6f7fa0a159adfab4528496bf10dd62e3e7c1"
 
 [pins.herdrPlugins.zoxide]
 source = "den-tanui/herdr-zoxide"
+branch = "master"
 ref = "7be842fe84d8d017c80e54f8d7eb7f0f6ef28c44"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
+branch = "main"
 ref = "01cc0620ec743ee7a62a561551b59d9be81bd563"
 
 [pins.herdrPlugins.fileViewer]
@@ -45,6 +50,7 @@ ref = "v0.0.9"
 
 [pins.herdrPlugins.elio]
 source = "robert-flo/herdr-terminal-file-manager"
+branch = "main"
 ref = "851a05c69b0db012b289d1c418f04eb7b29839ee"
 
 [pins.herdrPlugins.reviewr]

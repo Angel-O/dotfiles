@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update release-tagged Herdr plugins",
+      "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
+      "matchStrings": [
+        "\\[pins\\.herdrPlugins\\.[^\\]]+\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+ref = \"(?<currentValue>v[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver-coerced"
+    },
+    {
+      "customType": "regex",
+      "description": "Update default-branch Herdr plugin commits",
+      "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
+      "matchStrings": [
+        "\\[pins\\.herdrPlugins\\.[^\\]]+\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+branch = \"(?<currentValue>[^\"]+)\"\\s+ref = \"(?<currentDigest>[a-f0-9]{40})\""
+      ],
+      "packageNameTemplate": "https://github.com/{{{depName}}}.git",
+      "datasourceTemplate": "git-refs"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group Herdr plugin pin updates",
+      "matchManagers": ["custom.regex"],
+      "groupName": "Herdr plugins",
+      "groupSlug": "herdr-plugins",
+      "groupSingleUpdates": true
+    }
+  ]
+}

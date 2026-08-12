@@ -88,9 +88,9 @@ render_scripts personal
 assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide" "7be842fe84d8d017c80e54f8d7eb7f0f6ef28c44"'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay" "fcfb6f7fa0a159adfab4528496bf10dd62e3e7c1"'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-logbook "Resetnak/herdr-logbook" "v0.0.9"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-logbook "Resetnak/herdr-logbook"'
 apply_fixture personal
 
 test -f "$personal_home/Library/Application Support/com.mitchellh.ghostty/config"
@@ -115,8 +115,8 @@ render_scripts work
 assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "elio"'
-assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide" "7be842fe84d8d017c80e54f8d7eb7f0f6ef28c44"'
-assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr" "v0.30.1"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 mkdir -p "$work_home/.config/opencode"
 cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"
