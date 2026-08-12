@@ -9,6 +9,7 @@ mkdir -p "$root"
 safety_pattern='(/'"Users/|1628"'1580|Opa'"rah|8f84"'64|sk-[A-Za-z0-9]{16,})'
 if grep -R -E \
   --exclude-dir=.git \
+  --exclude=.git \
   --exclude-dir=.idea \
   --exclude='*.iml' \
   "$safety_pattern" \
@@ -84,13 +85,20 @@ test "$(grep -Fc 'ZSH_THEME="agnoster"' "$migration_dir/after")" -eq 1
 
 personal_home="$root/personal/home"
 render_scripts personal
+assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide" "7be842fe84d8d017c80e54f8d7eb7f0f6ef28c44"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay" "fcfb6f7fa0a159adfab4528496bf10dd62e3e7c1"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-logbook "Resetnak/herdr-logbook" "v0.0.9"'
 apply_fixture personal
 
 test -f "$personal_home/Library/Application Support/com.mitchellh.ghostty/config"
 assert_contains "$personal_home/Library/Application Support/com.mitchellh.ghostty/config" 'macos-option-as-alt = true'
 test -f "$personal_home/.config/herdr/plugins/config/herdr-file-viewer/config.toml"
+assert_contains "$personal_home/.config/herdr/plugins/config/herdr-zoxide/config.toml" 'preview = "eza -la --tree --level=2 --icons=always --color=always {}"'
+assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "herdr-zoxide.browse"'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
 test -L "$personal_home/.config/starship/current.toml"
@@ -104,8 +112,11 @@ zsh -n "$personal_home"/.config/zsh/*.zsh
 
 work_home="$root/work/home"
 render_scripts work
+assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "elio"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide" "7be842fe84d8d017c80e54f8d7eb7f0f6ef28c44"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr" "v0.30.1"'
 mkdir -p "$work_home/.config/opencode"
 cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"
@@ -184,6 +195,7 @@ test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$shell_home/.zshrc")"
 
 ghostty_home="$root/ghostty-only/home"
 render_scripts ghostty-only
+assert_contains "$root/ghostty-only/rendered/Brewfile" 'brew "eza"'
 apply_fixture ghostty-only
 test -f "$ghostty_home/Library/Application Support/com.mitchellh.ghostty/config"
 test ! -e "$ghostty_home/.config/herdr/config.toml"

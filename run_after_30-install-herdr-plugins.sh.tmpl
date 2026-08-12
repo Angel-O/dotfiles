@@ -42,6 +42,7 @@ ensure_github_plugin angel-o.labels {{ .pins.herdrPlugins.labels.source | quote 
 ensure_github_plugin beyondlex.herdr-recent-navigator {{ .pins.herdrPlugins.recentNavigator.source | quote }} {{ .pins.herdrPlugins.recentNavigator.ref | quote }}
 ensure_github_plugin ez-corp.space-usage {{ .pins.herdrPlugins.spaceUsage.source | quote }} {{ .pins.herdrPlugins.spaceUsage.ref | quote }}
 ensure_github_plugin herdr-bar {{ .pins.herdrPlugins.bar.source | quote }} {{ .pins.herdrPlugins.bar.ref | quote }}
+ensure_github_plugin herdr-zoxide {{ .pins.herdrPlugins.zoxide.source | quote }} {{ .pins.herdrPlugins.zoxide.ref | quote }}
 
 {{- if eq .role "work" }}
 ensure_github_plugin persiyanov.reviewr {{ .pins.herdrPlugins.reviewr.source | quote }} {{ .pins.herdrPlugins.reviewr.ref | quote }}

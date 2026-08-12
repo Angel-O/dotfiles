@@ -1,6 +1,6 @@
 # Configuration Inventory
 
-Inventory date: 2026-08-09.
+Inventory date: 2026-08-12.
 
 This is a snapshot of the currently verified personal-machine setup. The treatment and scope columns incorporate the completed inventory questionnaire.
 
@@ -24,7 +24,8 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Main configuration | `~/.config/herdr/config.toml` | Active | Shared template | Shared with machine values | Share UI, theme, keybindings, and plugin actions; template paths and optional plugin bindings |
 | Reviewr tab helper | `~/.config/herdr/reviewr-toggle-tab.sh` | Active executable | Track | Shared | Absolute home path in Herdr config must become portable |
 | Reviewr configuration | Plugin config directory | Active | Shared template | Shared plus one personal key | Share all current settings except `file_markdown_renderer`, which is personal-only |
-| Space usage configuration | Plugin config directory | Active | Track | Shared | Share sidebar mode, interval, and window-title totals |
+| Space usage configuration | Plugin config directory | Active | Track | Shared | Share sidebar mode, interval, window-title totals, and absolute RAM display |
+| Zoxide navigator configuration | Plugin config directory | Active | Track | Shared | Use `eza` for the directory preview |
 | Herdr Bar configuration | Plugin config directory | Active | Track | Shared | Share `preview = false` |
 | File viewer configuration | Plugin config directory | Mostly upstream example comments plus four active settings | Track concise active settings | Personal optional feature | Omit plugin, config, and dependencies at work initially |
 | Plugin registry | `~/.config/herdr/plugins.json` | Generated | Regenerate and exclude | Runtime | Contains machine paths and installation timestamps |
@@ -42,10 +43,11 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | `angel-o.agent-resume` | 0.1.0 | Resolved commit `0485314f` | Yes | Install pinned, shared |
 | `angel-o.labels` | 0.2.4 | Tag `v0.2.4` | Yes | Install pinned, shared, including Zsh hook |
 | `beyondlex.herdr-recent-navigator` | 0.6.2 | Resolved commit `79cd2fea` | Yes | Install pinned, shared |
-| `ez-corp.space-usage` | 1.9.0 | Commit `edfa3644` | Yes | Install pinned, shared |
+| `ez-corp.space-usage` | 1.11.1 | Commit `fcfb6f7f` | Yes | Install pinned, shared |
 | `herdr-bar` | 0.2.1 | Commit `01cc0620` | Yes | Install pinned, shared |
+| `herdr-zoxide` | 0.1.0 | Commit `7be842fe` | Yes | Install pinned, shared |
 | `herdr-file-viewer` | 1.15.0 | Tag `v1.15.0` | Yes | Install pinned, personal optional feature |
-| `herdr-logbook` | 0.0.8 | Tag `v0.0.8` | Yes | Install pinned, personal-only; keep data local |
+| `herdr-logbook` | 0.0.9 | Tag `v0.0.9` | Yes | Install pinned, personal-only; keep data local |
 | `robert-flo.elio` | 0.1.0 | Commit `851a05c6` | Yes | Install pinned, personal-only |
 
 The final plugin manifest will need exact `owner/repository` values. Public upstream identifiers are not considered credentials, but they should be confirmed before implementation.
@@ -54,7 +56,7 @@ The final plugin manifest will need exact `owner/repository` values. Public upst
 
 | Plugin ID | Observed version | Current personal source | Approved treatment |
 | --- | --- | --- | --- |
-| `persiyanov.reviewr` | 0.29.0 | Permanent local source checkout | Keep local link personally; install pinned GitHub release at work |
+| `persiyanov.reviewr` | 0.30.1 | Permanent local source checkout | Keep local link personally; install `v0.30.1` at work |
 
 Elio changed during the review from a temporary local link to a GitHub-installed plugin. The Herdr plugin remains distinct from the Homebrew-installed `elio` executable and both are personal-only.
 
@@ -186,6 +188,7 @@ This list intentionally includes only observed dependencies related to the envir
 | Monaspace font | Homebrew cask | Available unused font | Exclude |
 | FZF | Homebrew formula | Shell and worktree selector | Install shared |
 | Zoxide | Homebrew formula | Shell navigation | Install shared |
+| Eza | Homebrew formula | General-purpose directory listing and Herdr Zoxide previews | Install unconditionally |
 | Direnv | Homebrew formula | Project-local environments | Exclude |
 | Bat, Git Delta, and Glow | Homebrew formulas | Personal Herdr renderers | Install only with corresponding personal plugin settings |
 | jq | Homebrew formula or transitive install | Herdr helper scripts | Install explicitly, shared |
