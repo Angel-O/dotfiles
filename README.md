@@ -52,6 +52,8 @@ bash tests/run-docker.sh
 
 It renders synthetic personal, work, and Ghostty-only homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute package/plugin installers.
 
+Pull requests and pushes to `main` run the same command on GitHub's standard hosted `ubuntu-24.04` x64 runner. Docker supplies the matching `TARGETARCH` to the test image, so CI downloads the amd64 chezmoi binary while local Apple Silicon runs continue to use arm64. Standard GitHub-hosted runners require no additional service and are free for public repositories; private repositories consume the owner's plan allowance and may be billed after its included Actions minutes are exhausted. See GitHub's [hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) and [Actions billing documentation](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions).
+
 ## Dependency Updates
 
 The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages Herdr plugin refs in `.chezmoidata.toml`. If the app is not enabled, install it for this GitHub account and grant it access to this repository; no self-hosted workflow is required.
