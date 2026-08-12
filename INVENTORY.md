@@ -38,25 +38,25 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 
 ## Herdr GitHub Plugins
 
-| Plugin ID | Observed version | Installed reference | Enabled | Approved treatment |
-| --- | --- | --- | --- |
-| `angel-o.agent-resume` | 0.1.0 | Resolved commit `0485314f` | Yes | Install pinned, shared |
-| `angel-o.labels` | 0.2.5 | Tag `v0.2.5` | Yes | Install pinned, shared, including Zsh hook |
-| `beyondlex.herdr-recent-navigator` | 0.6.2 | Resolved commit `79cd2fea` | Yes | Install pinned, shared |
-| `ez-corp.space-usage` | 1.11.1 | Commit `fcfb6f7f` | Yes | Install pinned, shared |
-| `herdr-bar` | 0.2.1 | Commit `01cc0620` | Yes | Install pinned, shared |
-| `herdr-zoxide` | 0.1.0 | Commit `7be842fe` | Yes | Install pinned, shared |
-| `herdr-file-viewer` | 1.15.0 | Tag `v1.15.0` | Yes | Install pinned, personal optional feature |
-| `herdr-logbook` | 0.0.9 | Tag `v0.0.9` | Yes | Install pinned, personal-only; keep data local |
-| `robert-flo.elio` | 0.1.0 | Commit `851a05c6` | Yes | Install pinned, personal-only |
+`.chezmoidata.toml` is the authoritative source for plugin repositories and exact refs; Renovate maintains those values so this inventory does not duplicate them.
 
-The final plugin manifest will need exact `owner/repository` values. Public upstream identifiers are not considered credentials, but they should be confirmed before implementation.
+| Plugin ID | Pin policy | Enabled | Approved treatment |
+| --- | --- | --- | --- |
+| `angel-o.agent-resume` | Default branch commit | Yes | Install pinned, shared |
+| `angel-o.labels` | Release tag | Yes | Install pinned, shared, including Zsh hook |
+| `beyondlex.herdr-recent-navigator` | Default branch commit | Yes | Install pinned, shared |
+| `ez-corp.space-usage` | Default branch commit | Yes | Install pinned, shared |
+| `herdr-bar` | Default branch commit | Yes | Install pinned, shared |
+| `herdr-zoxide` | Default branch commit | Yes | Install pinned, shared |
+| `herdr-file-viewer` | Release tag | Yes | Install pinned, personal optional feature |
+| `herdr-logbook` | Release tag | Yes | Install pinned, personal-only; keep data local |
+| `robert-flo.elio` | Default branch commit | Yes | Install pinned, personal-only |
 
 ## Herdr Machine-Specific Plugin Installation
 
-| Plugin ID | Observed version | Current personal source | Approved treatment |
+| Plugin ID | Pin policy | Current personal source | Approved treatment |
 | --- | --- | --- | --- |
-| `persiyanov.reviewr` | 0.30.1 | Permanent local source checkout | Keep local link personally; install `v0.30.1` at work |
+| `persiyanov.reviewr` | Release tag | Permanent local source checkout | Keep local link personally; install the pinned release at work |
 
 Elio changed during the review from a temporary local link to a GitHub-installed plugin. The Herdr plugin remains distinct from the Homebrew-installed `elio` executable and both are personal-only.
 

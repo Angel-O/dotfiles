@@ -52,6 +52,12 @@ bash tests/run-docker.sh
 
 It renders synthetic personal, work, and Ghostty-only homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute package/plugin installers.
 
+## Dependency Updates
+
+The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages Herdr plugin refs in `.chezmoidata.toml`. If the app is not enabled, install it for this GitHub account and grant it access to this repository; no self-hosted workflow is required.
+
+Renovate opens one grouped `Herdr plugins` PR when updates are available. Release-tag pins follow newer GitHub tags, while commit pins follow each repository's default branch. These PRs are not automerged and should pass the Docker validation before review and merge. `INVENTORY.md` intentionally records pin policy rather than duplicating exact refs.
+
 ## Local Initialization
 
 Homebrew and chezmoi are prerequisites. Initialize from this checkout without applying:
