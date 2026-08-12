@@ -25,7 +25,11 @@ ref = "79cd2feaa8e493da32c230950545ec4c5ce2743b"
 
 [pins.herdrPlugins.spaceUsage]
 source = "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"
-ref = "edfa36443c3d04892d7d264af7eb4de1a8dafc85"
+ref = "fcfb6f7fa0a159adfab4528496bf10dd62e3e7c1"
+
+[pins.herdrPlugins.zoxide]
+source = "den-tanui/herdr-zoxide"
+ref = "7be842fe84d8d017c80e54f8d7eb7f0f6ef28c44"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
@@ -37,7 +41,7 @@ ref = "v1.15.0"
 
 [pins.herdrPlugins.logbook]
 source = "Resetnak/herdr-logbook"
-ref = "v0.0.8"
+ref = "v0.0.9"
 
 [pins.herdrPlugins.elio]
 source = "robert-flo/herdr-terminal-file-manager"
@@ -45,4 +49,4 @@ ref = "851a05c69b0db012b289d1c418f04eb7b29839ee"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
-ref = "05a02b6e159467ff0a7abe391a7e530b7ddbd8a5"
+ref = "v0.30.1"
