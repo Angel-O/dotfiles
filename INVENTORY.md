@@ -41,7 +41,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Plugin ID | Observed version | Installed reference | Enabled | Approved treatment |
 | --- | --- | --- | --- |
 | `angel-o.agent-resume` | 0.1.0 | Resolved commit `0485314f` | Yes | Install pinned, shared |
-| `angel-o.labels` | 0.2.4 | Tag `v0.2.4` | Yes | Install pinned, shared, including Zsh hook |
+| `angel-o.labels` | 0.2.5 | Tag `v0.2.5` | Yes | Install pinned, shared, including Zsh hook |
 | `beyondlex.herdr-recent-navigator` | 0.6.2 | Resolved commit `79cd2fea` | Yes | Install pinned, shared |
 | `ez-corp.space-usage` | 1.11.1 | Commit `fcfb6f7f` | Yes | Install pinned, shared |
 | `herdr-bar` | 0.2.1 | Commit `01cc0620` | Yes | Install pinned, shared |
