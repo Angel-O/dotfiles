@@ -13,7 +13,16 @@ role = "work"
 [data.features]
 nodeDevelopment = false
 jvmDevelopment = false
-herdrFileViewer = false
+
+[data.herdrPlugins]
+agentResume = true
+labels = true
+recentNavigator = true
+spaceUsage = true
+bar = true
+zoxide = true
+elio = false
+reviewr = true
 ```
 
 The data file generated on each machine remains local. Public source templates may use these values, but must not contain private machine values.
@@ -23,8 +32,9 @@ The data file generated on each machine remains local. Public source templates m
 | Layer | Responsibility | Examples |
 | --- | --- | --- |
 | Shared | Portable behavior used everywhere | Themes, aliases, keybindings, Git worktree helpers |
-| Role | Broad personal/work differences | Personal-only local AI, Warp, Logbook, and Elio |
-| Feature | Independently enabled optional capabilities | Node development, JVM development, Herdr File Viewer |
+| Role | Broad personal/work differences | Personal-only local AI and Warp; Reviewr source policy |
+| Feature | Independently enabled optional capabilities | Node development and JVM development |
+| Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Zoxide, Elio, Reviewr |
 | Machine | Device-specific paths or architecture | Workspace root, ARM64 package behavior |
 | Local secret | Values never stored in Git | Credentials, company endpoints, API keys |
 | Runtime | Application-owned mutable state | Sessions, logs, caches, databases |
@@ -38,8 +48,7 @@ dotfiles/
 ├── .chezmoidata.toml
 ├── .chezmoiexternal.toml.tmpl
 ├── .chezmoitemplates/Brewfile.tmpl
-├── Library/.../com.mitchellh.ghostty/config
-├── dot_config/{git,herdr,opencode,starship,zsh}/
+├── dot_config/{ghostty,git,herdr,opencode,starship,zsh}/
 ├── dot_local/bin/
 ├── modify_dot_{gitconfig,zshrc}
 ├── run_{before,after}_*.sh.tmpl
@@ -66,7 +75,7 @@ The current monolithic `.zshrc` mixes several scopes. A possible target structur
 └── local.zsh
 ```
 
-Chezmoi preserves the work machine's existing `.zshrc` and manages two marker blocks around it. The first sources `early.zsh` before machine-owned initialization; this currently loads only the dependency-free, latency-sensitive Herdr Labels hook. The normal block at the end sources the remaining fragments through `portable.zsh`. `local.zsh` remains unmanaged, and role-specific fragments can be conditionally rendered or ignored.
+Chezmoi preserves the work machine's existing `.zshrc` and manages two marker blocks around it. The first sources `early.zsh` before machine-owned initialization; this loads the dependency-free, latency-sensitive Herdr Labels hook only when that plugin is selected. The normal block at the end sources the remaining fragments through `portable.zsh`. `local.zsh` remains unmanaged, and role-specific fragments can be conditionally rendered or ignored.
 
 ## Git Composition
 
@@ -85,7 +94,7 @@ Private work launcher values live in ignored `~/.config/opencode/env.local` and 
 | OpenCode published plugin | Pin in rendered OpenCode configuration where appropriate |
 | OpenCode local authored plugin | Track source file directly |
 | OpenCode Herdr integration | Regenerate using Herdr's integration installer |
-| Herdr GitHub plugin | Idempotently install from pinned source data |
+| Herdr GitHub plugin | Idempotently install from pinned source data when selected locally |
 | Reviewr on personal machine | Keep the existing local development link |
 | Reviewr on work machine | Install a pinned GitHub release |
 | Oh My Zsh third-party plugin | Use a pinned chezmoi external or installation script |

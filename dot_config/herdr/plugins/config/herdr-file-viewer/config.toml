@@ -1,4 +1,0 @@
-editor = "vim"
-markdown = "glow -s dark -w 0 -"
-diff = "delta"
-syntax = "bat --color=always --style=numbers --paging=never --file-name={name} -"

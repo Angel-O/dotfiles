@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+old_config="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+if [ ! -f "$old_config" ]; then
+  exit 0
+fi
+
+backup="${old_config}.pre-chezmoi-$(date +%Y%m%d-%H%M%S)"
+if [ -e "$backup" ]; then
+  printf 'Ghostty config backup already exists: %s\n' "$backup" >&2
+  exit 1
+fi
+
+mv "$old_config" "$backup"
+printf 'Archived old Ghostty config at %s\n' "$backup"

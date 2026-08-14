@@ -1,12 +1,12 @@
 [data]
-role = "work"
+role = "personal"
 
 [data.modules]
-ghostty = true
-herdr = false
+ghostty = false
+herdr = true
 opencode = false
 starship = false
-shell = false
+shell = true
 git = false
 
 [data.features]

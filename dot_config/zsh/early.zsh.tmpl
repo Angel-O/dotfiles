@@ -1,4 +1,4 @@
-{{- if .modules.herdr }}
+{{- if and .modules.herdr .herdrPlugins.labels }}
 source "$HOME/.config/zsh/herdr-labels.zsh"
 {{- else }}
 # No early shell integrations enabled.

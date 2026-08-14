@@ -7,14 +7,30 @@
 {{- $git := promptBoolOnce . "modules.git" "Enable the Git module" false -}}
 {{- $nodeDevelopment := false -}}
 {{- $jvmDevelopment := false -}}
-{{- $herdrFileViewer := false -}}
+{{- $agentResume := false -}}
+{{- $labels := false -}}
+{{- $recentNavigator := false -}}
+{{- $spaceUsage := false -}}
+{{- $bar := false -}}
+{{- $zoxide := false -}}
+{{- $elio := false -}}
+{{- $reviewr := false -}}
 {{- if $shell -}}
 {{- $nodeDevelopment = promptBoolOnce . "features.nodeDevelopment" "Enable optional Node development setup" false -}}
 {{- $jvmDevelopment = promptBoolOnce . "features.jvmDevelopment" "Enable optional JVM development setup" false -}}
 {{- end -}}
-{{- if and $herdr (eq $role "personal") -}}
-{{- $herdrFileViewer = promptBoolOnce . "features.herdrFileViewer" "Enable the optional Herdr File Viewer" false -}}
+{{- if $herdr -}}
+{{- $agentResume = promptBoolOnce . "herdrPlugins.agentResume" "Enable the Herdr Agent Resume plugin" true -}}
+{{- $labels = promptBoolOnce . "herdrPlugins.labels" "Enable the Herdr Labels plugin" true -}}
+{{- $recentNavigator = promptBoolOnce . "herdrPlugins.recentNavigator" "Enable the Herdr Recent Navigator plugin" true -}}
+{{- $spaceUsage = promptBoolOnce . "herdrPlugins.spaceUsage" "Enable the Herdr Space Usage plugin" true -}}
+{{- $bar = promptBoolOnce . "herdrPlugins.bar" "Enable the Herdr Bar plugin" true -}}
+{{- $zoxide = promptBoolOnce . "herdrPlugins.zoxide" "Enable the Herdr Zoxide plugin" true -}}
+{{- $elio = promptBoolOnce . "herdrPlugins.elio" "Enable the Herdr Elio plugin" false -}}
+{{- $reviewr = promptBoolOnce . "herdrPlugins.reviewr" "Enable the Herdr Reviewr plugin" true -}}
 {{- end -}}
+
+sourceDir = {{ .chezmoi.sourceDir | quote }}
 
 [data]
 role = {{ $role | quote }}
@@ -30,4 +46,13 @@ git = {{ $git }}
 [data.features]
 nodeDevelopment = {{ $nodeDevelopment }}
 jvmDevelopment = {{ $jvmDevelopment }}
-herdrFileViewer = {{ $herdrFileViewer }}
+
+[data.herdrPlugins]
+agentResume = {{ $agentResume }}
+labels = {{ $labels }}
+recentNavigator = {{ $recentNavigator }}
+spaceUsage = {{ $spaceUsage }}
+bar = {{ $bar }}
+zoxide = {{ $zoxide }}
+elio = {{ $elio }}
+reviewr = {{ $reviewr }}

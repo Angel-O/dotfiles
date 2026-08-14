@@ -12,4 +12,13 @@ git = true
 [data.features]
 nodeDevelopment = true
 jvmDevelopment = true
-herdrFileViewer = true
+
+[data.herdrPlugins]
+agentResume = true
+labels = true
+recentNavigator = true
+spaceUsage = true
+bar = true
+zoxide = true
+elio = true
+reviewr = true
