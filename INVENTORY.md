@@ -8,13 +8,12 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 
 | Artifact | Current location or source | Verified state | Approved treatment | Scope | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Live macOS configuration | `~/Library/Application Support/com.mitchellh.ghostty/config` | Active | Track (approved) | Shared | Authoritative Ghostty configuration on this Mac |
-| Theme selection | Live configuration | `TokyoNight` for dark mode and `TokyoNight Day` for light mode | Track with live config | Shared | Themes are bundled with Ghostty |
-| Font selection | Live configuration | Hack Regular, size 14 | Track setting; install font cask | Shared | Font files must not be committed |
-| Window behavior | Live configuration | Start maximized outside fullscreen; padded-notch manual fullscreen | Track with live config | Shared/macOS | Uses `fullscreen`, `macos-non-native-fullscreen`, and `maximize` |
-| Stale configuration | `~/.config/ghostty/config` | Not authoritative on this Mac | Remove later (approved) | Obsolete | Remove in a separate cleanup after confirming Ghostty remains unaffected |
-| Stale Cyberdream theme | `~/.config/ghostty/themes/cyberdream` | Not active | Remove later (approved) | Obsolete | Remove with the stale Ghostty configuration in a separate cleanup |
-| Configuration backups | Beside the live macOS configuration | Historical snapshots | Exclude (approved) | Runtime | Local retention or cleanup is outside chezmoi |
+| Managed configuration | `~/.config/ghostty/config` | XDG source state | Track (approved) | Shared | Authoritative managed file; Ghostty loads it before the macOS file |
+| Theme selection | Managed XDG configuration | `TokyoNight` for dark mode and `TokyoNight Day` for light mode | Track with managed config | Shared | Themes are bundled with Ghostty |
+| Font selection | Managed XDG configuration | Hack Regular, size 14 | Track setting; install font cask | Shared | Font files must not be committed |
+| Window behavior | Managed XDG configuration | Start maximized outside fullscreen; padded-notch manual fullscreen | Track with managed config | Shared/macOS | Uses `fullscreen`, `macos-non-native-fullscreen`, and `maximize` |
+| Old recognized configuration | `~/Library/Application Support/com.mitchellh.ghostty/config` | Loaded later and overrides XDG conflicts | Back up, then archive with a one-time post-apply migration | Local adoption | Renamed beside itself to `config.pre-chezmoi-<timestamp>`, which Ghostty does not recognize |
+| Configuration backups | Local backup destination | Historical snapshots | Exclude (approved) | Runtime | Local retention or cleanup is outside chezmoi |
 | Ghostty application | Homebrew cask | Version 1.3.1 observed | Install Homebrew stable if missing | Shared/macOS | Do not commit or pin the application binary |
 
 ## Herdr Core
@@ -22,12 +21,11 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Artifact | Current location or source | Verified state | Approved treatment | Scope | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Main configuration | `~/.config/herdr/config.toml` | Active | Shared template | Shared with machine values | Share UI, theme, keybindings, and plugin actions; template paths and optional plugin bindings |
-| Reviewr tab helper | `~/.config/herdr/reviewr-toggle-tab.sh` | Active executable | Track | Shared | Absolute home path in Herdr config must become portable |
-| Reviewr configuration | Plugin config directory | Active | Shared template | Shared plus one personal key | Share all current settings except `file_markdown_renderer`, which is personal-only |
-| Space usage configuration | Plugin config directory | Active | Track | Shared | Share sidebar mode, interval, window-title totals, and absolute RAM display |
-| Zoxide navigator configuration | Plugin config directory | Active | Track | Shared | Use `eza` for the directory preview |
-| Herdr Bar configuration | Plugin config directory | Active | Track | Shared | Share `preview = false` |
-| File viewer configuration | Plugin config directory | Mostly upstream example comments plus four active settings | Track concise active settings | Personal optional feature | Omit plugin, config, and dependencies at work initially |
+| Reviewr tab helper | `~/.config/herdr/reviewr-toggle-tab.sh` | Active executable | Track when selected | Machine-selected | Absolute home path in Herdr config becomes portable |
+| Reviewr configuration | Plugin config directory | Active | Shared template when selected | Machine-selected | Use `glow -s dracula -w {width} -` on every role |
+| Space usage configuration | Plugin config directory | Active | Track when selected | Machine-selected | Share sidebar mode, interval, window-title totals, and absolute RAM display |
+| Zoxide navigator configuration | Plugin config directory | Active | Track when selected | Machine-selected | Use `eza` for the directory preview |
+| Herdr Bar configuration | Plugin config directory | Active | Track when selected | Machine-selected | Share `preview = false` |
 | Plugin registry | `~/.config/herdr/plugins.json` | Generated | Regenerate and exclude | Runtime | Contains machine paths and installation timestamps |
 | Downloaded GitHub plugins | `~/.config/herdr/plugins/github/` | Generated checkouts/builds | Regenerate and exclude | Runtime | Reinstall from pinned declarations |
 | Plugin lock file | `~/.config/herdr/.plugins.lock` | Empty | Ignore | Runtime | Not currently useful as a portable declaration |
@@ -40,25 +38,23 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 
 `.chezmoidata.toml` is the authoritative source for plugin repositories and exact refs; Renovate maintains those values so this inventory does not duplicate them.
 
-| Plugin ID | Pin policy | Enabled | Approved treatment |
+| Plugin ID | Pin policy | Default | Approved treatment |
 | --- | --- | --- | --- |
-| `angel-o.agent-resume` | Default branch commit | Yes | Install pinned, shared |
-| `angel-o.labels` | Release tag | Yes | Install pinned, shared, including Zsh hook |
-| `beyondlex.herdr-recent-navigator` | Default branch commit | Yes | Install pinned, shared |
-| `ez-corp.space-usage` | Default branch commit | Yes | Install pinned, shared |
-| `herdr-bar` | Default branch commit | Yes | Install pinned, shared |
-| `herdr-zoxide` | Default branch commit | Yes | Install pinned, shared |
-| `herdr-file-viewer` | Release tag | Yes | Install pinned, personal optional feature |
-| `herdr-logbook` | Release tag | Yes | Install pinned, personal-only; keep data local |
-| `robert-flo.elio` | Default branch commit | Yes | Install pinned, personal-only |
+| `angel-o.agent-resume` | Default branch commit | On | Install pinned when selected |
+| `angel-o.labels` | Release tag | On | Install pinned and load its Zsh hook when selected |
+| `beyondlex.herdr-recent-navigator` | Default branch commit | On | Install pinned when selected |
+| `ez-corp.space-usage` | Default branch commit | On | Install pinned and manage config when selected |
+| `herdr-bar` | Default branch commit | On | Install pinned and manage config when selected |
+| `herdr-zoxide` | Default branch commit | On | Install pinned and manage config when selected |
+| `robert-flo.elio` | Default branch commit | Off | Install pinned when selected; distinct from the shared CLI |
 
 ## Herdr Machine-Specific Plugin Installation
 
 | Plugin ID | Pin policy | Current personal source | Approved treatment |
 | --- | --- | --- | --- |
-| `persiyanov.reviewr` | Release tag | Permanent local source checkout | Keep local link personally; install the pinned release at work |
+| `persiyanov.reviewr` | Release tag | Permanent local source checkout | Default on; keep local link personally and install the pinned release at work when selected |
 
-Elio changed during the review from a temporary local link to a GitHub-installed plugin. The Herdr plugin remains distinct from the Homebrew-installed `elio` executable and both are personal-only.
+Every managed plugin is a machine-local selection independent of role. `prefix+m` remains unassigned by managed config. Disabling a selection stops installation, config management, and managed bindings without uninstalling the live plugin. The Herdr Elio plugin remains distinct from the shared Homebrew-installed `elio` executable.
 
 ## OpenCode Core
 
@@ -132,7 +128,7 @@ Elio changed during the review from a temporary local link to a GitHub-installed
 | Main `.zshrc` | Approximately 380 lines and mixes shared, personal, generated, and machine-specific settings | Refactor into managed fragments | Mixed | Preserve and reconcile existing work shell config |
 | Oh My Zsh | Loaded from `~/.oh-my-zsh` | Install pinned source if missing | Shared | Built-in plugins include Git and macOS |
 | Homebrew path setup | Apple Silicon path | Template | macOS/architecture | Should not assume one architecture |
-| Herdr Labels hook | Loads the plugin's generated shell hook | Track integration logic | Shared | Depends on Herdr plugin installation |
+| Herdr Labels hook | Loads the plugin's generated shell hook | Track conditionally | Machine-selected | Enabled only with the Labels plugin selection |
 | Custom completion path | `~/.zsh/completions` | Track loader; regenerate completions | Shared | Herdr and Codex completions currently present |
 | Zoxide initialization | Active | Install and track | Shared | Requires `zoxide` |
 | FZF integration | Active with path fallback | Install and track | Shared | Required by worktree selector |
@@ -190,9 +186,9 @@ This list intentionally includes only observed dependencies related to the envir
 | Zoxide | Homebrew formula | Shell navigation | Install shared |
 | Eza | Homebrew formula | General-purpose directory listing and Herdr Zoxide previews | Install unconditionally |
 | Direnv | Homebrew formula | Project-local environments | Exclude |
-| Bat, Git Delta, and Glow | Homebrew formulas | Personal Herdr renderers | Install only with corresponding personal plugin settings |
+| Glow | Homebrew formula | Reviewr Markdown renderer | Install when Reviewr is selected |
 | jq | Homebrew formula or transitive install | Herdr helper scripts | Install explicitly, shared |
-| Elio | Homebrew formula | Personal terminal file explorer | Install personal-only with pinned Herdr plugin |
+| Elio | Homebrew formula | Standalone terminal file explorer | Install as a shared package independently of Herdr and the Elio plugin selection |
 | Cargo/Rust | Rust toolchain, Cargo 1.97.1 observed | Builds selected Herdr plugins | Install only when a selected plugin requires a local build |
 | Node.js/npm and NVM | Mixed toolchain installation | Optional Node development | Manage only when optional Node feature is selected |
 | SDKMAN | User-managed installation | Optional JVM development | Manage only when optional JVM feature is selected |

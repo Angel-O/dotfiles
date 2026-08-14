@@ -7,7 +7,9 @@
 .config/git
 .config/herdr
 .config/opencode
+.config/ghostty
 .local/bin/opencode-env
 .oh-my-zsh
 .zsh/completions
+# Back up before manually retiring this later-loading Ghostty config.
 Library/Application Support/com.mitchellh.ghostty/config

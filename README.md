@@ -35,8 +35,8 @@ The inventory uses these classifications:
 
 | Module | Scope |
 | --- | --- |
-| `ghostty` | Live macOS config, Ghostty cask, Hack, and JetBrains Mono |
-| `herdr` | Herdr core, shared config, helper, and role-aware pinned plugins |
+| `ghostty` | XDG config, Ghostty cask, Hack, and JetBrains Mono |
+| `herdr` | Herdr core, shared config, and machine-selected pinned plugins |
 | `opencode` | Portable config layer, launcher, local plugins, commands, and skills |
 | `starship` | Starship, themes, selector, and `stheme` support |
 | `shell` | Zsh fragments, Oh My Zsh, FZF, Zoxide, and cross-tool hooks |
@@ -50,7 +50,7 @@ The primary integration test runs entirely inside Docker:
 bash tests/run-docker.sh
 ```
 
-It renders synthetic personal, work, and Ghostty-only homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute package/plugin installers.
+It renders synthetic personal, work, Ghostty-only, and plugin-disabled Herdr homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute package/plugin installers.
 
 Pull requests and pushes to `main` run the same command on GitHub's standard hosted `ubuntu-24.04` x64 runner. Docker supplies the matching `TARGETARCH` to the Alpine test image, so CI downloads chezmoi's amd64 musl build while local Apple Silicon runs continue to use arm64. Standard GitHub-hosted runners require no additional service and are free for public repositories; private repositories consume the owner's plan allowance and may be billed after its included Actions minutes are exhausted. See GitHub's [hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) and [Actions billing documentation](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions).
 
@@ -69,24 +69,26 @@ chezmoi init --source "$HOME/workspace/source/dotfiles" --prompt
 chezmoi diff
 ```
 
-Select one or more modules when prompted. Before the first apply, follow the [pre-apply backup](WORKFLOW.md#pre-apply-backup) checklist, then review the diff:
+Select one or more modules when prompted. When Herdr is enabled, select each managed plugin independently. Before the first apply, follow the [pre-apply backup](WORKFLOW.md#pre-apply-backup) checklist, then review the diff:
 
 ```sh
-chezmoi apply --dry-run --verbose
-chezmoi apply --interactive --verbose --no-tty
+chezmoi apply --dry-run --verbose --no-tty
+chezmoi apply --verbose --no-tty
 ```
 
-`--no-tty` uses a line-based `yes/no/all/quit` prompt. Type the complete choice and press Enter; this avoids terminal input issues with chezmoi's interactive text widget.
+`--no-tty` prevents chezmoi from acquiring a terminal unexpectedly. The final command applies the already-reviewed state without interactive prompts.
 
 To change the selected modules later:
 
 ```sh
 chezmoi init --source "$HOME/workspace/source/dotfiles" --prompt
 chezmoi diff
-chezmoi apply
+chezmoi apply --verbose --no-tty
 ```
 
-Disabling a module does not uninstall packages or delete previously created configuration.
+Existing initialized machines receiving the plugin-selection schema must run `chezmoi init --source "$(chezmoi source-path)" --prompt` before `chezmoi diff`; otherwise the required `[data.herdrPlugins]` table is absent. See [Receiving Changes](WORKFLOW.md#receiving-changes).
+
+Disabling a module or Herdr plugin selection stops future management and installation; it does not uninstall packages or live plugins.
 
 ## Privacy
 

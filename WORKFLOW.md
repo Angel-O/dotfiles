@@ -24,7 +24,7 @@ chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled 
 
 | Module | Existing paths to back up |
 | --- | --- |
-| Ghostty | `~/Library/Application Support/com.mitchellh.ghostty/config` |
+| Ghostty | `~/.config/ghostty`, plus the old `~/Library/Application Support/com.mitchellh.ghostty/config` before retiring it manually |
 | Herdr | `~/.config/herdr` |
 | OpenCode | `~/.config/opencode`, `~/.local/bin/opencode-env` |
 | Starship | `~/.config/starship` |
@@ -32,6 +32,16 @@ chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled 
 | Git | `~/.gitconfig`, `~/.gitignore_global`, `~/.config/git` |
 
 Only existing paths need a backup. Store backups locally because Herdr and OpenCode directories may contain private machine state that must not enter this repository.
+
+Ghostty loads `~/.config/ghostty/config` first, then loads the macOS Application Support config later and lets that file override conflicts. After writing the managed XDG file, a one-time chezmoi script renames the old Application Support file to `config.pre-chezmoi-<timestamp>`. This preserves its comments beside the old path while removing the recognized override. The pre-apply backup utility also captures the original file.
+
+When receiving this first-adoption schema change on an initialized machine, regenerate the local chezmoi config before running `chezmoi diff`. The new `[data.herdrPlugins]` table is required and deliberately has no compatibility fallback:
+
+```sh
+chezmoi init --source "$(chezmoi source-path)" --prompt
+```
+
+Select every Herdr plugin explicitly. The persisted `sourceDir` keeps the existing checkout authoritative. For Ghostty adoption, complete this reinitialization, run the backup utility so both Ghostty paths are captured, and review `chezmoi diff`. The apply archives the old Application Support config after writing the managed XDG config.
 
 The repository includes a backup utility with every path in the table as its default list. On an initialized target machine, pull the latest source without applying it, then run the utility from the chezmoi source directory:
 
@@ -56,13 +66,13 @@ Review both direct file changes and script effects before applying:
 
 ```sh
 chezmoi diff
-chezmoi apply --dry-run --verbose
-chezmoi apply --interactive --verbose --no-tty
+chezmoi apply --dry-run --verbose --no-tty
+chezmoi apply --verbose --no-tty
 ```
 
-`--no-tty` selects chezmoi's line-based `yes/no/all/quit` prompt. Type the complete choice and press Enter; this avoids terminal input issues with the default interactive text widget.
+`--no-tty` prevents chezmoi from acquiring a terminal unexpectedly. The final command applies the already-reviewed state without interactive prompts.
 
-The apply scripts install missing Homebrew packages additively, install pinned shell externals under `~/.oh-my-zsh`, install or replace pinned Herdr plugins under `~/.config/herdr`, and generate shell completions under `~/.zsh/completions` when their modules are enabled. The optional SDKMAN installer writes under `~/.sdkman`. These script effects may not appear as ordinary managed-file diffs.
+The apply scripts install missing Homebrew packages additively, install pinned shell externals under `~/.oh-my-zsh`, install or replace selected pinned Herdr plugins under `~/.config/herdr`, and generate shell completions under `~/.zsh/completions` when their modules are enabled. The optional SDKMAN installer writes under `~/.sdkman`. These script effects may not appear as ordinary managed-file diffs.
 
 ## Existing Work-Machine Adoption
 
@@ -86,7 +96,7 @@ After reconciliation:
 
 ```sh
 chezmoi diff
-chezmoi apply --interactive --verbose --no-tty
+chezmoi apply --verbose --no-tty
 ```
 
 For Zsh and Git, marker-based `modify_` scripts preserve the work-owned files and add one portable include block. OpenCode keeps its private global config and consumes the managed portable layer through `OPENCODE_CONFIG`. Plugin cleanup is manual because private plugin names must not enter public source state.
@@ -107,14 +117,14 @@ Package installation should be additive and idempotent:
 
 Optional features must not require rebuilding the machine. The intended flow is:
 
-1. Change the machine-local feature value, such as enabling Node development or Herdr File Viewer.
+1. Change the machine-local feature or Herdr plugin selection, such as enabling Node development or Reviewr.
 2. Preview the newly rendered files, packages, and scripts with `chezmoi diff`.
 3. Apply the target state.
 4. Install only the newly missing packages and plugins.
 5. Leave already-correct files and installations unchanged.
 6. Run focused validation for the newly enabled feature.
 
-Feature disablement is additive-safe by default: it stops future management or installation but does not automatically uninstall packages or delete local data. Removal requires a separate explicit action.
+Feature or plugin disablement is additive-safe by default: it stops future management or installation but does not automatically uninstall packages, uninstall live plugins, or delete local data. Removal requires a separate explicit action.
 
 ## Daily Source-First Editing
 
@@ -143,10 +153,13 @@ Chezmoi documents that `re-add` does not work with templates.
 
 1. Refuse automatic application when unrecorded local target changes exist.
 2. Pull the source repository with fast-forward-only behavior.
-3. Run `chezmoi diff`.
-4. Reconcile unexpected target differences.
-5. Apply only after approval.
-6. Run focused smoke checks for affected tools.
+3. For this first-adoption schema change, run `chezmoi init --source "$(chezmoi source-path)" --prompt` and select every Herdr plugin before rendering any templates.
+4. Run `chezmoi diff`.
+5. Reconcile unexpected target differences.
+6. Apply only after approval.
+7. Run focused smoke checks for affected tools.
+
+Without step 3, an existing config has no `[data.herdrPlugins]` table and template rendering fails. Do not add fallback values: the selections are machine-local opt-ins/outs that require an explicit one-time decision.
 
 ## Drift Notification
 
@@ -156,7 +169,7 @@ A future scheduled job may detect that managed destination files differ from tar
 
 | Area | Example validation |
 | --- | --- |
-| Ghostty | Confirm live config path, theme, font availability, and startup window behavior |
+| Ghostty | Confirm the XDG config, theme, font availability, startup behavior, and absence of a recognized overriding Application Support config |
 | Herdr | Confirm version, keybindings, plugin list, plugin configs, and OpenCode integration |
 | OpenCode | Confirm version, launcher variables, global plugins, commands, and skills without copying auth |
 | Starship | Confirm active symlink, theme rendering, glyphs, and `stheme` behavior |

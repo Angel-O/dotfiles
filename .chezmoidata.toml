@@ -40,14 +40,6 @@ source = "jeffarese/herdr-bar"
 branch = "main"
 ref = "01cc0620ec743ee7a62a561551b59d9be81bd563"
 
-[pins.herdrPlugins.fileViewer]
-source = "smarzban/herdr-file-viewer"
-ref = "v1.15.0"
-
-[pins.herdrPlugins.logbook]
-source = "Resetnak/herdr-logbook"
-ref = "v0.0.9"
-
 [pins.herdrPlugins.elio]
 source = "robert-flo/herdr-terminal-file-manager"
 branch = "main"

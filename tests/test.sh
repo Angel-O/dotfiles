@@ -68,6 +68,9 @@ assert_not_contains() {
   fi
 }
 
+assert_contains "$source_dir/scripts/backup-paths.txt" '.config/ghostty'
+assert_contains "$source_dir/scripts/backup-paths.txt" 'Library/Application Support/com.mitchellh.ghostty/config'
+
 migration_dir="$root/zshrc-migration"
 mkdir -p "$migration_dir"
 cat >"$migration_dir/before" <<'EOF'
@@ -88,21 +91,36 @@ render_scripts personal
 assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
+assert_contains "$root/personal/rendered/Brewfile" 'brew "glow"'
+assert_not_contains "$root/personal/rendered/Brewfile" 'brew "bat"'
+assert_not_contains "$root/personal/rendered/Brewfile" 'brew "git-delta"'
+assert_contains "$source_dir/.chezmoi.toml.tmpl" 'sourceDir = {{ .chezmoi.sourceDir | quote }}'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-logbook "Resetnak/herdr-logbook"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio "robert-flo/herdr-terminal-file-manager"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
 apply_fixture personal
 
-test -f "$personal_home/Library/Application Support/com.mitchellh.ghostty/config"
-assert_contains "$personal_home/Library/Application Support/com.mitchellh.ghostty/config" 'macos-option-as-alt = true'
-test -f "$personal_home/.config/herdr/plugins/config/herdr-file-viewer/config.toml"
+test -f "$personal_home/.config/ghostty/config"
+assert_contains "$personal_home/.config/ghostty/config" 'macos-option-as-alt = true'
 assert_contains "$personal_home/.config/herdr/plugins/config/herdr-zoxide/config.toml" 'preview = "eza -la --tree --level=2 --icons=always --color=always {}"'
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "herdr-zoxide.browse"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
+assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
+assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" ]]'
+assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROMPT=''"
+assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
 test -L "$personal_home/.config/starship/current.toml"
 test -f "$personal_home/.config/zsh/portable.zsh"
+test -f "$personal_home/.config/zsh/git-worktrees.zsh"
+assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" "alias gwtl='git wtl'"
+assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'gwtco() {'
+assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'gwts() {'
+assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'cdmain() {'
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
@@ -114,9 +132,11 @@ work_home="$root/work/home"
 render_scripts work
 assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
-assert_not_contains "$root/work/rendered/Brewfile" 'brew "elio"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "elio"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "glow"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
+assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
 mkdir -p "$work_home/.config/opencode"
 cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"
@@ -158,8 +178,9 @@ assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provi
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
-assert_not_contains "$work_home/.config/herdr/config.toml" 'herdr-logbook'
-test ! -e "$work_home/.config/herdr/plugins/config/herdr-file-viewer/config.toml"
+assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
+assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 jq -e '(.plugin | index("opencode-handoff@0.5.0"))' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
@@ -187,17 +208,53 @@ test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
 
 shell_home="$root/shell-only/home"
+render_scripts shell-only
+assert_contains "$root/shell-only/rendered/Brewfile" 'brew "elio"'
 apply_fixture shell-only
 test -f "$shell_home/.config/zsh/early.zsh"
 assert_not_contains "$shell_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 assert_not_contains "$shell_home/.config/zsh/portable.zsh" 'herdr.zsh'
 test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$shell_home/.zshrc")" -eq 1
 
+disabled_home="$root/herdr-disabled-plugins/home"
+render_scripts herdr-disabled-plugins
+assert_contains "$root/herdr-disabled-plugins/rendered/Brewfile" 'brew "elio"'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/Brewfile" 'brew "glow"'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'Angel-O/herdr-agent-resume'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'Angel-O/herdr-labels'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'beyondlex/herdr-recent-navigator'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'jeffarese/herdr-bar'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'den-tanui/herdr-zoxide'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'robert-flo/herdr-terminal-file-manager'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'persiyanov/herdr-reviewr'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'brew install rust'
+apply_fixture herdr-disabled-plugins
+assert_not_contains "$disabled_home/.config/herdr/config.toml" 'plugin_action'
+assert_not_contains "$disabled_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_not_contains "$disabled_home/.config/herdr/config.toml" '"$usage"'
+assert_not_contains "$disabled_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
+test ! -e "$disabled_home/.config/herdr/reviewr-toggle-tab.sh"
+test ! -e "$disabled_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml"
+test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-bar/config.json"
+test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-zoxide/config.toml"
+test ! -e "$disabled_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
+python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disabled_home/.config/herdr/config.toml"
+
 ghostty_home="$root/ghostty-only/home"
 render_scripts ghostty-only
 assert_contains "$root/ghostty-only/rendered/Brewfile" 'brew "eza"'
+ghostty_old_dir="$ghostty_home/Library/Application Support/com.mitchellh.ghostty"
+mkdir -p "$ghostty_old_dir"
+printf '%s\n' '# exploratory comments' 'theme = Dracula' >"$ghostty_old_dir/config"
+HOME="$ghostty_home" sh "$root/ghostty-only/rendered/run_once_after_25-migrate-ghostty-config.sh.tmpl"
+test ! -e "$ghostty_old_dir/config"
+ghostty_archive=$(find "$ghostty_old_dir" -name 'config.pre-chezmoi-*' -type f)
+assert_contains "$ghostty_archive" '# exploratory comments'
+HOME="$ghostty_home" sh "$root/ghostty-only/rendered/run_once_after_25-migrate-ghostty-config.sh.tmpl"
 apply_fixture ghostty-only
-test -f "$ghostty_home/Library/Application Support/com.mitchellh.ghostty/config"
+test -f "$ghostty_home/.config/ghostty/config"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
 test ! -e "$ghostty_home/.config/starship/current.toml"

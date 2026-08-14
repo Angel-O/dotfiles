@@ -12,6 +12,7 @@ if ! command -v jq >/dev/null 2>&1; then
   printf 'jq is required before installing Herdr plugins.\n' >&2
   exit 1
 fi
+{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.zoxide .herdrPlugins.elio .herdrPlugins.reviewr }}
 if ! command -v cargo >/dev/null 2>&1; then
   if ! command -v brew >/dev/null 2>&1; then
     printf 'Cargo is required to build selected Herdr plugins.\n' >&2
@@ -19,6 +20,7 @@ if ! command -v cargo >/dev/null 2>&1; then
   fi
   brew install rust
 fi
+{{- end }}
 
 ensure_github_plugin() {
   plugin_id=$1
@@ -37,13 +39,26 @@ ensure_github_plugin() {
   herdr plugin install "$source" --ref "$wanted_ref" --yes
 }
 
+{{- if .herdrPlugins.agentResume }}
 ensure_github_plugin angel-o.agent-resume {{ .pins.herdrPlugins.agentResume.source | quote }} {{ .pins.herdrPlugins.agentResume.ref | quote }}
+{{- end }}
+{{- if .herdrPlugins.labels }}
 ensure_github_plugin angel-o.labels {{ .pins.herdrPlugins.labels.source | quote }} {{ .pins.herdrPlugins.labels.ref | quote }}
+{{- end }}
+{{- if .herdrPlugins.recentNavigator }}
 ensure_github_plugin beyondlex.herdr-recent-navigator {{ .pins.herdrPlugins.recentNavigator.source | quote }} {{ .pins.herdrPlugins.recentNavigator.ref | quote }}
+{{- end }}
+{{- if .herdrPlugins.spaceUsage }}
 ensure_github_plugin ez-corp.space-usage {{ .pins.herdrPlugins.spaceUsage.source | quote }} {{ .pins.herdrPlugins.spaceUsage.ref | quote }}
+{{- end }}
+{{- if .herdrPlugins.bar }}
 ensure_github_plugin herdr-bar {{ .pins.herdrPlugins.bar.source | quote }} {{ .pins.herdrPlugins.bar.ref | quote }}
+{{- end }}
+{{- if .herdrPlugins.zoxide }}
 ensure_github_plugin herdr-zoxide {{ .pins.herdrPlugins.zoxide.source | quote }} {{ .pins.herdrPlugins.zoxide.ref | quote }}
+{{- end }}
 
+{{- if .herdrPlugins.reviewr }}
 {{- if eq .role "work" }}
 ensure_github_plugin persiyanov.reviewr {{ .pins.herdrPlugins.reviewr.source | quote }} {{ .pins.herdrPlugins.reviewr.ref | quote }}
 {{- else }}
@@ -61,10 +76,9 @@ if [ "$reviewr_kind" != "local" ] || [ "$reviewr_plugin_root" != "$reviewr_root"
   fi
   herdr plugin link --enabled "$reviewr_root"
 fi
-ensure_github_plugin herdr-logbook {{ .pins.herdrPlugins.logbook.source | quote }} {{ .pins.herdrPlugins.logbook.ref | quote }}
-ensure_github_plugin robert-flo.elio {{ .pins.herdrPlugins.elio.source | quote }} {{ .pins.herdrPlugins.elio.ref | quote }}
-{{- if .features.herdrFileViewer }}
-ensure_github_plugin herdr-file-viewer {{ .pins.herdrPlugins.fileViewer.source | quote }} {{ .pins.herdrPlugins.fileViewer.ref | quote }}
 {{- end }}
+{{- end }}
+{{- if .herdrPlugins.elio }}
+ensure_github_plugin robert-flo.elio {{ .pins.herdrPlugins.elio.source | quote }} {{ .pins.herdrPlugins.elio.ref | quote }}
 {{- end }}
 {{- end }}

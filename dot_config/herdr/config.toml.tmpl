@@ -4,15 +4,22 @@ onboarding = false
 directory = "~/workspace/worktrees"
 
 [keys]
+# macOS terminal-style direct shortcuts with Herdr's native prefix bindings retained.
+
+######################### panes
 cycle_pane_previous = ["prefix+shift+tab", "alt+shift+["]
 cycle_pane_next = ["prefix+tab", "alt+shift+]"]
 zoom = ["prefix+z", "alt+shift+enter"]
 split_vertical = ["prefix+v", "alt+s"]
 split_horizontal = ["prefix+minus", "alt+shift+s"]
 close_pane = ["prefix+x", "alt+w"]
+
+######################### tabs
 previous_tab = ["prefix+p", "alt+["]
 next_tab = ["prefix+n", "alt+]"]
 new_tab = ["prefix+c", "alt+t"]
+
+######################### workspaces
 previous_workspace = "alt+k"
 next_workspace = "alt+j"
 
@@ -22,7 +29,11 @@ agent_panel_sort = "priority"
 show_agent_labels_on_pane_borders = true
 
 [ui.sidebar.spaces]
+{{- if .herdrPlugins.spaceUsage }}
 rows = [["state_icon", "workspace"], ["branch", "git_status"], ["$usage"]]
+{{- else }}
+rows = [["state_icon", "workspace"], ["branch", "git_status"]]
+{{- end }}
 row_gap = 1
 
 [ui.sidebar.agents]
@@ -48,19 +59,8 @@ enabled = true
 [ui.toast]
 delivery = "herdr"
 
-{{- if and (eq .role "personal") .features.herdrFileViewer }}
-[[keys.command]]
-key = "prefix+f"
-type = "shell"
-command = "herdr plugin action invoke open-file-viewer --plugin herdr-file-viewer"
-description = "open file viewer"
-
-[[keys.command]]
-key = "prefix+shift+f"
-type = "shell"
-command = "herdr plugin action invoke open-file-viewer-tab --plugin herdr-file-viewer"
-description = "open file viewer tab"
-{{- end }}
+{{- if .herdrPlugins.reviewr }}
+######################### herdr-reviewr keybindings
 
 [[keys.command]]
 key = "prefix+u"
@@ -73,32 +73,50 @@ key = "prefix+shift+u"
 type = "shell"
 command = "{{ joinPath .chezmoi.homeDir ".config/herdr/reviewr-toggle-tab.sh" }}"
 description = "toggle reviewr tab"
-
-{{- if eq .role "personal" }}
-[[keys.command]]
-key = "prefix+m"
-type = "shell"
-command = "result=$(herdr plugin pane open --plugin herdr-logbook --entrypoint hub --placement tab --focus) && tab_id=$(printf '%s' \"$result\" | jq -r '.result.plugin_pane.pane.tab_id // empty') && [ -n \"$tab_id\" ] && herdr tab rename \"$tab_id\" logbook"
-description = "open logbook hub in a tab"
 {{- end }}
+
+{{- if .herdrPlugins.bar }}
+######################### herdr-bar keybinding
 
 [[keys.command]]
 key = "prefix+k"
 type = "plugin_action"
 command = "herdr-bar.open"
 description = "command bar"
+{{- end }}
+
+{{- if .herdrPlugins.recentNavigator }}
+######################### recent navigator keybinding
 
 [[keys.command]]
 key = "prefix+j"
 type = "plugin_action"
 command = "beyondlex.herdr-recent-navigator.focus-workspaces"
 description = "open recent workspaces navigator"
+{{- end }}
+
+{{- if .herdrPlugins.zoxide }}
+######################### zoxide navigator keybinding
 
 [[keys.command]]
 key = "prefix+o"
 type = "plugin_action"
 command = "herdr-zoxide.browse"
 description = "browse zoxide directories"
+{{- end }}
+
+{{- if .herdrPlugins.elio }}
+######################### elio file explorer keybinding
+
+[[keys.command]]
+key = "prefix+y"
+type = "plugin_action"
+command = "robert-flo.elio.open"
+description = "open Elio"
+{{- end }}
+
+{{- if .herdrPlugins.agentResume }}
+######################### agent resume keybindings
 
 [[keys.command]]
 key = "prefix+a"
@@ -111,6 +129,7 @@ key = "prefix+shift+a"
 type = "plugin_action"
 command = "angel-o.agent-resume.copy-resume"
 description = "copy agent resume command"
+{{- end }}
 
 [update]
 channel = "stable"

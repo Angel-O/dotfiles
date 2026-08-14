@@ -1,4 +1,5 @@
 brew "eza"
+brew "elio"
 {{- if .modules.ghostty }}
 cask "ghostty"
 cask "font-hack"
@@ -6,13 +7,8 @@ cask "font-jetbrains-mono"
 {{- end }}
 {{- if .modules.herdr }}
 brew "jq"
-{{- if eq .role "personal" }}
-brew "elio"
+{{- if .herdrPlugins.reviewr }}
 brew "glow"
-{{- end }}
-{{- if and (eq .role "personal") .features.herdrFileViewer }}
-brew "bat"
-brew "git-delta"
 {{- end }}
 {{- end }}
 {{- if and .modules.opencode (eq .role "personal") }}

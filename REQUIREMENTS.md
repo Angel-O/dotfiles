@@ -58,6 +58,6 @@ Reproduce the useful parts of a highly customized Ghostty, Herdr, OpenCode, Star
 | Committing the current documentation | A commit was not requested |
 | Automatically synchronizing secrets | Credentials must remain machine-local |
 | Synchronizing runtime histories | Chezmoi is not appropriate for rapidly changing private state |
-| Cleaning stale Ghostty files | Approved for a later, separate cleanup rather than this setup |
+| Deleting the archived Ghostty Application Support config | The one-time migration preserves it beside the old path; later deletion remains manual |
 | Correcting local Git TLS verification | The unsafe setting is excluded from portable config, but local cleanup was not selected |
 | Mirroring every installed Homebrew package | Only relevant dependencies are in scope |

@@ -14,15 +14,26 @@ scripts/**
 .idea/**
 
 {{- if not .modules.ghostty }}
-Library/Application Support/com.mitchellh.ghostty/**
+.config/ghostty/**
+run_once_after_25-migrate-ghostty-config.sh
 {{- end }}
 
 {{- if not .modules.herdr }}
 .config/herdr/**
 {{- end }}
 
-{{- if or (not .modules.herdr) (ne .role "personal") (not .features.herdrFileViewer) }}
-.config/herdr/plugins/config/herdr-file-viewer/**
+{{- if or (not .modules.herdr) (not .herdrPlugins.spaceUsage) }}
+.config/herdr/plugins/config/ez-corp.space-usage/**
+{{- end }}
+{{- if or (not .modules.herdr) (not .herdrPlugins.bar) }}
+.config/herdr/plugins/config/herdr-bar/**
+{{- end }}
+{{- if or (not .modules.herdr) (not .herdrPlugins.zoxide) }}
+.config/herdr/plugins/config/herdr-zoxide/**
+{{- end }}
+{{- if or (not .modules.herdr) (not .herdrPlugins.reviewr) }}
+.config/herdr/plugins/config/persiyanov.reviewr/**
+.config/herdr/reviewr-toggle-tab.sh
 {{- end }}
 
 {{- if not .modules.opencode }}

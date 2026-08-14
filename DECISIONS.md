@@ -25,10 +25,10 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 
 | Artifact | Decision |
 | --- | --- |
-| Live configuration, themes, font setting, and window behavior | Track as shared |
+| XDG configuration, themes, font setting, and window behavior | Track as shared at `~/.config/ghostty/config` |
 | Ghostty application | Install Homebrew stable if missing |
 | Hack font | Install shared through Homebrew |
-| Stale XDG config and Cyberdream theme | Remove later in a separate cleanup |
+| Old macOS Application Support config | Archive once after applying XDG so it cannot override XDG settings |
 | Historical config backups | Exclude from chezmoi |
 
 ### Herdr
@@ -36,16 +36,14 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Artifact | Decision |
 | --- | --- |
 | Main config | Shared template with portable paths and conditional plugin bindings |
-| Reviewr tab helper | Track as shared executable |
-| Reviewr settings | Share all except the personal-only Markdown renderer |
-| Space Usage and Herdr Bar settings | Track as shared |
-| File Viewer plugin, config, and renderers | Personal optional feature |
+| Reviewr tab helper and settings | Track when Reviewr is selected; use the shared Glow renderer |
+| Space Usage, Herdr Bar, Zoxide, and Reviewr settings | Track only when each plugin is selected |
 | Plugin registry, downloaded trees, sessions, histories, logs, backups, and release notes | Regenerate where needed and exclude from Git |
 | Herdr application | Use official stable installer when missing |
-| Agent Resume, Labels, Recent Navigator, Space Usage, and Herdr Bar | Install shared from pinned GitHub sources |
-| Logbook | Personal-only; keep its data local |
-| Reviewr | Link local development checkout personally; install pinned GitHub release at work |
-| Elio executable and GitHub plugin | Personal-only |
+| All managed Herdr plugins | Select independently per machine and install from pinned sources when selected |
+| Reviewr | Link local development checkout personally; install pinned GitHub release at work when selected |
+| Elio executable | Install whenever Herdr is enabled |
+| Elio GitHub plugin | Optional machine-local selection independent of the executable |
 
 ### OpenCode
 
@@ -103,7 +101,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Homebrew, Git, GitHub CLI, VS Code, and OpenCode | Assume preinstalled |
 | JetBrains Mono | Install shared |
 | Geist Mono and Monaspace | Exclude |
-| Bat, Delta, and Glow | Install only with personal Herdr renderer features |
+| Glow | Install when Reviewr is selected |
 | jq | Install explicitly as shared dependency |
 | Rust/Cargo | Install only when a selected plugin requires a local build |
 
@@ -111,9 +109,9 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 
 | Correction | Consequence |
 | --- | --- |
-| The live Ghostty config is in its standard macOS Application Support directory | The file under `~/.config/ghostty` must not be treated as authoritative |
+| Ghostty reads XDG first and macOS Application Support later | Manage XDG and use a one-time post-apply migration to archive the old file outside recognized config filenames |
 | Ghostty uses Tokyo Night themes and Hack, not the stale Cyberdream/JetBrains configuration | Font and theme restoration must follow the live file |
-| The Herdr Elio adapter was initially linked from a temporary checkout | It was reinstalled from GitHub during review and is now classified personal-only |
+| The Herdr Elio adapter was initially linked from a temporary checkout | It is now a pinned, optional machine-local plugin independent of the shared `elio` executable |
 | The Herdr Reviewr plugin is locally linked from a permanent source checkout | Restoration needs either clone-and-link or GitHub installation |
 
 ## Accepted Implementation Directions
@@ -121,7 +119,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Decision | Reason |
 | --- | --- |
 | Use `personal` and `work` as machine roles | Provides a clear initial distinction |
-| Add narrowly defined feature flags only for concrete optional capabilities | Avoids vague tagging while supporting Node, JVM, and personal plugin feature bundles |
+| Add narrowly defined feature flags and plugin selections | Avoids vague tagging while supporting Node, JVM, and machine-local Herdr choices |
 | Split Zsh into managed fragments | Shared fragments can coexist with existing work configuration |
 | Split Git configuration into shared and context-specific includes | Identities and company settings remain local |
 | Pin third-party plugin versions | Enables deterministic restoration |

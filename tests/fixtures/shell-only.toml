@@ -12,4 +12,13 @@ git = false
 [data.features]
 nodeDevelopment = false
 jvmDevelopment = false
-herdrFileViewer = false
+
+[data.herdrPlugins]
+agentResume = false
+labels = false
+recentNavigator = false
+spaceUsage = false
+bar = false
+zoxide = false
+elio = false
+reviewr = false
