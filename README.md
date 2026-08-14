@@ -17,7 +17,7 @@ The source state is modular: Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, and 
 
 ## Current Phase
 
-The modular chezmoi source and Docker integration harness are implemented. No chezmoi configuration has been applied to the real home directory, and no remote, commit, or publication has been created.
+The modular chezmoi source and Docker integration harness are implemented, published, and validated on real source and target machines.
 
 The inventory uses these classifications:
 
@@ -63,35 +63,74 @@ The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages 
 
 Renovate opens one grouped `Herdr plugins` PR when updates are available. Release-tag pins follow newer GitHub tags, while commit pins follow each repository's default branch. These PRs are not automerged and should pass the Docker validation before review and merge. `INVENTORY.md` intentionally records pin policy rather than duplicating exact refs.
 
-## Local Initialization
+## Machine Workflows
 
-Homebrew and chezmoi are prerequisites. Initialize from this checkout without applying:
+Homebrew and chezmoi are prerequisites. Select one or more modules when prompted. When Herdr is enabled, select each managed plugin independently. Disabling a module or Herdr plugin selection stops future management and installation; it does not uninstall packages or live plugins.
+
+`chezmoi init --source <path> --prompt` both regenerates the machine-local configuration and persists that checkout as the source. Run it on first setup, when changing module selections, or when chezmoi reports that the config template changed. It is not required for routine updates.
+
+### Source Machine
+
+The source machine uses the canonical checkout at `~/workspace/source/dotfiles`. For first setup or a configuration-schema change:
 
 ```sh
-chezmoi init --source "$HOME/workspace/source/dotfiles" --prompt
+source_dir="$HOME/workspace/source/dotfiles"
+
+git -C "$source_dir" pull --ff-only
+bash "$source_dir/tests/run-docker.sh"
+
+chezmoi init --source "$source_dir" --prompt
+chezmoi source-path
+chezmoi cat-config
+
+"$source_dir/scripts/backup-home-paths.sh"
+
 chezmoi diff
-```
-
-Select one or more modules when prompted. When Herdr is enabled, select each managed plugin independently. Before the first apply, follow the [pre-apply backup](WORKFLOW.md#pre-apply-backup) checklist, then review the diff:
-
-```sh
 chezmoi apply --dry-run --verbose --no-tty
 chezmoi apply --verbose --no-tty
+chezmoi diff
 ```
 
-`--no-tty` prevents chezmoi from acquiring a terminal unexpectedly. The final command applies the already-reviewed state without interactive prompts.
-
-To change the selected modules later:
+For routine source-machine updates, use the persisted source and omit `init`:
 
 ```sh
-chezmoi init --source "$HOME/workspace/source/dotfiles" --prompt
+source_dir="$(chezmoi source-path)"
+
+git -C "$source_dir" pull --ff-only
+bash "$source_dir/tests/run-docker.sh"
+"$source_dir/scripts/backup-home-paths.sh"
+
+chezmoi cat-config
 chezmoi diff
+chezmoi apply --dry-run --verbose --no-tty
 chezmoi apply --verbose --no-tty
+chezmoi diff
 ```
 
-Existing initialized machines receiving the plugin-selection schema must run `chezmoi init --source "$(chezmoi source-path)" --prompt` before `chezmoi diff`; otherwise the required `[data.herdrPlugins]` table is absent. See [Receiving Changes](WORKFLOW.md#receiving-changes).
+### Target Machine
 
-Disabling a module or Herdr plugin selection stops future management and installation; it does not uninstall packages or live plugins.
+On an already initialized target machine, pull the configured checkout before rendering or applying changes:
+
+```sh
+source_dir="$(chezmoi source-path)"
+
+git -C "$source_dir" pull --ff-only
+"$source_dir/scripts/backup-home-paths.sh"
+
+chezmoi cat-config
+chezmoi diff
+chezmoi apply --dry-run --verbose --no-tty
+chezmoi apply --verbose --no-tty
+chezmoi diff
+```
+
+If the pull introduces a changed chezmoi config template, regenerate the target's local selections after pulling and before `cat-config` or `diff`:
+
+```sh
+chezmoi init --source "$source_dir" --prompt
+```
+
+Do not pass `--no-tty` to `init --prompt`, which intentionally requires user input. Use `--no-tty` for the dry run and final apply to prevent chezmoi from acquiring an interactive terminal unexpectedly. The final `chezmoi diff` should produce no output; run focused smoke tests afterward for affected applications, packages, and plugins. See [WORKFLOW.md](WORKFLOW.md) for backup, adoption, and reconciliation details.
 
 ## Privacy
 
