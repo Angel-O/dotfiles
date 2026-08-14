@@ -68,8 +68,85 @@ assert_not_contains() {
   fi
 }
 
+assert_warp_policy() {
+  local file=$1
+  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); keys=data["terminal"]["input"]["extra_meta_keys"]; assert keys["left_alt"] is True; assert keys["right_alt"] is False' "$file"
+}
+
+warp_dir="$root/warp-modifier"
+mkdir -p "$warp_dir"
+
+run_warp_case() {
+  local name=$1
+  local before="$warp_dir/$name.before"
+  local after="$warp_dir/$name.after"
+  local second="$warp_dir/$name.second"
+  sh "$source_dir/dot_warp/modify_settings.toml" <"$before" >"$after"
+  assert_warp_policy "$after"
+  sh "$source_dir/dot_warp/modify_settings.toml" <"$after" >"$second"
+  cmp -s "$after" "$second"
+}
+
+: >"$warp_dir/empty.before"
+run_warp_case empty
+cat >"$warp_dir/empty.expected" <<'EOF'
+[terminal.input.extra_meta_keys]
+left_alt = true
+right_alt = false
+EOF
+cmp -s "$warp_dir/empty.expected" "$warp_dir/empty.after"
+
+cat >"$warp_dir/unrelated.before" <<'EOF'
+# Keep this comment and spacing exactly.
+[appearance]
+theme = "Machine-specific theme"
+
+[privacy]
+telemetry = false
+EOF
+run_warp_case unrelated
+assert_contains "$warp_dir/unrelated.after" '# Keep this comment and spacing exactly.'
+assert_contains "$warp_dir/unrelated.after" 'theme = "Machine-specific theme"'
+assert_contains "$warp_dir/unrelated.after" 'telemetry = false'
+python3 -c 'import sys; before=open(sys.argv[1], "rb").read(); after=open(sys.argv[2], "rb").read(); policy=b"\n[terminal.input.extra_meta_keys]\nleft_alt = true\nright_alt = false\n"; assert after == before + policy' "$warp_dir/unrelated.before" "$warp_dir/unrelated.after"
+
+cat >"$warp_dir/opposite.before" <<'EOF'
+[terminal.input.extra_meta_keys]
+left_alt = false # Warp default
+right_alt = true
+
+[editor]
+font_size = 14
+EOF
+run_warp_case opposite
+assert_contains "$warp_dir/opposite.after" 'left_alt = true # Warp default'
+assert_contains "$warp_dir/opposite.after" 'right_alt = false'
+assert_contains "$warp_dir/opposite.after" 'font_size = 14'
+
+cat >"$warp_dir/missing.before" <<'EOF'
+[terminal.input.extra_meta_keys]
+left_alt = true
+
+[terminal]
+copy_on_select = true
+EOF
+run_warp_case missing
+test "$(grep -Fc 'left_alt = true' "$warp_dir/missing.after")" -eq 1
+test "$(grep -Fc 'right_alt = false' "$warp_dir/missing.after")" -eq 1
+assert_contains "$warp_dir/missing.after" 'copy_on_select = true'
+
 assert_contains "$source_dir/scripts/backup-paths.txt" '.config/ghostty'
 assert_contains "$source_dir/scripts/backup-paths.txt" 'Library/Application Support/com.mitchellh.ghostty/config'
+test "$(grep -Fxc '.warp/settings.toml' "$source_dir/scripts/backup-paths.txt")" -eq 1
+
+backup_home="$root/backup-home"
+backup_destination="$root/backup-output"
+mkdir -p "$backup_home/.warp"
+printf '%s\n' '[privacy]' 'telemetry = false' >"$backup_home/.warp/settings.toml"
+printf '%s\n' 'synthetic runtime state' >"$backup_home/.warp/runtime-state"
+HOME="$backup_home" sh "$source_dir/scripts/backup-home-paths.sh" --destination "$backup_destination"
+cmp -s "$backup_home/.warp/settings.toml" "$backup_destination/.warp/settings.toml"
+test ! -e "$backup_destination/.warp/runtime-state"
 
 migration_dir="$root/zshrc-migration"
 mkdir -p "$migration_dir"
@@ -102,6 +179,8 @@ assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.t
 apply_fixture personal
 
 test -f "$personal_home/.config/ghostty/config"
+test -f "$personal_home/.warp/settings.toml"
+assert_warp_policy "$personal_home/.warp/settings.toml"
 assert_contains "$personal_home/.config/ghostty/config" 'macos-option-as-alt = true'
 assert_contains "$personal_home/.config/herdr/plugins/config/herdr-zoxide/config.toml" 'preview = "eza -la --tree --level=2 --icons=always --color=always {}"'
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
@@ -137,7 +216,7 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "glow"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
-mkdir -p "$work_home/.config/opencode"
+mkdir -p "$work_home/.config/opencode" "$work_home/.warp"
 cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"
 eval "$(direnv hook zsh)"
@@ -163,6 +242,12 @@ EOF
 cat >"$work_home/.config/opencode/tui.jsonc" <<'EOF'
 {"work_private_tui_setting": true}
 EOF
+cat >"$work_home/.warp/settings.toml" <<'EOF'
+# Synthetic machine-local Warp setting.
+[privacy]
+telemetry = false
+EOF
+cp "$work_home/.warp/settings.toml" "$root/work/warp-settings.before"
 
 apply_fixture work
 assert_contains "$work_home/.zshrc" 'ZSH_THEME="agnoster"'
@@ -176,6 +261,7 @@ assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
+cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
@@ -212,6 +298,7 @@ render_scripts shell-only
 assert_contains "$root/shell-only/rendered/Brewfile" 'brew "elio"'
 apply_fixture shell-only
 test -f "$shell_home/.config/zsh/early.zsh"
+test ! -e "$shell_home/.warp"
 assert_not_contains "$shell_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 assert_not_contains "$shell_home/.config/zsh/portable.zsh" 'herdr.zsh'
 test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$shell_home/.zshrc")" -eq 1
@@ -231,6 +318,7 @@ assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'brew install rust'
 apply_fixture herdr-disabled-plugins
+test ! -e "$disabled_home/.warp"
 assert_not_contains "$disabled_home/.config/herdr/config.toml" 'plugin_action'
 assert_not_contains "$disabled_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_not_contains "$disabled_home/.config/herdr/config.toml" '"$usage"'
@@ -255,10 +343,28 @@ assert_contains "$ghostty_archive" '# exploratory comments'
 HOME="$ghostty_home" sh "$root/ghostty-only/rendered/run_once_after_25-migrate-ghostty-config.sh.tmpl"
 apply_fixture ghostty-only
 test -f "$ghostty_home/.config/ghostty/config"
+test ! -e "$ghostty_home/.warp"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
 test ! -e "$ghostty_home/.config/starship/current.toml"
 test ! -e "$ghostty_home/.config/zsh/portable.zsh"
 test ! -e "$ghostty_home/.config/git/portable.inc"
+
+warp_home="$root/warp-only/home"
+render_scripts warp-only
+mkdir -p "$warp_home/.warp"
+cat >"$warp_home/.warp/settings.toml" <<'EOF'
+# Synthetic setting that the modifier must preserve.
+[privacy]
+telemetry = false
+
+[terminal.input.extra_meta_keys]
+left_alt = false
+EOF
+apply_fixture warp-only
+assert_warp_policy "$warp_home/.warp/settings.toml"
+assert_contains "$warp_home/.warp/settings.toml" '# Synthetic setting that the modifier must preserve.'
+assert_contains "$warp_home/.warp/settings.toml" 'telemetry = false'
+test ! -e "$warp_home/.config/ghostty/config"
 
 printf 'Docker dotfiles validation passed.\n'

@@ -18,6 +18,10 @@ scripts/**
 run_once_after_25-migrate-ghostty-config.sh
 {{- end }}
 
+{{- if not .modules.warp }}
+.warp/**
+{{- end }}
+
 {{- if not .modules.herdr }}
 .config/herdr/**
 {{- end }}

@@ -10,6 +10,9 @@ Each machine should have local chezmoi data describing intent rather than embedd
 [data.machine]
 role = "work"
 
+[data.modules]
+warp = false
+
 [data.features]
 nodeDevelopment = false
 jvmDevelopment = false
@@ -31,8 +34,9 @@ The data file generated on each machine remains local. Public source templates m
 
 | Layer | Responsibility | Examples |
 | --- | --- | --- |
-| Shared | Portable behavior used everywhere | Themes, aliases, keybindings, Git worktree helpers |
-| Role | Broad personal/work differences | Personal-only local AI and Warp; Reviewr source policy |
+| Shared | Portable behavior used by selected modules | Themes, aliases, keybindings, Git worktree helpers |
+| Module | Independently selected tool configuration | Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, Git |
+| Role | Broad personal/work differences | Personal-only local AI; Reviewr source policy |
 | Feature | Independently enabled optional capabilities | Node development and JVM development |
 | Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Zoxide, Elio, Reviewr |
 | Machine | Device-specific paths or architecture | Workspace root, ARM64 package behavior |
@@ -49,6 +53,7 @@ dotfiles/
 ├── .chezmoiexternal.toml.tmpl
 ├── .chezmoitemplates/Brewfile.tmpl
 ├── dot_config/{ghostty,git,herdr,opencode,starship,zsh}/
+├── dot_warp/modify_settings.toml
 ├── dot_local/bin/
 ├── modify_dot_{gitconfig,zshrc}
 ├── run_{before,after}_*.sh.tmpl

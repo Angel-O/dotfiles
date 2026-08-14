@@ -4,7 +4,7 @@ Status: draft for iterative review.
 
 ## Goal
 
-Reproduce the useful parts of a highly customized Ghostty, Herdr, OpenCode, Starship, Git, and Zsh environment on another Mac quickly and predictably, without transferring private runtime state or destroying useful configuration already present on the target machine.
+Reproduce the useful parts of a highly customized Ghostty, Warp, Herdr, OpenCode, Starship, Git, and Zsh environment on another Mac quickly and predictably, without transferring private runtime state or destroying useful configuration already present on the target machine.
 
 ## Functional Requirements
 
@@ -18,7 +18,7 @@ Reproduce the useful parts of a highly customized Ghostty, Herdr, OpenCode, Star
 | R6 | Detect local changes to managed files and present them for approval | Accepted |
 | R7 | Require manual approval before importing, committing, pushing, or applying configuration changes | Accepted |
 | R8 | Document every inventoried artifact with its source, scope, sensitivity, restoration method, and approved treatment | Accepted |
-| R13 | Allow Ghostty, Herdr, OpenCode, Starship, Zsh, and Git modules to be initialized and applied independently | Accepted |
+| R13 | Allow Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, and Git modules to be initialized and applied independently | Accepted |
 | R9 | Leave personal and work Git identities manually managed outside chezmoi | Accepted |
 | R10 | Make a new-machine bootstrap concise while retaining safety prompts | Accepted |
 | R11 | Make repeated setup runs idempotent: already-satisfied steps remain unchanged and newly enabled features are added safely | Accepted |

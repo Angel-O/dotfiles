@@ -1,0 +1,54 @@
+#!/bin/sh
+set -eu
+
+awk '
+function add_missing_keys() {
+  if (!left_alt) print "left_alt = true"
+  if (!right_alt) print "right_alt = false"
+}
+
+function policy_line(line, key, value, indent, comment) {
+  indent = line
+  sub(/[^ \t].*$/, "", indent)
+  comment = line
+  sub(/^[^#]*/, "", comment)
+  printf "%s%s = %s", indent, key, value
+  if (comment != "") printf " %s", comment
+  print ""
+}
+
+{
+  if ($0 ~ /^[ \t]*\[terminal\.input\.extra_meta_keys\][ \t]*(#.*)?$/) {
+    if (in_table) add_missing_keys()
+    found_table = 1
+    in_table = 1
+    left_alt = 0
+    right_alt = 0
+    print
+  } else if (in_table && $0 ~ /^[ \t]*\[/) {
+    add_missing_keys()
+    in_table = 0
+    print
+  } else if (in_table && $0 ~ /^[ \t]*left_alt[ \t]*=/) {
+    policy_line($0, "left_alt", "true")
+    left_alt = 1
+  } else if (in_table && $0 ~ /^[ \t]*right_alt[ \t]*=/) {
+    policy_line($0, "right_alt", "false")
+    right_alt = 1
+  } else {
+    print
+  }
+  line_count++
+  last_line = $0
+}
+
+END {
+  if (in_table) add_missing_keys()
+  if (!found_table) {
+    if (line_count && last_line != "") print ""
+    print "[terminal.input.extra_meta_keys]"
+    print "left_alt = true"
+    print "right_alt = false"
+  }
+}
+'

@@ -34,6 +34,12 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Backups and release notes | Herdr config directory | Generated/historical | Exclude | Runtime | Do not synchronize |
 | Herdr executable | `~/.local/bin/herdr` | Version 0.8.0 observed, local ARM64 binary | Official stable installer if missing | Shared/macOS | Installation must be idempotent; do not copy the binary |
 
+## Warp
+
+| Artifact | Current location or source | Verified state | Approved treatment | Scope | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Option/Meta input policy | `~/.warp/settings.toml` | `[terminal.input.extra_meta_keys]` | Opt-in modifier managing only `left_alt = true` and `right_alt = false` | Machine-selected/macOS | Configuration only: do not install Warp; preserve all unrelated private and machine-specific settings; disabled machines leave the file completely unmanaged and untouched |
+
 ## Herdr GitHub Plugins
 
 `.chezmoidata.toml` is the authoritative source for plugin repositories and exact refs; Renovate maintains those values so this inventory does not duplicate them.
