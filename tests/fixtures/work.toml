@@ -3,6 +3,7 @@ role = "work"
 
 [data.modules]
 ghostty = true
+warp = false
 herdr = true
 opencode = true
 starship = true

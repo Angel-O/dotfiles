@@ -8,6 +8,7 @@
 .config/herdr
 .config/opencode
 .config/ghostty
+.warp/settings.toml
 .local/bin/opencode-env
 .oh-my-zsh
 .zsh/completions

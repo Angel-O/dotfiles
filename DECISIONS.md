@@ -45,6 +45,13 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Elio executable | Install whenever Herdr is enabled |
 | Elio GitHub plugin | Optional machine-local selection independent of the executable |
 
+### Warp
+
+| Artifact | Decision |
+| --- | --- |
+| `~/.warp/settings.toml` | Use an opt-in `warp` module and additive modifier for only `[terminal.input.extra_meta_keys]`: left Option sends Alt/Meta and right Option remains available for macOS character entry; preserve every unrelated setting |
+| Warp application | Do not install or uninstall Warp; disabling the module stops configuration management without altering or deleting existing settings |
+
 ### OpenCode
 
 | Artifact | Decision |
@@ -127,7 +134,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Use Homebrew for applications, formulas, and redistributable fonts where possible | Avoids committing binaries |
 | Use notification-only automatic drift detection | Provides awareness without unattended mutation |
 | Make setup and later feature enablement idempotent and additive | Rerunning setup must install newly selected capabilities without breaking existing configuration or removing unselected software |
-| Allow modules to be selected independently | Ghostty, Herdr, OpenCode, Starship, Zsh, and Git can be adopted one at a time |
+| Allow modules to be selected independently | Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, and Git can be adopted one at a time |
 | Keep work plugin cleanup manual | Desired plugins are added idempotently, while private unwanted plugin names never enter public source |
 
 ## Explicitly Rejected Directions

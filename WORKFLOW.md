@@ -25,6 +25,7 @@ chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled 
 | Module | Existing paths to back up |
 | --- | --- |
 | Ghostty | `~/.config/ghostty`, plus the old `~/Library/Application Support/com.mitchellh.ghostty/config` before retiring it manually |
+| Warp | `~/.warp/settings.toml` |
 | Herdr | `~/.config/herdr` |
 | OpenCode | `~/.config/opencode`, `~/.local/bin/opencode-env` |
 | Starship | `~/.config/starship` |
@@ -32,6 +33,8 @@ chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled 
 | Git | `~/.gitconfig`, `~/.gitignore_global`, `~/.config/git` |
 
 Only existing paths need a backup. Store backups locally because Herdr and OpenCode directories may contain private machine state that must not enter this repository.
+
+Before the Warp modifier runs, the default pre-apply backup list captures only `~/.warp/settings.toml`; it deliberately excludes other private or generated `.warp` state and safely skips the file when absent. When selected, the configuration-only Warp module modifies that settings file and manages only `left_alt = true` and `right_alt = false` under `[terminal.input.extra_meta_keys]`. It preserves unrelated content, including private agent permissions and machine-specific preferences, and creates a minimal valid file when none exists. It does not install Warp. When disabled, chezmoi ignores `.warp` completely and does not alter or delete existing settings. Warp hot-reloads `settings.toml`; after apply, press left `Option+T` and confirm `Alt+T` reaches the shell or application instead of inserting `†`, while right Option still enters macOS characters.
 
 Ghostty loads `~/.config/ghostty/config` first, then loads the macOS Application Support config later and lets that file override conflicts. After writing the managed XDG file, a one-time chezmoi script renames the old Application Support file to `config.pre-chezmoi-<timestamp>`. This preserves its comments beside the old path while removing the recognized override. The pre-apply backup utility also captures the original file.
 
@@ -89,6 +92,7 @@ Module-specific adoption rules:
 | --- | --- |
 | Zsh | Review the marker block added to the existing `.zshrc`; all existing Agnoster and Direnv content remains |
 | Git | Review the portable include added to the existing `.gitconfig`; identity and credential settings remain unmanaged |
+| Warp | Review only the Option/Meta changes in `.warp/settings.toml`; unrelated settings remain byte-preserved where practical and no application is installed |
 | Herdr | Review the complete shared config diff, then remove unwanted old work plugins manually before or after applying |
 | OpenCode | Keep the global config untouched, remove old/duplicate portable plugin declarations locally, migrate private launcher variables to `env.local`, and use the portable config layer |
 
@@ -170,6 +174,7 @@ A future scheduled job may detect that managed destination files differ from tar
 | Area | Example validation |
 | --- | --- |
 | Ghostty | Confirm the XDG config, theme, font availability, startup behavior, and absence of a recognized overriding Application Support config |
+| Warp | When enabled, confirm left `Option+T` reaches the shell/application instead of inserting `†`, right Option still enters macOS characters, and unrelated settings remain intact |
 | Herdr | Confirm version, keybindings, plugin list, plugin configs, and OpenCode integration |
 | OpenCode | Confirm version, launcher variables, global plugins, commands, and skills without copying auth |
 | Starship | Confirm active symlink, theme rendering, glyphs, and `stheme` behavior |

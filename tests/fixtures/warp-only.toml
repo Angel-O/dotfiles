@@ -2,8 +2,8 @@
 role = "work"
 
 [data.modules]
-ghostty = true
-warp = false
+ghostty = false
+warp = true
 herdr = false
 opencode = false
 starship = false
