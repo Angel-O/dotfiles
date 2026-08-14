@@ -63,5 +63,36 @@ Starship does not provide transient prompt support for Zsh. The shell loads
 
 It is sourced after Starship initialization in `~/.zshrc`. Completed prompts
 collapse to a lilac `❯`, while the current prompt keeps the full active theme.
-To disable transience, comment out the `TRANSIENT_PROMPT_TRANSIENT_PROMPT` and
-`source` lines at the end of `~/.zshrc`, then run `exec zsh`.
+To disable transience, remove its setup from the chezmoi source file
+`dot_config/zsh/starship.zsh`, apply it, then start a new shell.
+
+## Warp Prompt Behavior
+
+The intended Warp experience differs from Ghostty and ordinary terminals:
+
+| Terminal | Active input prompt | Completed command prompt |
+| --- | --- | --- |
+| Warp | Warp's native folder-style prompt | Compact lilac `❯` |
+| Ghostty and other terminals | Full active Starship theme | Compact lilac `❯` |
+
+Warp is detected through `TERM_PROGRAM=WarpTerminal`. In that environment,
+`~/.config/zsh/starship.zsh` does not initialize Starship and gives the
+transient-prompt plugin an empty full shell prompt. This prevents the large
+Starship powerline region from appearing above Warp's native input area while
+retaining the colored marker on completed command blocks.
+
+If Warp shows a large Starship region above its native folder prompt, the Warp
+special case is missing or the shell predates the latest configuration. Open a
+new Warp tab after applying changes because prompt hooks remain registered in
+already-running shells.
+
+To intentionally use Starship as Warp's active prompt instead:
+
+1. Set Warp's **Settings > Appearance > Input > Input type** to
+   **Shell (PS1)**.
+2. Remove the `WarpTerminal` branch in `~/.config/zsh/starship.zsh` so Warp
+   follows the normal `starship init zsh` path.
+3. Start a new Warp session.
+
+Make that policy change in the chezmoi source file
+`dot_config/zsh/starship.zsh`, not only in the rendered home-directory file.

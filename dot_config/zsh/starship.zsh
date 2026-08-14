@@ -36,10 +36,18 @@ stheme() {
   printf 'Starship theme: %s\n' "$theme"
 }
 
-if [[ ${TERM_PROGRAM:-} != "WarpTerminal" ]] && command -v starship >/dev/null 2>&1; then
+# Keep this terminal-specific behavior aligned with the user-facing policy in
+# ~/.config/starship/README.md under "Warp Prompt Behavior."
+if [[ ${TERM_PROGRAM:-} == "WarpTerminal" ]]; then
+  TRANSIENT_PROMPT_PROMPT=''
+  TRANSIENT_PROMPT_RPROMPT=''
+elif command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
-  TRANSIENT_PROMPT_TRANSIENT_PROMPT='%F{#BD93F9}❯%f '
-  if [[ -r "$HOME/.oh-my-zsh/custom/plugins/zsh-transient-prompt/transient-prompt.plugin.zsh" ]]; then
-    source "$HOME/.oh-my-zsh/custom/plugins/zsh-transient-prompt/transient-prompt.plugin.zsh"
-  fi
+fi
+
+# Keep completed prompts compact in every terminal, including Warp. This
+# marker is independent of the full Starship prompt used in other terminals.
+TRANSIENT_PROMPT_TRANSIENT_PROMPT='%F{#BD93F9}❯%f '
+if [[ -r "$HOME/.oh-my-zsh/custom/plugins/zsh-transient-prompt/transient-prompt.plugin.zsh" ]]; then
+  source "$HOME/.oh-my-zsh/custom/plugins/zsh-transient-prompt/transient-prompt.plugin.zsh"
 fi
