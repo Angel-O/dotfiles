@@ -36,7 +36,7 @@ stheme() {
   printf 'Starship theme: %s\n' "$theme"
 }
 
-if command -v starship >/dev/null 2>&1; then
+if [[ ${TERM_PROGRAM:-} != "WarpTerminal" ]] && command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
   TRANSIENT_PROMPT_TRANSIENT_PROMPT='%F{#BD93F9}❯%f '
   if [[ -r "$HOME/.oh-my-zsh/custom/plugins/zsh-transient-prompt/transient-prompt.plugin.zsh" ]]; then

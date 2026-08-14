@@ -109,6 +109,7 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "herdr-zox
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} != "WarpTerminal" ]]'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
 test -L "$personal_home/.config/starship/current.toml"
