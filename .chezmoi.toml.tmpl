@@ -6,6 +6,8 @@
 {{- $starship := promptBoolOnce . "modules.starship" "Enable the Starship module" false -}}
 {{- $shell := promptBoolOnce . "modules.shell" "Enable the Zsh shell module" false -}}
 {{- $git := promptBoolOnce . "modules.git" "Enable the Git module" false -}}
+{{- $beads := false -}}
+{{- $opencodeBeads := false -}}
 {{- $nodeDevelopment := false -}}
 {{- $jvmDevelopment := false -}}
 {{- $agentResume := false -}}
@@ -16,6 +18,12 @@
 {{- $zoxide := false -}}
 {{- $elio := false -}}
 {{- $reviewr := false -}}
+{{- if eq $role "work" -}}
+{{- $beads = promptBoolOnce . "modules.beads" "Enable the work Beads module" false -}}
+{{- end -}}
+{{- if and (eq $role "work") $beads -}}
+{{- $opencodeBeads = promptBoolOnce . "integrations.opencodeBeads" "Enable the OpenCode Beads integration" true -}}
+{{- end -}}
 {{- if $shell -}}
 {{- $nodeDevelopment = promptBoolOnce . "features.nodeDevelopment" "Enable optional Node development setup" false -}}
 {{- $jvmDevelopment = promptBoolOnce . "features.jvmDevelopment" "Enable optional JVM development setup" false -}}
@@ -44,6 +52,10 @@ opencode = {{ $opencode }}
 starship = {{ $starship }}
 shell = {{ $shell }}
 git = {{ $git }}
+beads = {{ $beads }}
+
+[data.integrations]
+opencodeBeads = {{ $opencodeBeads }}
 
 [data.features]
 nodeDevelopment = {{ $nodeDevelopment }}

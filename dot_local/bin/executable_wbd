@@ -1,0 +1,213 @@
+#!/bin/bash
+set -euo pipefail
+
+store=$HOME/.local/share/beads/work/.beads
+parent=${store%/.beads}
+
+die() {
+  printf 'wbd: %s\n' "$*" >&2
+  exit 1
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+run_bd_bootstrap() {
+  env \
+    -u BD_DB \
+    -u BEADS_DB \
+    -u BD_GLOBAL \
+    -u BEADS_DOLT_DATA_DIR \
+    -u BEADS_DOLT_PROXIED_SERVER \
+    -u BEADS_DOLT_SERVER_MODE \
+    -u BEADS_DOLT_SHARED_SERVER \
+    BEADS_DIR="$store" \
+    bd "$@"
+}
+
+run_bd() {
+  run_bd_bootstrap --db "$store" "$@"
+}
+
+context() {
+  need git
+  local inside
+  inside=$(git rev-parse --is-inside-work-tree 2>/dev/null) ||
+    die 'current directory is not inside a Git repository'
+  [ "$inside" = true ] || die 'current directory is not inside a Git work tree'
+
+  local origin rest host path identity repo_name slug digest
+  origin=$(git config --get remote.origin.url 2>/dev/null) ||
+    die 'current repository has no origin remote'
+  [ -n "$origin" ] || die 'current repository has no origin remote'
+
+  case "$origin" in
+    ssh://*|https://*)
+      rest=${origin#*://}
+      case "$rest" in
+        *@*) rest=${rest#*@} ;;
+      esac
+      host=${rest%%/*}
+      [ "$host" != "$rest" ] || die 'origin remote has no repository path'
+      path=${rest#*/}
+      ;;
+    *:*)
+      rest=$origin
+      case "$rest" in
+        *@*) rest=${rest#*@} ;;
+      esac
+      host=${rest%%:*}
+      path=${rest#*:}
+      ;;
+    *)
+      die 'origin remote must use SSH or HTTPS'
+      ;;
+  esac
+
+  path=${path%%\?*}
+  path=${path%%\#*}
+  while [ "${path#/}" != "$path" ]; do path=${path#/}; done
+  while [ "${path%/}" != "$path" ]; do path=${path%/}; done
+  path=${path%.git}
+  [ -n "$host" ] && [ -n "$path" ] || die 'origin remote has no repository identity'
+
+  identity=$(printf '%s/%s' "$host" "$path" | tr '[:upper:]' '[:lower:]')
+  repo_name=${path##*/}
+  slug=$(printf '%s' "$repo_name" |
+    tr '[:upper:]' '[:lower:]' |
+    sed 's/[^a-z0-9][^a-z0-9]*/-/g; s/^-//; s/-$//')
+  [ -n "$slug" ] || die 'origin remote has no path-safe repository name'
+
+  if command -v shasum >/dev/null 2>&1; then
+    digest=$(printf '%s' "$identity" | shasum -a 256 | sed 's/[[:space:]].*$//')
+  elif command -v sha256sum >/dev/null 2>&1; then
+    digest=$(printf '%s' "$identity" | sha256sum | sed 's/[[:space:]].*$//')
+  else
+    die 'required SHA-256 command not found'
+  fi
+  printf 'ctx:%s-%s\n' "$slug" "${digest:0:10}"
+}
+
+bootstrap() {
+  need bd
+  need git
+  [ ! -e "$store" ] || die "store already exists: $store"
+  [ -d "$HOME" ] && [ -w "$HOME" ] || die "HOME is not writable: $HOME"
+
+  umask 077
+  mkdir -p "$parent" || die "cannot create store parent: $parent"
+  [ -d "$parent" ] && [ -w "$parent" ] || die "store parent is not writable: $parent"
+  if git -C "$parent" rev-parse --git-dir >/dev/null 2>&1; then
+    die "store parent must be outside every Git repository: $parent"
+  fi
+
+  if (
+    cd "$parent" &&
+      run_bd_bootstrap metrics off &&
+      run_bd_bootstrap init \
+        --prefix work \
+        --non-interactive \
+        --skip-hooks \
+        --skip-agents &&
+      run_bd config set export.auto false &&
+      run_bd config set export.git-add false &&
+      run_bd config set dolt.auto-push false
+  ); then
+    return 0
+  else
+    status=$?
+  fi
+
+  rm -rf -- "$store"
+  return "$status"
+}
+
+if [ "${1:-}" = bootstrap ]; then
+  [ "$#" -eq 1 ] || die 'usage: wbd bootstrap'
+  bootstrap
+  exit 0
+fi
+
+[ -d "$store" ] || die "store is missing; run 'wbd bootstrap'"
+need bd
+
+for arg in "$@"; do
+  case "$arg" in
+    --db|--db=*|--database|--database=*|--global|--global=*|-C|-C*|--directory|--directory=*)
+      die 'database routing and directory override flags are disabled'
+      ;;
+  esac
+done
+
+leading_args=()
+command_args=()
+command_name=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --actor|--dolt-auto-commit)
+      [ "$#" -ge 2 ] || die "missing value for leading global flag: $1"
+      leading_args+=("$1" "$2")
+      shift 2
+      ;;
+    --actor=*|--dolt-auto-commit=*|--help|--ignore-schema-skew|--json|--profile|--readonly|--sandbox|--version|-h|-q|-v|-V|--quiet|--verbose)
+      leading_args+=("$1")
+      shift
+      ;;
+    -*)
+      die 'put the bd command before its flags'
+      ;;
+    *)
+      command_name=$1
+      shift
+      command_args=("$@")
+      break
+      ;;
+  esac
+done
+
+case "$command_name" in
+  init)
+    die "direct init is disabled; run 'wbd bootstrap'"
+    ;;
+  bootstrap)
+    die 'usage: wbd bootstrap'
+    ;;
+  context)
+    [ "${#leading_args[@]}" -eq 0 ] && [ "${#command_args[@]}" -eq 0 ] ||
+      die 'usage: wbd context'
+    context
+    ;;
+  create|new)
+    for arg in ${command_args[@]+"${command_args[@]}"}; do
+      case "$arg" in
+        --repo|--repo=*) die 'create repository routing flags are disabled' ;;
+      esac
+    done
+    context_label=$(context)
+    run_bd ${leading_args[@]+"${leading_args[@]}"} "$command_name" --labels "$context_label" ${command_args[@]+"${command_args[@]}"}
+    ;;
+  list)
+    all_contexts=false
+    args=()
+    for arg in ${command_args[@]+"${command_args[@]}"}; do
+      if [ "$arg" = --all-contexts ]; then
+        all_contexts=true
+      else
+        args+=("$arg")
+      fi
+    done
+    if $all_contexts; then
+      run_bd ${leading_args[@]+"${leading_args[@]}"} list ${args[@]+"${args[@]}"}
+    else
+      context_label=$(context)
+      run_bd ${leading_args[@]+"${leading_args[@]}"} list --label "$context_label" ${args[@]+"${args[@]}"}
+    fi
+    ;;
+  show|update|dep|close|reopen)
+    run_bd ${leading_args[@]+"${leading_args[@]}"} "$command_name" ${command_args[@]+"${command_args[@]}"}
+    ;;
+  *)
+    die 'supported commands: bootstrap, context, create, new, list, show, update, dep, close, reopen'
+    ;;
+esac

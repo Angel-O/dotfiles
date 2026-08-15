@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+
+store=$HOME/.local/share/beads/work/.beads
+parent=${store%/.beads}
+
+die() {
+  printf 'wbv: %s\n' "$*" >&2
+  exit 1
+}
+
+[ -d "$store" ] || die "store is missing; run 'wbd bootstrap'"
+command -v bd >/dev/null 2>&1 || die 'required command not found: bd'
+command -v bv >/dev/null 2>&1 || die 'required command not found: bv'
+
+for arg in "$@"; do
+  case "$arg" in
+    --db|--db=*|-db|-db=*) die 'Viewer database override flags are disabled' ;;
+    --agents-add|--agents-add=*|--agents-remove|--agents-remove=*|--agents-update|--agents-update=*)
+      die 'Viewer repository agent-file mutation flags are disabled'
+      ;;
+  esac
+done
+
+tmp=$(mktemp "$store/issues.jsonl.tmp.XXXXXX") || die 'cannot create temporary export'
+trap 'rm -f "$tmp"' EXIT HUP INT TERM
+
+env \
+  -u BD_DB \
+  -u BEADS_DB \
+  -u BD_GLOBAL \
+  -u BEADS_DOLT_DATA_DIR \
+  -u BEADS_DOLT_PROXIED_SERVER \
+  -u BEADS_DOLT_SERVER_MODE \
+  -u BEADS_DOLT_SHARED_SERVER \
+  BEADS_DIR="$store" \
+  bd --db "$store" export --output "$tmp"
+mv "$tmp" "$store/issues.jsonl"
+trap - EXIT HUP INT TERM
+
+cd "$parent" || die "cannot enter private store parent: $parent"
+exec env \
+  -u BD_DB \
+  -u BEADS_DB \
+  -u BEADS_DOLT_DATA_DIR \
+  -u BEADS_DOLT_PROXIED_SERVER \
+  BEADS_DIR="$store" \
+  BV_NO_GITIGNORE=1 \
+  BV_NO_CACHE=1 \
+  bv --db "$store" "$@"

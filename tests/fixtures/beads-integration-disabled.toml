@@ -1,15 +1,15 @@
 [data]
-role = "personal"
+role = "work"
 
 [data.modules]
 ghostty = false
 warp = false
-herdr = true
-opencode = false
+herdr = false
+opencode = true
 starship = false
-shell = true
+shell = false
 git = false
-beads = false
+beads = true
 
 [data.integrations]
 opencodeBeads = false

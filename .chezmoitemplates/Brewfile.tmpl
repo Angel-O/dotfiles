@@ -1,5 +1,9 @@
 brew "eza"
 brew "elio"
+{{- if and (eq .role "work") .modules.beads }}
+brew "beads"
+brew "beads_viewer"
+{{- end }}
 {{- if .modules.ghostty }}
 cask "ghostty"
 cask "font-hack"
