@@ -14,7 +14,7 @@ lmStudio = "1.0.0-rc.2"
 [pins.herdrPlugins.agentResume]
 source = "Angel-O/herdr-agent-resume"
 branch = "main"
-ref = "77c9ee84b1b6f7dd3e94b45daf780a3055264e78"
+ref = "85e5db89cda776fa81bfc3f7a265218295f530a7"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
@@ -47,4 +47,4 @@ ref = "851a05c69b0db012b289d1c418f04eb7b29839ee"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
-ref = "v0.30.4"
+ref = "v0.31.0"
