@@ -2,7 +2,7 @@
 
 This repository makes a customized macOS terminal and AI-assisted development environment reproducible with chezmoi.
 
-The source state is modular: Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, and Git can be enabled independently. Personal/work role data and module choices live only in each machine's local chezmoi configuration.
+The source state is modular: Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, Git, and work-only Beads can be enabled independently. Personal/work role data and module choices live only in each machine's local chezmoi configuration.
 
 ## Documents
 
@@ -42,8 +42,11 @@ The inventory uses these classifications:
 | `starship` | Starship, themes, selector, and `stheme` support |
 | `shell` | Zsh fragments, Oh My Zsh, FZF, Zoxide, and cross-tool hooks |
 | `git` | Non-destructive portable include, worktree aliases, and ignore rules |
+| `beads` | Work-only private task store, `wbd`/`wbv` wrappers, and OpenCode guidance |
 
 When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather than tracked in full: left Option sends Alt/Meta for terminal keybindings, while right Option remains available for macOS character entry. The module does not install Warp. When disabled, chezmoi does not manage, alter, or delete existing Warp settings. Warp hot-reloads `settings.toml`; smoke-test the enabled policy by confirming `Alt+T` reaches the shell or application instead of producing `†`.
+
+The `beads` module is offered only for the work role. It installs the `beads` and `beads_viewer` Homebrew formulas and manages `~/.local/bin/wbd`, `~/.local/bin/wbv`, the global OpenCode `work-beads` skill, and a marker-managed section in the user-scoped `~/.config/opencode/AGENTS.md` when OpenCode is also enabled. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/work/.beads`; chezmoi never initializes it, and bootstrap disables Beads anonymous command metrics. One global store supports dependencies across projects by stable issue ID, while `wbd` automatically derives credential-free `ctx:` labels from each repository's Git origin for create and list operations. `wbv` shows all contexts. No `.beads` directory or agent file is added to a team repository. Disabling the module stops management but does not uninstall formulas or delete the private store.
 
 ## Safe Validation
 
@@ -53,7 +56,7 @@ The primary integration test runs entirely inside Docker:
 bash tests/run-docker.sh
 ```
 
-It renders synthetic personal, work, Ghostty-only, Warp-only, and plugin-disabled Herdr homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute package/plugin installers.
+It renders synthetic personal, work, Ghostty-only, Warp-only, and plugin-disabled Herdr homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; tests Beads wrappers with fake Git/`bd`/`bv` commands and temporary state; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute package/plugin installers, Beads initialization/export, or the Viewer.
 
 Pull requests and pushes to `main` run the same command on GitHub's standard hosted `ubuntu-24.04` x64 runner. Docker supplies the matching `TARGETARCH` to the Alpine test image, so CI downloads chezmoi's amd64 musl build while local Apple Silicon runs continue to use arm64. Standard GitHub-hosted runners require no additional service and are free for public repositories; private repositories consume the owner's plan allowance and may be billed after its included Actions minutes are exhausted. See GitHub's [hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) and [Actions billing documentation](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions).
 

@@ -41,7 +41,8 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- end }}
 
 {{- if not .modules.opencode }}
-.config/opencode/**
+.config/opencode/*
+!.config/opencode/AGENTS.md
 .local/bin/opencode-env
 {{- end }}
 
@@ -52,6 +53,15 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- if or (not .modules.opencode) (not .modules.herdr) }}
 .config/opencode/commands/herdr-name.md
 .config/opencode/skills/herdr-agent-name/**
+{{- end }}
+
+{{- if or (ne .role "work") (not .modules.beads) (not .modules.opencode) }}
+.config/opencode/skills/work-beads/**
+{{- end }}
+
+{{- if or (ne .role "work") (not .modules.beads) }}
+.local/bin/wbd
+.local/bin/wbv
 {{- end }}
 
 .config/opencode/env.local

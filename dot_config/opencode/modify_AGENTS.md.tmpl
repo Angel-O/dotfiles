@@ -1,0 +1,85 @@
+#!/bin/sh
+set -eu
+
+start='<!-- portable-work-beads:start -->'
+end='<!-- portable-work-beads:end -->'
+tmp=$(mktemp)
+clean=$(mktemp)
+trap 'rm -f "$tmp" "$clean"' EXIT
+cat >"$tmp"
+
+if awk -v start="$start" -v end="$end" '
+  {
+    marker = $0
+    sub(/\r$/, "", marker)
+  }
+  marker == start {
+    if (inside) {
+      malformed = 12
+      exit malformed
+    }
+    if (blocks > 0) {
+      malformed = 14
+      exit malformed
+    }
+    inside = 1
+    next
+  }
+  marker == end {
+    if (!inside) {
+      malformed = 13
+      exit malformed
+    }
+    inside = 0
+    blocks++
+  }
+  END {
+    if (!malformed && inside) exit 11
+  }
+' "$tmp"; then
+  :
+else
+  status=$?
+  case "$status" in
+    11) reason='unmatched start marker' ;;
+    12) reason='nested start marker' ;;
+    13) reason='orphan end marker' ;;
+    14) reason='multiple managed blocks' ;;
+    *) reason='marker validation failed' ;;
+  esac
+  printf 'work-beads AGENTS modifier: %s\n' "$reason" >&2
+  cat "$tmp"
+  exit 1
+fi
+
+awk -v start="$start" -v end="$end" '
+  {
+    marker = $0
+    sub(/\r$/, "", marker)
+  }
+  marker == start {
+    inside = 1
+    next
+  }
+  inside {
+    if (marker == end) {
+      inside = 0
+    }
+    next
+  }
+  { print }
+' "$tmp" >"$clean"
+
+cat "$clean"
+{{- if and (eq .role "work") .modules.beads .modules.opencode }}
+if [ -s "$clean" ] && [ -n "$(tail -c 1 "$clean")" ]; then
+  printf '\n'
+fi
+cat <<'BLOCK'
+<!-- portable-work-beads:start -->
+## Private work tracking
+
+Load the globally installed `work-beads` skill for private work tracking. Use `wbd`, never raw `bd`.
+<!-- portable-work-beads:end -->
+BLOCK
+{{- end }}

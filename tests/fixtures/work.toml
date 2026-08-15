@@ -9,6 +9,7 @@ opencode = true
 starship = true
 shell = true
 git = true
+beads = true
 
 [data.features]
 nodeDevelopment = false

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source_dir=/src
+source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 root=/tmp/dotfiles-test
 rm -rf "$root"
 mkdir -p "$root"
@@ -163,12 +163,120 @@ test "$(grep -Fc '# >>> portable chezmoi early setup >>>' "$migration_dir/after"
 test "$(grep -Fc '# >>> portable chezmoi setup >>>' "$migration_dir/after")" -eq 1
 test "$(grep -Fc 'ZSH_THEME="agnoster"' "$migration_dir/after")" -eq 1
 
+agents_modifier_dir="$root/agents-modifier"
+mkdir -p "$agents_modifier_dir"
+chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
+  <"$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl" >"$agents_modifier_dir/enabled.sh"
+chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/ghostty-only.toml" \
+  <"$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl" >"$agents_modifier_dir/disabled.sh"
+sh -n "$agents_modifier_dir/enabled.sh"
+sh -n "$agents_modifier_dir/disabled.sh"
+
+cat >"$agents_modifier_dir/balanced.before" <<'EOF'
+# Existing guidance
+<!-- portable-work-beads:start -->
+replace this managed text
+<!-- portable-work-beads:end -->
+Preserve this trailing guidance.
+EOF
+sh "$agents_modifier_dir/enabled.sh" \
+  <"$agents_modifier_dir/balanced.before" >"$agents_modifier_dir/balanced.after"
+assert_contains "$agents_modifier_dir/balanced.after" '# Existing guidance'
+assert_contains "$agents_modifier_dir/balanced.after" 'Preserve this trailing guidance.'
+assert_contains "$agents_modifier_dir/balanced.after" 'Load the globally installed `work-beads` skill'
+assert_not_contains "$agents_modifier_dir/balanced.after" 'replace this managed text'
+test "$(grep -Fc '<!-- portable-work-beads:start -->' "$agents_modifier_dir/balanced.after")" -eq 1
+sh "$agents_modifier_dir/enabled.sh" \
+  <"$agents_modifier_dir/balanced.after" >"$agents_modifier_dir/balanced.second"
+cmp -s "$agents_modifier_dir/balanced.after" "$agents_modifier_dir/balanced.second"
+
+sh "$agents_modifier_dir/disabled.sh" \
+  <"$agents_modifier_dir/balanced.after" >"$agents_modifier_dir/disabled.after"
+assert_contains "$agents_modifier_dir/disabled.after" '# Existing guidance'
+assert_contains "$agents_modifier_dir/disabled.after" 'Preserve this trailing guidance.'
+assert_not_contains "$agents_modifier_dir/disabled.after" 'portable-work-beads:start'
+assert_not_contains "$agents_modifier_dir/disabled.after" 'work-beads` skill'
+
+assert_malformed_agents() {
+  local name=$1
+  if sh "$agents_modifier_dir/enabled.sh" \
+    <"$agents_modifier_dir/$name.before" \
+    >"$agents_modifier_dir/$name.after" \
+    2>"$agents_modifier_dir/$name.err"; then
+    printf 'expected malformed AGENTS markers to fail: %s\n' "$name" >&2
+    exit 1
+  fi
+  cmp -s "$agents_modifier_dir/$name.before" "$agents_modifier_dir/$name.after"
+  assert_contains "$agents_modifier_dir/$name.err" 'work-beads AGENTS modifier:'
+}
+
+cat >"$agents_modifier_dir/unmatched-start.before" <<'EOF'
+Preserve before unmatched start.
+<!-- portable-work-beads:start -->
+Preserve after unmatched start.
+EOF
+assert_malformed_agents unmatched-start
+assert_contains "$agents_modifier_dir/unmatched-start.err" 'unmatched start marker'
+
+cat >"$agents_modifier_dir/orphan-end.before" <<'EOF'
+Preserve before orphan end.
+<!-- portable-work-beads:end -->
+Preserve after orphan end.
+EOF
+assert_malformed_agents orphan-end
+assert_contains "$agents_modifier_dir/orphan-end.err" 'orphan end marker'
+
+cat >"$agents_modifier_dir/nested-start.before" <<'EOF'
+<!-- portable-work-beads:start -->
+Preserve inside outer marker.
+<!-- portable-work-beads:start -->
+Preserve inside nested marker.
+<!-- portable-work-beads:end -->
+<!-- portable-work-beads:end -->
+EOF
+assert_malformed_agents nested-start
+assert_contains "$agents_modifier_dir/nested-start.err" 'nested start marker'
+
+cat >"$agents_modifier_dir/duplicate-balanced.before" <<'EOF'
+<!-- portable-work-beads:start -->
+First managed block.
+<!-- portable-work-beads:end -->
+Preserve content between blocks.
+<!-- portable-work-beads:start -->
+Second managed block.
+<!-- portable-work-beads:end -->
+EOF
+assert_malformed_agents duplicate-balanced
+assert_contains "$agents_modifier_dir/duplicate-balanced.err" 'multiple managed blocks'
+
+printf '%s\r\n' \
+  'Preserve CRLF before.' \
+  '<!-- portable-work-beads:start -->' \
+  'Replace CRLF managed text.' \
+  '<!-- portable-work-beads:end -->' \
+  'Preserve CRLF after.' >"$agents_modifier_dir/crlf.before"
+sh "$agents_modifier_dir/enabled.sh" \
+  <"$agents_modifier_dir/crlf.before" >"$agents_modifier_dir/crlf.after"
+assert_not_contains "$agents_modifier_dir/crlf.after" 'Replace CRLF managed text.'
+test "$(grep -Fc '<!-- portable-work-beads:start -->' "$agents_modifier_dir/crlf.after")" -eq 1
+python3 -c 'import sys; data=open(sys.argv[1], "rb").read(); assert b"Preserve CRLF before.\r\nPreserve CRLF after.\r\n" in data' "$agents_modifier_dir/crlf.after"
+sh "$agents_modifier_dir/enabled.sh" \
+  <"$agents_modifier_dir/crlf.after" >"$agents_modifier_dir/crlf.second"
+cmp -s "$agents_modifier_dir/crlf.after" "$agents_modifier_dir/crlf.second"
+
+sh "$agents_modifier_dir/disabled.sh" \
+  <"$agents_modifier_dir/crlf.before" >"$agents_modifier_dir/crlf.disabled"
+printf '%s\r\n' 'Preserve CRLF before.' 'Preserve CRLF after.' >"$agents_modifier_dir/crlf.expected"
+cmp -s "$agents_modifier_dir/crlf.expected" "$agents_modifier_dir/crlf.disabled"
+
 personal_home="$root/personal/home"
 render_scripts personal
 assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "glow"'
+assert_not_contains "$root/personal/rendered/Brewfile" 'brew "beads"'
+assert_not_contains "$root/personal/rendered/Brewfile" 'brew "beads_viewer"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "bat"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "git-delta"'
 assert_contains "$source_dir/.chezmoi.toml.tmpl" 'sourceDir = {{ .chezmoi.sourceDir | quote }}'
@@ -176,6 +284,13 @@ assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.t
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio "robert-flo/herdr-terminal-file-manager"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
+mkdir -p "$personal_home/.config/opencode"
+cat >"$personal_home/.config/opencode/AGENTS.md" <<'EOF'
+Keep this personal instruction.
+<!-- portable-work-beads:start -->
+stale managed content
+<!-- portable-work-beads:end -->
+EOF
 apply_fixture personal
 
 test -f "$personal_home/.config/ghostty/config"
@@ -193,6 +308,11 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROM
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
+assert_contains "$personal_home/.config/opencode/AGENTS.md" 'Keep this personal instruction.'
+assert_not_contains "$personal_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
+test ! -e "$personal_home/.local/bin/wbd"
+test ! -e "$personal_home/.local/bin/wbv"
+test ! -e "$personal_home/.config/opencode/skills/work-beads/SKILL.md"
 test -L "$personal_home/.config/starship/current.toml"
 test -f "$personal_home/.config/zsh/portable.zsh"
 test -f "$personal_home/.config/zsh/git-worktrees.zsh"
@@ -213,6 +333,8 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "glow"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "beads"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
@@ -242,6 +364,11 @@ EOF
 cat >"$work_home/.config/opencode/tui.jsonc" <<'EOF'
 {"work_private_tui_setting": true}
 EOF
+cat >"$work_home/.config/opencode/AGENTS.md" <<'EOF'
+# Existing user guidance
+
+Preserve this private instruction exactly.
+EOF
 cat >"$work_home/.warp/settings.toml" <<'EOF'
 # Synthetic machine-local Warp setting.
 [privacy]
@@ -261,6 +388,12 @@ assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
+assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
+test "$(grep -Fc '<!-- portable-work-beads:start -->' "$work_home/.config/opencode/AGENTS.md")" -eq 1
+assert_contains "$work_home/.config/opencode/AGENTS.md" 'Load the globally installed `work-beads` skill'
+test -x "$work_home/.local/bin/wbd"
+test -x "$work_home/.local/bin/wbv"
+test -f "$work_home/.config/opencode/skills/work-beads/SKILL.md"
 cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
@@ -272,9 +405,17 @@ python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_ho
 zsh -n "$work_home"/.config/zsh/*.zsh
 HOME="$work_home" zsh -dfc 'alias zconfig="code ~/.zshrc"; alias reload="source ~/.zshrc"; source "$HOME/.config/zsh/helpers.zsh"'
 
-before=$(find "$work_home" -type f -exec sha256sum {} + | sort)
+if command -v sha256sum >/dev/null 2>&1; then
+  before=$(find "$work_home" -type f -exec sha256sum {} + | sort)
+else
+  before=$(find "$work_home" -type f -exec shasum -a 256 {} + | sort)
+fi
 apply_fixture work
-after=$(find "$work_home" -type f -exec sha256sum {} + | sort)
+if command -v sha256sum >/dev/null 2>&1; then
+  after=$(find "$work_home" -type f -exec sha256sum {} + | sort)
+else
+  after=$(find "$work_home" -type f -exec shasum -a 256 {} + | sort)
+fi
 test "$before" = "$after"
 remaining_diff=$(chezmoi diff \
   --source "$source_dir" \
@@ -292,6 +433,8 @@ work_line=$(grep -nF 'ZSH_THEME="agnoster"' "$work_home/.zshrc" | cut -d: -f1)
 normal_line=$(grep -nF '# >>> portable chezmoi setup >>>' "$work_home/.zshrc" | cut -d: -f1)
 test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
+
+bash "$source_dir/tests/test-beads.sh" "$source_dir" "$root"
 
 shell_home="$root/shell-only/home"
 render_scripts shell-only
@@ -333,6 +476,13 @@ python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disable
 ghostty_home="$root/ghostty-only/home"
 render_scripts ghostty-only
 assert_contains "$root/ghostty-only/rendered/Brewfile" 'brew "eza"'
+mkdir -p "$ghostty_home/.config/opencode"
+cat >"$ghostty_home/.config/opencode/AGENTS.md" <<'EOF'
+Preserve this guidance with OpenCode disabled.
+<!-- portable-work-beads:start -->
+remove this managed section
+<!-- portable-work-beads:end -->
+EOF
 ghostty_old_dir="$ghostty_home/Library/Application Support/com.mitchellh.ghostty"
 mkdir -p "$ghostty_old_dir"
 printf '%s\n' '# exploratory comments' 'theme = Dracula' >"$ghostty_old_dir/config"
@@ -346,6 +496,8 @@ test -f "$ghostty_home/.config/ghostty/config"
 test ! -e "$ghostty_home/.warp"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
+assert_contains "$ghostty_home/.config/opencode/AGENTS.md" 'Preserve this guidance with OpenCode disabled.'
+assert_not_contains "$ghostty_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 test ! -e "$ghostty_home/.config/starship/current.toml"
 test ! -e "$ghostty_home/.config/zsh/portable.zsh"
 test ! -e "$ghostty_home/.config/git/portable.inc"
