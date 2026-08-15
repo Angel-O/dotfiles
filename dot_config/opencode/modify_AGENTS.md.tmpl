@@ -1,3 +1,4 @@
+{{- $opencodeBeads := dig "integrations" "opencodeBeads" false . -}}
 #!/bin/sh
 set -eu
 
@@ -71,7 +72,7 @@ awk -v start="$start" -v end="$end" '
 ' "$tmp" >"$clean"
 
 cat "$clean"
-{{- if and (eq .role "work") .modules.beads .modules.opencode }}
+{{- if and (eq .role "work") .modules.beads $opencodeBeads }}
 if [ -s "$clean" ] && [ -n "$(tail -c 1 "$clean")" ]; then
   printf '\n'
 fi

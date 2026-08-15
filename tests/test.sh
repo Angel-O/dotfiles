@@ -433,6 +433,120 @@ work_line=$(grep -nF 'ZSH_THEME="agnoster"' "$work_home/.zshrc" | cut -d: -f1)
 normal_line=$(grep -nF '# >>> portable chezmoi setup >>>' "$work_home/.zshrc" | cut -d: -f1)
 test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
+work_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" --include files)
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
+
+external_home="$root/external-opencode-beads/home"
+render_scripts external-opencode-beads
+assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads"'
+assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
+mkdir -p "$external_home/.config/opencode/skills/existing-skill"
+cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
+{"external_opencode_setting": true}
+EOF
+cat >"$external_home/.config/opencode/skills/existing-skill/SKILL.md" <<'EOF'
+# Existing external skill
+
+Preserve this unmanaged skill.
+EOF
+cat >"$external_home/.config/opencode/AGENTS.md" <<'EOF'
+# Existing external OpenCode guidance
+
+Preserve this external instruction.
+EOF
+cp "$external_home/.config/opencode/opencode.jsonc" "$root/external-opencode-beads/opencode.before"
+cp "$external_home/.config/opencode/skills/existing-skill/SKILL.md" "$root/external-opencode-beads/skill.before"
+
+external_managed="$root/external-opencode-beads/managed"
+chezmoi managed \
+  --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
+  --include files \
+  | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
+cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
+.config/opencode/AGENTS.md
+.config/opencode/skills/work-beads/SKILL.md
+.local/bin/wbd
+.local/bin/wbv
+EOF
+cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
+
+apply_fixture external-opencode-beads
+test -x "$external_home/.local/bin/wbd"
+test -x "$external_home/.local/bin/wbv"
+test -f "$external_home/.config/opencode/skills/work-beads/SKILL.md"
+test ! -e "$external_home/.config/opencode/portable.jsonc"
+test ! -e "$external_home/.config/opencode/plugins/env-protection.js"
+test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
+test ! -e "$external_home/.local/bin/opencode-env"
+cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
+cmp -s "$root/external-opencode-beads/skill.before" "$external_home/.config/opencode/skills/existing-skill/SKILL.md"
+assert_contains "$external_home/.config/opencode/AGENTS.md" 'Preserve this external instruction.'
+test "$(grep -Fc '<!-- portable-work-beads:start -->' "$external_home/.config/opencode/AGENTS.md")" -eq 1
+
+if command -v sha256sum >/dev/null 2>&1; then
+  external_before=$(find "$external_home" -type f -exec sha256sum {} + | sort)
+else
+  external_before=$(find "$external_home" -type f -exec shasum -a 256 {} + | sort)
+fi
+apply_fixture external-opencode-beads
+if command -v sha256sum >/dev/null 2>&1; then
+  external_after=$(find "$external_home" -type f -exec sha256sum {} + | sort)
+else
+  external_after=$(find "$external_home" -type f -exec shasum -a 256 {} + | sort)
+fi
+test "$external_before" = "$external_after"
+external_diff=$(chezmoi diff \
+  --source "$source_dir" \
+  --destination "$external_home" \
+  --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
+  --cache "$root/external-opencode-beads/cache" \
+  --persistent-state "$root/external-opencode-beads/chezmoistate.boltdb" \
+  --exclude scripts,externals)
+test -z "$external_diff"
+
+integration_disabled_home="$root/beads-integration-disabled/home"
+render_scripts beads-integration-disabled
+mkdir -p "$integration_disabled_home/.config/opencode"
+cat >"$integration_disabled_home/.config/opencode/opencode.jsonc" <<'EOF'
+{"unmanaged_setting": "preserve"}
+EOF
+cat >"$integration_disabled_home/.config/opencode/AGENTS.md" <<'EOF'
+Preserve disabled-integration guidance.
+<!-- portable-work-beads:start -->
+Remove this stale managed block.
+<!-- portable-work-beads:end -->
+EOF
+apply_fixture beads-integration-disabled
+test -x "$integration_disabled_home/.local/bin/wbd"
+test -x "$integration_disabled_home/.local/bin/wbv"
+test ! -e "$integration_disabled_home/.config/opencode/skills/work-beads/SKILL.md"
+test -f "$integration_disabled_home/.config/opencode/portable.jsonc"
+assert_contains "$integration_disabled_home/.config/opencode/opencode.jsonc" '"unmanaged_setting": "preserve"'
+assert_contains "$integration_disabled_home/.config/opencode/AGENTS.md" 'Preserve disabled-integration guidance.'
+assert_not_contains "$integration_disabled_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
+if chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" --include files \
+  | grep -Fq '.config/opencode/skills/work-beads/SKILL.md'; then
+  printf 'disabled OpenCode Beads integration unexpectedly manages its skill.\n' >&2
+  exit 1
+fi
+
+legacy_home="$root/legacy-beads/home"
+render_scripts legacy-beads
+mkdir -p "$legacy_home/.config/opencode"
+cat >"$legacy_home/.config/opencode/AGENTS.md" <<'EOF'
+Preserve legacy guidance.
+<!-- portable-work-beads:start -->
+Remove this legacy stale block.
+<!-- portable-work-beads:end -->
+EOF
+apply_fixture legacy-beads
+test -x "$legacy_home/.local/bin/wbd"
+test -x "$legacy_home/.local/bin/wbv"
+test ! -e "$legacy_home/.config/opencode/skills/work-beads/SKILL.md"
+assert_contains "$legacy_home/.config/opencode/AGENTS.md" 'Preserve legacy guidance.'
+assert_not_contains "$legacy_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 
 bash "$source_dir/tests/test-beads.sh" "$source_dir" "$root"
 

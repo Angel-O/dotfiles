@@ -11,6 +11,9 @@ shell = true
 git = true
 beads = true
 
+[data.integrations]
+opencodeBeads = true
+
 [data.features]
 nodeDevelopment = false
 jvmDevelopment = false
