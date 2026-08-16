@@ -1,16 +1,16 @@
 {{- $opencodeBeads := dig "integrations" "opencodeBeads" false . -}}
 {{- if and .modules.beads $opencodeBeads -}}
 ---
-name: work-beads
-description: Operate the user's private global Beads store when explicitly requested or when work already references a Bead ID. Provides context-scoped wbd operations and safe wbv robot analysis.
+name: beads-hub
+description: Operate the user's private Beads Hub when explicitly requested or when work already references a Bead ID. Provides context-scoped wbd operations and safe wbv robot analysis.
 ---
 
-# Private Beads Contract
+# Beads Hub Contract
 
 ## Safety
 
 - Use `wbd` for issue operations. Never run raw `bd`, `bv`, or `br`.
-- The user owns one-time `wbd bootstrap` and other setup operations. If the store is missing, stop and ask the user to bootstrap it; agents must not call `bootstrap`, `configure`, or `register`.
+- The user owns one-time `wbd bootstrap [--prefix <prefix>]` and other setup operations. Fresh stores default to the `bead` prefix. If the store is missing, stop and ask the user to bootstrap it; agents must not call `bootstrap`, `configure`, or `register`.
 - Never create or modify repository `.beads`, hooks, ignores, exports, agent files, or routing configuration. Deletion is unsupported; do not bypass the wrapper.
 
 ## Context

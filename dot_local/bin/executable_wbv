@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-store=$HOME/.local/share/beads/work/.beads
-work_config=$HOME/.config/bv/work-beads.yaml
+store=$HOME/.local/share/beads/hub/.beads
+hub_config=$HOME/.config/bv/hub.yaml
 
 die() {
   printf 'wbv: %s\n' "$*" >&2
@@ -222,9 +222,9 @@ viewer_env=(
 )
 if $robot; then
   exec env "${viewer_env[@]}" \
-    bv --history-mode external --work-config "$work_config" \
+    bv --history-mode external --hub-config "$hub_config" \
     "${viewer_args[@]}" --format json
 else
   exec env "${viewer_env[@]}" \
-    bv --history-mode external --work-config "$work_config"
+    bv --history-mode external --hub-config "$hub_config"
 fi

@@ -68,10 +68,11 @@ assert_not_contains() {
   fi
 }
 
-assert_work_beads_skill() {
+assert_beads_hub_skill() {
   local file=$1
   assert_contains "$file" 'Never run raw `bd`, `bv`, or `br`.'
-  assert_contains "$file" 'The user owns one-time `wbd bootstrap`'
+  assert_contains "$file" 'The user owns one-time `wbd bootstrap [--prefix <prefix>]`'
+  assert_contains "$file" 'Fresh stores default to the `bead` prefix.'
   assert_contains "$file" 'Never add, remove, or replace `ctx:` labels.'
   assert_contains "$file" 'Before mutating an existing ID, run `wbd show <id> --json`'
   assert_contains "$file" 'In `dep add`, the first ID is blocked by the second.'
@@ -217,11 +218,12 @@ sh "$agents_modifier_dir/enabled.sh" \
   <"$agents_modifier_dir/balanced.before" >"$agents_modifier_dir/balanced.after"
 assert_contains "$agents_modifier_dir/balanced.after" '# Existing guidance'
 assert_contains "$agents_modifier_dir/balanced.after" 'Preserve this trailing guidance.'
-assert_contains "$agents_modifier_dir/balanced.after" 'load the global `work-beads` skill before acting'
+assert_contains "$agents_modifier_dir/balanced.after" 'load the global `beads-hub` skill before acting'
 assert_contains "$agents_modifier_dir/balanced.after" 'use only `wbd` and approved `wbv --robot-*` queries'
 assert_contains "$agents_modifier_dir/balanced.after" 'never raw `bd`, `bv`, or `br`'
 assert_not_contains "$agents_modifier_dir/balanced.after" 'replace this managed text'
-test "$(grep -Fc '<!-- portable-work-beads:start -->' "$agents_modifier_dir/balanced.after")" -eq 1
+test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$agents_modifier_dir/balanced.after")" -eq 1
+assert_not_contains "$agents_modifier_dir/balanced.after" 'portable-work-beads:start'
 sh "$agents_modifier_dir/enabled.sh" \
   <"$agents_modifier_dir/balanced.after" >"$agents_modifier_dir/balanced.second"
 cmp -s "$agents_modifier_dir/balanced.after" "$agents_modifier_dir/balanced.second"
@@ -231,7 +233,8 @@ sh "$agents_modifier_dir/disabled.sh" \
 assert_contains "$agents_modifier_dir/disabled.after" '# Existing guidance'
 assert_contains "$agents_modifier_dir/disabled.after" 'Preserve this trailing guidance.'
 assert_not_contains "$agents_modifier_dir/disabled.after" 'portable-work-beads:start'
-assert_not_contains "$agents_modifier_dir/disabled.after" 'work-beads` skill'
+assert_not_contains "$agents_modifier_dir/disabled.after" 'portable-beads-hub:start'
+assert_not_contains "$agents_modifier_dir/disabled.after" 'beads-hub` skill'
 
 assert_malformed_agents() {
   local name=$1
@@ -243,12 +246,12 @@ assert_malformed_agents() {
     exit 1
   fi
   cmp -s "$agents_modifier_dir/$name.before" "$agents_modifier_dir/$name.after"
-  assert_contains "$agents_modifier_dir/$name.err" 'work-beads AGENTS modifier:'
+  assert_contains "$agents_modifier_dir/$name.err" 'beads-hub AGENTS modifier:'
 }
 
 cat >"$agents_modifier_dir/unmatched-start.before" <<'EOF'
 Preserve before unmatched start.
-<!-- portable-work-beads:start -->
+<!-- portable-beads-hub:start -->
 Preserve after unmatched start.
 EOF
 assert_malformed_agents unmatched-start
@@ -256,31 +259,31 @@ assert_contains "$agents_modifier_dir/unmatched-start.err" 'unmatched start mark
 
 cat >"$agents_modifier_dir/orphan-end.before" <<'EOF'
 Preserve before orphan end.
-<!-- portable-work-beads:end -->
+<!-- portable-beads-hub:end -->
 Preserve after orphan end.
 EOF
 assert_malformed_agents orphan-end
 assert_contains "$agents_modifier_dir/orphan-end.err" 'orphan end marker'
 
 cat >"$agents_modifier_dir/nested-start.before" <<'EOF'
-<!-- portable-work-beads:start -->
+<!-- portable-beads-hub:start -->
 Preserve inside outer marker.
-<!-- portable-work-beads:start -->
+<!-- portable-beads-hub:start -->
 Preserve inside nested marker.
-<!-- portable-work-beads:end -->
-<!-- portable-work-beads:end -->
+<!-- portable-beads-hub:end -->
+<!-- portable-beads-hub:end -->
 EOF
 assert_malformed_agents nested-start
 assert_contains "$agents_modifier_dir/nested-start.err" 'nested start marker'
 
 cat >"$agents_modifier_dir/duplicate-balanced.before" <<'EOF'
-<!-- portable-work-beads:start -->
+<!-- portable-beads-hub:start -->
 First managed block.
-<!-- portable-work-beads:end -->
+<!-- portable-beads-hub:end -->
 Preserve content between blocks.
-<!-- portable-work-beads:start -->
+<!-- portable-beads-hub:start -->
 Second managed block.
-<!-- portable-work-beads:end -->
+<!-- portable-beads-hub:end -->
 EOF
 assert_malformed_agents duplicate-balanced
 assert_contains "$agents_modifier_dir/duplicate-balanced.err" 'multiple managed blocks'
@@ -294,7 +297,8 @@ printf '%s\r\n' \
 sh "$agents_modifier_dir/enabled.sh" \
   <"$agents_modifier_dir/crlf.before" >"$agents_modifier_dir/crlf.after"
 assert_not_contains "$agents_modifier_dir/crlf.after" 'Replace CRLF managed text.'
-test "$(grep -Fc '<!-- portable-work-beads:start -->' "$agents_modifier_dir/crlf.after")" -eq 1
+test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$agents_modifier_dir/crlf.after")" -eq 1
+assert_not_contains "$agents_modifier_dir/crlf.after" 'portable-work-beads:start'
 python3 -c 'import sys; data=open(sys.argv[1], "rb").read(); assert b"Preserve CRLF before.\r\nPreserve CRLF after.\r\n" in data' "$agents_modifier_dir/crlf.after"
 sh "$agents_modifier_dir/enabled.sh" \
   <"$agents_modifier_dir/crlf.after" >"$agents_modifier_dir/crlf.second"
@@ -383,6 +387,7 @@ assert_not_contains "$personal_home/.config/opencode/AGENTS.md" 'portable-work-b
 test ! -e "$personal_home/.local/bin/wbd"
 test ! -e "$personal_home/.local/bin/wbv"
 test ! -e "$personal_home/.config/opencode/skills/work-beads/SKILL.md"
+test ! -e "$personal_home/.config/opencode/skills/beads-hub/SKILL.md"
 test -L "$personal_home/.config/starship/current.toml"
 test -f "$personal_home/.config/zsh/portable.zsh"
 test -f "$personal_home/.config/zsh/git-worktrees.zsh"
@@ -404,16 +409,17 @@ assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="3b787d10ce39928527e21d18cf2f086324ce7829"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="b7ef9c2328ff71e4d8cdf949ded5f856146492a0"'
 mkdir -p "$personal_beads_home/.config/opencode"
 printf '%s\n' 'Preserve personal Beads guidance.' >"$personal_beads_home/.config/opencode/AGENTS.md"
 apply_fixture personal-with-beads
 test -x "$personal_beads_home/.local/bin/wbd"
 test -x "$personal_beads_home/.local/bin/wbv"
-test -f "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
-assert_work_beads_skill "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
+test -f "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
+assert_beads_hub_skill "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
-test "$(grep -Fc '<!-- portable-work-beads:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
+test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
 python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"bv": "ai board", "wbv": "ai board"}' "$personal_beads_home/.config/herdr-labels/config.toml"
@@ -438,7 +444,7 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="3b787d10ce39928527e21d18cf2f086324ce7829"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="b7ef9c2328ff71e4d8cdf949ded5f856146492a0"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
@@ -496,13 +502,14 @@ assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
-test "$(grep -Fc '<!-- portable-work-beads:start -->' "$work_home/.config/opencode/AGENTS.md")" -eq 1
-assert_contains "$work_home/.config/opencode/AGENTS.md" 'load the global `work-beads` skill before acting'
+test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$work_home/.config/opencode/AGENTS.md")" -eq 1
+assert_contains "$work_home/.config/opencode/AGENTS.md" 'load the global `beads-hub` skill before acting'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'never raw `bd`, `bv`, or `br`'
 test -x "$work_home/.local/bin/wbd"
 test -x "$work_home/.local/bin/wbv"
-test -f "$work_home/.config/opencode/skills/work-beads/SKILL.md"
-assert_work_beads_skill "$work_home/.config/opencode/skills/work-beads/SKILL.md"
+test -f "$work_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$work_home/.config/opencode/skills/work-beads/SKILL.md"
+assert_beads_hub_skill "$work_home/.config/opencode/skills/beads-hub/SKILL.md"
 cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
@@ -544,7 +551,8 @@ test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
 work_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" --include files)
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
-printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/beads-hub/SKILL.md'
+! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
 
 external_home="$root/external-opencode-beads/home"
 render_scripts external-opencode-beads
@@ -553,7 +561,7 @@ assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="3b787d10ce39928527e21d18cf2f086324ce7829"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="b7ef9c2328ff71e4d8cdf949ded5f856146492a0"'
 mkdir -p "$external_home/.config/opencode/skills/existing-skill"
 cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"external_opencode_setting": true}
@@ -579,7 +587,7 @@ chezmoi managed \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
-.config/opencode/skills/work-beads/SKILL.md
+.config/opencode/skills/beads-hub/SKILL.md
 .local/bin/wbd
 .local/bin/wbv
 EOF
@@ -588,8 +596,9 @@ cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
 apply_fixture external-opencode-beads
 test -x "$external_home/.local/bin/wbd"
 test -x "$external_home/.local/bin/wbv"
-test -f "$external_home/.config/opencode/skills/work-beads/SKILL.md"
-assert_work_beads_skill "$external_home/.config/opencode/skills/work-beads/SKILL.md"
+test -f "$external_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$external_home/.config/opencode/skills/work-beads/SKILL.md"
+assert_beads_hub_skill "$external_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$external_home/.config/opencode/portable.jsonc"
 test ! -e "$external_home/.config/opencode/plugins/env-protection.js"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
@@ -597,7 +606,7 @@ test ! -e "$external_home/.local/bin/opencode-env"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
 cmp -s "$root/external-opencode-beads/skill.before" "$external_home/.config/opencode/skills/existing-skill/SKILL.md"
 assert_contains "$external_home/.config/opencode/AGENTS.md" 'Preserve this external instruction.'
-test "$(grep -Fc '<!-- portable-work-beads:start -->' "$external_home/.config/opencode/AGENTS.md")" -eq 1
+test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$external_home/.config/opencode/AGENTS.md")" -eq 1
 
 if command -v sha256sum >/dev/null 2>&1; then
   external_before=$(find "$external_home" -type f -exec sha256sum {} + | sort)
@@ -636,6 +645,7 @@ apply_fixture beads-integration-disabled
 test -x "$integration_disabled_home/.local/bin/wbd"
 test -x "$integration_disabled_home/.local/bin/wbv"
 test ! -e "$integration_disabled_home/.config/opencode/skills/work-beads/SKILL.md"
+test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub/SKILL.md"
 test -f "$integration_disabled_home/.config/opencode/portable.jsonc"
 assert_contains "$integration_disabled_home/.config/opencode/opencode.jsonc" '"unmanaged_setting": "preserve"'
 assert_contains "$integration_disabled_home/.config/opencode/AGENTS.md" 'Preserve disabled-integration guidance.'
@@ -645,8 +655,9 @@ assert_not_contains "$integration_disabled_home/.config/opencode/AGENTS.md" 'por
 # preserving unrelated global OpenCode guidance and the Beads wrappers.
 transition_root="$root/beads-integration-transition"
 transition_home="$transition_root/home"
-mkdir -p "$transition_home/.config/opencode"
+mkdir -p "$transition_home/.config/opencode/skills/work-beads"
 printf '%s\n' 'Preserve transition guidance.' >"$transition_home/.config/opencode/AGENTS.md"
+printf '%s\n' 'obsolete managed work-beads skill' >"$transition_home/.config/opencode/skills/work-beads/SKILL.md"
 chezmoi apply \
   --source "$source_dir" \
   --destination "$transition_home" \
@@ -655,8 +666,10 @@ chezmoi apply \
   --persistent-state "$transition_root/chezmoistate.boltdb" \
   --exclude scripts,externals \
   --force
-test -f "$transition_home/.config/opencode/skills/work-beads/SKILL.md"
-assert_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
+test ! -e "$transition_home/.config/opencode/skills/work-beads/SKILL.md"
+test -f "$transition_home/.config/opencode/skills/beads-hub/SKILL.md"
+assert_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-beads-hub:start'
+assert_not_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 chezmoi apply \
   --source "$source_dir" \
   --destination "$transition_home" \
@@ -666,10 +679,12 @@ chezmoi apply \
   --exclude scripts,externals \
   --force
 test ! -e "$transition_home/.config/opencode/skills/work-beads/SKILL.md"
+test ! -e "$transition_home/.config/opencode/skills/beads-hub/SKILL.md"
 test -x "$transition_home/.local/bin/wbd"
 test -x "$transition_home/.local/bin/wbv"
 assert_contains "$transition_home/.config/opencode/AGENTS.md" 'Preserve transition guidance.'
 assert_not_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
+assert_not_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-beads-hub:start'
 
 legacy_home="$root/legacy-beads/home"
 render_scripts legacy-beads
@@ -684,6 +699,7 @@ apply_fixture legacy-beads
 test -x "$legacy_home/.local/bin/wbd"
 test -x "$legacy_home/.local/bin/wbv"
 test ! -e "$legacy_home/.config/opencode/skills/work-beads/SKILL.md"
+test ! -e "$legacy_home/.config/opencode/skills/beads-hub/SKILL.md"
 assert_contains "$legacy_home/.config/opencode/AGENTS.md" 'Preserve legacy guidance.'
 assert_not_contains "$legacy_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 

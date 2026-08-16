@@ -2,19 +2,21 @@
 #!/bin/sh
 set -eu
 
-start='<!-- portable-work-beads:start -->'
-end='<!-- portable-work-beads:end -->'
+old_start='<!-- portable-work-beads:start -->'
+old_end='<!-- portable-work-beads:end -->'
+start='<!-- portable-beads-hub:start -->'
+end='<!-- portable-beads-hub:end -->'
 tmp=$(mktemp)
 clean=$(mktemp)
 trap 'rm -f "$tmp" "$clean"' EXIT
 cat >"$tmp"
 
-if awk -v start="$start" -v end="$end" '
+if awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" '
   {
     marker = $0
     sub(/\r$/, "", marker)
   }
-  marker == start {
+  marker == old_start || marker == start {
     if (inside) {
       malformed = 12
       exit malformed
@@ -26,7 +28,7 @@ if awk -v start="$start" -v end="$end" '
     inside = 1
     next
   }
-  marker == end {
+  marker == old_end || marker == end {
     if (!inside) {
       malformed = 13
       exit malformed
@@ -48,22 +50,22 @@ else
     14) reason='multiple managed blocks' ;;
     *) reason='marker validation failed' ;;
   esac
-  printf 'work-beads AGENTS modifier: %s\n' "$reason" >&2
+  printf 'beads-hub AGENTS modifier: %s\n' "$reason" >&2
   cat "$tmp"
   exit 1
 fi
 
-awk -v start="$start" -v end="$end" '
+awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" '
   {
     marker = $0
     sub(/\r$/, "", marker)
   }
-  marker == start {
+  marker == old_start || marker == start {
     inside = 1
     next
   }
   inside {
-    if (marker == end) {
+    if (marker == old_end || marker == end) {
       inside = 0
     }
     next
@@ -77,10 +79,10 @@ if [ -s "$clean" ] && [ -n "$(tail -c 1 "$clean")" ]; then
   printf '\n'
 fi
 cat <<'BLOCK'
-<!-- portable-work-beads:start -->
-## Private work tracking
+<!-- portable-beads-hub:start -->
+## Private Beads Hub
 
-For explicitly requested private Beads tracking, or work that already references a Bead ID, load the global `work-beads` skill before acting. Follow its contract; use only `wbd` and approved `wbv --robot-*` queries, never raw `bd`, `bv`, or `br`.
-<!-- portable-work-beads:end -->
+For explicitly requested private Beads tracking, or work that already references a Bead ID, load the global `beads-hub` skill before acting. Follow its contract; use only `wbd` and approved `wbv --robot-*` queries, never raw `bd`, `bv`, or `br`.
+<!-- portable-beads-hub:end -->
 BLOCK
 {{- end }}

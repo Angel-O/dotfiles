@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-store=$HOME/.local/share/beads/work/.beads
+store=$HOME/.local/share/beads/hub/.beads
 parent=${store%/.beads}
-work_config=$HOME/.config/bv/work-beads.yaml
+hub_config=$HOME/.config/bv/hub.yaml
 ledger=$parent/correlations.jsonl
 
 die() {
@@ -67,23 +67,23 @@ replace_if_changed() {
   fi
 }
 
-ensure_work_config() {
+ensure_hub_config() {
   need jq
-  [ ! -L "$work_config" ] || die "work config must not be a symlink: $work_config"
-  [ ! -e "$work_config" ] || [ -f "$work_config" ] ||
-    die "work config must be a regular file: $work_config"
+  [ ! -L "$hub_config" ] || die "hub config must not be a symlink: $hub_config"
+  [ ! -e "$hub_config" ] || [ -f "$hub_config" ] ||
+    die "hub config must be a regular file: $hub_config"
   umask 077
-  mkdir -p "${work_config%/*}"
+  mkdir -p "${hub_config%/*}"
 
   local tmp
-  tmp=$(mktemp "$work_config.tmp.XXXXXX") || die 'cannot create temporary work config'
-  if [ -e "$work_config" ]; then
+  tmp=$(mktemp "$hub_config.tmp.XXXXXX") || die 'cannot create temporary hub config'
+  if [ -e "$hub_config" ]; then
     if ! jq -S \
       --arg store "$store" \
       --arg ledger "$ledger" \
-      'if type != "object" then error("work config must be an object")
-       elif (keys - ["ledger", "repositories", "store", "version"] | length) != 0 then error("unknown work config field")
-       elif .version != 1 then error("unsupported work config version")
+       'if type != "object" then error("hub config must be an object")
+        elif (keys - ["ledger", "repositories", "store", "version"] | length) != 0 then error("unknown hub config field")
+        elif .version != 1 then error("unsupported hub config version")
        elif ((.repositories // {}) | type) != "object" then error("repositories must be an object")
        elif any((.repositories // {}) | to_entries[];
          (.key | type) != "string" or (.key | startswith("ctx:") | not) or
@@ -92,9 +92,9 @@ ensure_work_config() {
        then error("invalid repository entry")
        else .store = $store | .ledger = $ledger | .repositories = (.repositories // {})
        end' \
-      "$work_config" >"$tmp"; then
+      "$hub_config" >"$tmp"; then
       rm -f "$tmp"
-      die "cannot update work config: $work_config"
+      die "cannot update hub config: $hub_config"
     fi
   else
     jq -nS \
@@ -102,7 +102,7 @@ ensure_work_config() {
       --arg ledger "$ledger" \
       '{version: 1, store: $store, ledger: $ledger, repositories: {}}' >"$tmp"
   fi
-  replace_if_changed "$tmp" "$work_config"
+  replace_if_changed "$tmp" "$hub_config"
 }
 
 register_repository() {
@@ -113,19 +113,19 @@ register_repository() {
   case "$registered_root" in
     *$'\n'*|*$'\r'*|*$'\t'*) die 'repository path contains an unsupported control character' ;;
   esac
-  ensure_work_config
+  ensure_hub_config
 
   local tmp
-  tmp=$(mktemp "$work_config.tmp.XXXXXX") || die 'cannot create temporary work config'
+  tmp=$(mktemp "$hub_config.tmp.XXXXXX") || die 'cannot create temporary hub config'
   if ! jq -S \
     --arg context "$registered_context" \
     --arg path "$registered_root" \
     '.repositories[$context] = {path: $path}' \
-    "$work_config" >"$tmp"; then
+    "$hub_config" >"$tmp"; then
     rm -f "$tmp"
-    die "cannot register repository in work config: $work_config"
+    die "cannot register repository in hub config: $hub_config"
   fi
-  replace_if_changed "$tmp" "$work_config"
+  replace_if_changed "$tmp" "$hub_config"
 }
 
 context() {
@@ -188,6 +188,7 @@ context() {
 }
 
 bootstrap() {
+  local prefix=$1
   need bd
   need git
   need jq
@@ -205,14 +206,14 @@ bootstrap() {
     cd "$parent" &&
       run_bd_bootstrap metrics off &&
       run_bd_bootstrap init \
-        --prefix work \
+        --prefix "$prefix" \
         --non-interactive \
         --skip-hooks \
         --skip-agents &&
        run_bd config set export.auto false &&
        run_bd config set export.git-add false &&
        run_bd config set dolt.auto-push false &&
-       ensure_work_config
+        ensure_hub_config
   ); then
     return 0
   else
@@ -293,6 +294,13 @@ validate_limit() {
   ((10#$1 >= 1 && 10#$1 <= 1000)) || die 'limit must be between 1 and 1000'
 }
 
+validate_prefix() {
+  local prefix=$1
+  case "$prefix" in *--*) die 'prefix must not contain consecutive hyphens' ;; esac
+  [ "${#prefix}" -le 32 ] && [[ $prefix =~ ^[a-z]([a-z0-9-]{0,30}[a-z0-9])?$ ]] ||
+    die 'prefix must be 1-32 lowercase ASCII letters, digits, or hyphens, start with a letter, and end with a letter or digit'
+}
+
 json=false
 if [ "${1:-}" = --json ]; then
   json=true
@@ -306,8 +314,14 @@ case "$command_name" in -*) die "unsupported global option: $command_name" ;; es
 shift
 
 if [ "$command_name" = bootstrap ]; then
-  ! $json && [ "$#" -eq 0 ] || die 'usage: wbd bootstrap'
-  bootstrap
+  ! $json || die 'usage: wbd bootstrap [--prefix <prefix>]'
+  prefix=bead
+  if [ "$#" -gt 0 ]; then
+    [ "$#" -eq 2 ] && [ "$1" = --prefix ] || die 'usage: wbd bootstrap [--prefix <prefix>]'
+    prefix=$2
+  fi
+  validate_prefix "$prefix"
+  bootstrap "$prefix"
   exit 0
 fi
 
@@ -324,8 +338,8 @@ case "$command_name" in
     ;;
   configure)
     ! $json && [ "$#" -eq 0 ] || die 'usage: wbd configure'
-    ensure_work_config
-    printf '%s\n' "$work_config"
+    ensure_hub_config
+    printf '%s\n' "$hub_config"
     ;;
   register)
     ! $json && [ "$#" -eq 0 ] || die 'usage: wbd register'
@@ -579,7 +593,7 @@ case "$command_name" in
       --bead "$1" \
       --repo "$registered_context" \
       --commit "$commit" \
-      --work-config "$work_config"
+      --hub-config "$hub_config"
     ;;
   init)
     die "direct init is disabled; run 'wbd bootstrap'"

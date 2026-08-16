@@ -46,15 +46,29 @@ The inventory uses these classifications:
 
 When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather than tracked in full: left Option sends Alt/Meta for terminal keybindings, while right Option remains available for macOS character entry. The module does not install Warp. When disabled, chezmoi does not manage, alter, or delete existing Warp settings. Warp hot-reloads `settings.toml`; smoke-test the enabled policy by confirming `Alt+T` reaches the shell or application instead of producing `†`.
 
-The `beads` module is optional for both personal and work roles. It installs Beads, Go, and `jq`, builds the pinned external-history `Angel-O/beads_viewer` fork as `~/.local/bin/bv`, and manages `~/.local/bin/wbd` and `~/.local/bin/wbv`. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/work/.beads`; bootstrap also creates the private Viewer config at `~/.config/bv/work-beads.yaml` and disables Beads anonymous command metrics. One global store supports direct dependencies across projects by stable issue ID, while `wbd` derives credential-free `ctx:` labels from each real origin-backed repository. `wbd register` records the current checkout in the private config, create and scoped-list operations register automatically, and `wbd link <bead-id> [commit]` writes a real source association to the private ledger through `bv correlate add`. `wbv` launches the all-context Viewer with external history from any working directory. Existing project-local `.beads` stores are not migrated or modified, and no `.beads`, hooks, team files, or project agent guidance are added to a source repository. Disabling the module stops management and fork installation but does not uninstall packages or delete the private store, config, or ledger.
+The `beads` module is optional for both personal and work roles. It installs Beads, Go, and `jq`, builds the pinned external-history `Angel-O/beads_viewer` fork as `~/.local/bin/bv`, and manages `~/.local/bin/wbd` and `~/.local/bin/wbv`. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/hub/.beads` with the default `bead` issue prefix, or run `wbd bootstrap --prefix <prefix>` for a custom prefix. Bootstrap also creates the private Viewer config at `~/.config/bv/hub.yaml` and disables Beads anonymous command metrics. The hub store supports direct dependencies across projects by stable issue ID, while `wbd` derives credential-free `ctx:` labels from each real origin-backed repository. `wbd register` records the current checkout in the private config, create and scoped-list operations register automatically, and `wbd link <bead-id> [commit]` writes a real source association to the private ledger through `bv correlate add`. `wbv` launches the all-context Viewer with external history from any working directory. Existing project-local `.beads` stores are not migrated or modified, and no `.beads`, hooks, team files, or project agent guidance are added to a source repository. Disabling the module stops management and fork installation but does not uninstall packages or delete the private store, config, or ledger.
+
+Both migration commands are repository-only and are never run by chezmoi. On a machine that already has the Hub store at `~/.local/share/beads/hub/.beads`, use the repeatable naming-only migration. It detects the persisted prefix, defaults blank input to that current prefix as a no-op, and backs up the complete Hub parent plus `~/.config/bv/hub.yaml` before a change. Run the same command again for any future prefix change:
+
+```sh
+source_dir="$(chezmoi source-path)"
+bash "$source_dir/scripts/migrate-beads-hub-prefix.sh"
+```
+
+On a machine that still has the legacy `~/.local/share/beads/work` store and no Hub destination, use the one-time path migration instead. It prompts for the store-wide prefix applied to every Beads ID in the new Hub, defaults blank input to `bead`, preserves repository registrations, and creates its legacy-layout backup before mutation. After this path migration, use `migrate-beads-hub-prefix.sh` for later naming changes; do not rerun the one-time work-to-Hub script:
+
+```sh
+source_dir="$(chezmoi source-path)"
+bash "$source_dir/scripts/migrate-beads-work-to-hub.sh"
+```
 
 ## Integrations
 
 | Integration | Scope |
 | --- | --- |
-| `opencodeBeads` | OpenCode-only `work-beads` skill and marker-managed user `~/.config/opencode/AGENTS.md` guidance |
+| `opencodeBeads` | OpenCode-only `beads-hub` skill and marker-managed user `~/.config/opencode/AGENTS.md` guidance |
 
-The `opencodeBeads` integration is offered after enabling `beads` on either role and defaults to enabled. It assumes the OpenCode executable is already available, whether installed externally or accompanied by the separate `opencode` configuration module. Enabling both is supported: the module owns the portable OpenCode configuration and launcher, while the integration owns only the Beads skill and its marked user guidance. With an external OpenCode installation, no general OpenCode configuration or launcher is managed. Disabling the integration stops managing the skill and removes only its own AGENTS marker block; unrelated OpenCode files and user guidance remain untouched. Future agent adapters, such as `codexBeads`, should follow the same independent integration pattern rather than becoming Beads module or package-installation concerns.
+The `opencodeBeads` integration is offered after enabling `beads` on either role and defaults to enabled. It assumes the OpenCode executable is already available, whether installed externally or accompanied by the separate `opencode` configuration module. Enabling both is supported: the module owns the portable OpenCode configuration and launcher, while the integration owns only the `beads-hub` skill and its `portable-beads-hub` marked user guidance. Applying this transition replaces the former `work-beads` skill and marker block. With an external OpenCode installation, no general OpenCode configuration or launcher is managed. Disabling the integration stops managing the skill and removes only its own current or legacy AGENTS marker block; unrelated OpenCode files and user guidance remain untouched. Future agent adapters, such as `codexBeads`, should follow the same independent integration pattern rather than becoming Beads module or package-installation concerns.
 
 ## Safe Validation
 
