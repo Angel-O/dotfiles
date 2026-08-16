@@ -80,7 +80,7 @@ Homebrew and chezmoi are prerequisites. Select one or more modules and offered i
 
 `chezmoi init --source <path> --prompt` both regenerates the machine-local configuration and persists that checkout as the source. Run it on first setup, when changing module selections, or when chezmoi reports that the config template changed. It is not required for routine updates.
 
-Existing personal installations must run this command once after receiving cross-role Beads support. Personal Beads answers moved to the persisted `selections.beads` and `selections.opencodeBeads` keys so the canonical prompt is not suppressed by the old unprompted `modules.beads = false`; work-role keys and existing selections are unchanged.
+Existing personal installations must run this command once after receiving cross-role Beads support and answer the Beads prompt. During prompted initialization, both roles are always asked about Beads and, when it is enabled, the OpenCode integration; current canonical values are the prompt defaults rather than suppressing either prompt.
 
 ### Source Machine
 

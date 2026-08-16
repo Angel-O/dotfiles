@@ -18,17 +18,9 @@
 {{- $zoxide := false -}}
 {{- $elio := false -}}
 {{- $reviewr := false -}}
-{{- if eq $role "work" -}}
-{{- $beads = promptBoolOnce . "modules.beads" "Enable the Beads module" false -}}
-{{- else -}}
-{{- $beads = promptBoolOnce . "selections.beads" "Enable the Beads module" false -}}
-{{- end -}}
+{{- $beads = promptBool "Enable the Beads module" (dig "modules" "beads" false .) -}}
 {{- if $beads -}}
-{{- if eq $role "work" -}}
-{{- $opencodeBeads = promptBoolOnce . "integrations.opencodeBeads" "Enable the OpenCode Beads integration" true -}}
-{{- else -}}
-{{- $opencodeBeads = promptBoolOnce . "selections.opencodeBeads" "Enable the OpenCode Beads integration" true -}}
-{{- end -}}
+{{- $opencodeBeads = promptBool "Enable the OpenCode Beads integration" (dig "integrations" "opencodeBeads" true .) -}}
 {{- end -}}
 {{- if $shell -}}
 {{- $nodeDevelopment = promptBoolOnce . "features.nodeDevelopment" "Enable optional Node development setup" false -}}
@@ -62,14 +54,6 @@ beads = {{ $beads }}
 
 [data.integrations]
 opencodeBeads = {{ $opencodeBeads }}
-
-{{- if eq $role "personal" }}
-[data.selections]
-beads = {{ $beads }}
-{{- if $beads }}
-opencodeBeads = {{ $opencodeBeads }}
-{{- end }}
-{{- end }}
 
 [data.features]
 nodeDevelopment = {{ $nodeDevelopment }}

@@ -290,29 +290,35 @@ sh "$agents_modifier_dir/disabled.sh" \
 printf '%s\r\n' 'Preserve CRLF before.' 'Preserve CRLF after.' >"$agents_modifier_dir/crlf.expected"
 cmp -s "$agents_modifier_dir/crlf.expected" "$agents_modifier_dir/crlf.disabled"
 
-config_migration_dir="$root/config-migration"
-mkdir -p "$config_migration_dir"
+prompt_config_dir="$root/prompt-config"
+mkdir -p "$prompt_config_dir"
 chezmoi execute-template --init \
   --source "$source_dir" \
   --config "$source_dir/tests/fixtures/personal.toml" \
   --promptBool 'Enable the Beads module=true' \
   --promptBool 'Enable the OpenCode Beads integration=true' \
-  <"$source_dir/.chezmoi.toml.tmpl" >"$config_migration_dir/personal.toml"
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True; assert data["selections"] == {"beads": True, "opencodeBeads": True}' "$config_migration_dir/personal.toml"
+  <"$source_dir/.chezmoi.toml.tmpl" >"$prompt_config_dir/personal.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True' "$prompt_config_dir/personal.toml"
 chezmoi execute-template --init \
   --source "$source_dir" \
-  --config "$config_migration_dir/personal.toml" \
-  --promptBool 'Enable the Beads module=false' \
+  --config "$prompt_config_dir/personal.toml" \
+  --promptBool 'Enable the Beads module=true' \
   --promptBool 'Enable the OpenCode Beads integration=false' \
-  <"$source_dir/.chezmoi.toml.tmpl" >"$config_migration_dir/personal-second.toml"
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True' "$config_migration_dir/personal-second.toml"
+  <"$source_dir/.chezmoi.toml.tmpl" >"$prompt_config_dir/personal-second.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is False' "$prompt_config_dir/personal-second.toml"
 chezmoi execute-template --init \
   --source "$source_dir" \
   --config "$source_dir/tests/fixtures/work.toml" \
   --promptBool 'Enable the Beads module=false' \
+  <"$source_dir/.chezmoi.toml.tmpl" >"$prompt_config_dir/work-disabled.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is False; assert data["integrations"]["opencodeBeads"] is False' "$prompt_config_dir/work-disabled.toml"
+chezmoi execute-template --init \
+  --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/work.toml" \
+  --promptBool 'Enable the Beads module=true' \
   --promptBool 'Enable the OpenCode Beads integration=false' \
-  <"$source_dir/.chezmoi.toml.tmpl" >"$config_migration_dir/work.toml"
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True; assert "selections" not in data' "$config_migration_dir/work.toml"
+  <"$source_dir/.chezmoi.toml.tmpl" >"$prompt_config_dir/work-integration-disabled.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is False' "$prompt_config_dir/work-integration-disabled.toml"
 
 personal_home="$root/personal/home"
 render_scripts personal
