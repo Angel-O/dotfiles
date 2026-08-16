@@ -21,8 +21,13 @@ run_bd_bootstrap() {
     -u BEADS_DB \
     -u BD_GLOBAL \
     -u BEADS_DOLT_DATA_DIR \
+    -u BEADS_DOLT_PORT \
     -u BEADS_DOLT_PROXIED_SERVER \
+    -u BEADS_DOLT_SERVER_DATABASE \
+    -u BEADS_DOLT_SERVER_HOST \
     -u BEADS_DOLT_SERVER_MODE \
+    -u BEADS_DOLT_SERVER_PORT \
+    -u BEADS_DOLT_SERVER_SOCKET \
     -u BEADS_DOLT_SHARED_SERVER \
     BEADS_DIR="$store" \
     bd "$@"
@@ -38,8 +43,13 @@ run_bv() {
     -u BEADS_DB \
     -u BD_GLOBAL \
     -u BEADS_DOLT_DATA_DIR \
+    -u BEADS_DOLT_PORT \
     -u BEADS_DOLT_PROXIED_SERVER \
+    -u BEADS_DOLT_SERVER_DATABASE \
+    -u BEADS_DOLT_SERVER_HOST \
     -u BEADS_DOLT_SERVER_MODE \
+    -u BEADS_DOLT_SERVER_PORT \
+    -u BEADS_DOLT_SERVER_SOCKET \
     -u BEADS_DOLT_SHARED_SERVER \
     BEADS_DIR="$store" \
     BV_NO_GITIGNORE=1 \
@@ -213,8 +223,90 @@ bootstrap() {
   return "$status"
 }
 
-if [ "${1:-}" = bootstrap ]; then
-  [ "$#" -eq 1 ] || die 'usage: wbd bootstrap'
+safe_value() {
+  [ -n "$2" ] || die "missing value for $1"
+  case "$2" in
+    *$'\n'*|*$'\r'*|*$'\t'*) die "invalid control character in $1" ;;
+  esac
+}
+
+safe_id() {
+  safe_value "$1" "$2"
+  case "$2" in -*) die "invalid ID for $1: $2" ;; esac
+}
+
+mark_seen() {
+  case " $seen " in
+    *" $1 "*) die "duplicate option: $1" ;;
+  esac
+  seen="$seen $1"
+}
+
+set_json() {
+  $json && die 'duplicate option: --json'
+  json=true
+}
+
+validate_priority() {
+  case "$1" in 0|1|2|3|4|P0|P1|P2|P3|P4) ;; *) die "invalid priority: $1" ;; esac
+}
+
+validate_type() {
+  case "$1" in bug|feature|task|epic|chore|decision) ;; *) die "invalid issue type: $1" ;; esac
+}
+
+validate_statuses() {
+  local value=$1 status
+  case "$value" in ,*|*,|*,,*) die 'status list contains an empty value' ;; esac
+  IFS=, read -r -a statuses <<<"$value"
+  [ "${#statuses[@]}" -gt 0 ] || die 'status list must not be empty'
+  for status in "${statuses[@]}"; do
+    case "$status" in open|in_progress|blocked|deferred|closed) ;; *) die "invalid status: $status" ;; esac
+  done
+}
+
+validate_labels() {
+  local value=$1 label checked
+  case "$value" in ,*|*,|*,,*) die 'label list contains an empty value' ;; esac
+  IFS=, read -r -a labels <<<"$value"
+  [ "${#labels[@]}" -gt 0 ] || die 'label list must not be empty'
+  for label in "${labels[@]}"; do
+    safe_value label "$label"
+    case "$label" in *'"'*) die 'quoted labels are unsupported' ;; esac
+    checked=$label
+    while [[ $checked == ' '* ]]; do checked=${checked# }; done
+    [ -n "$checked" ] || die 'label list contains an empty value'
+    case "$checked" in ctx:*) die 'ctx: labels are wrapper-owned' ;; esac
+  done
+}
+
+validate_query_labels() {
+  local value=$1 label
+  case "$value" in ,*|*,|*,,*) die 'label list contains an empty value' ;; esac
+  IFS=, read -r -a labels <<<"$value"
+  [ "${#labels[@]}" -gt 0 ] || die 'label list must not be empty'
+  for label in "${labels[@]}"; do safe_value label "$label"; done
+}
+
+validate_limit() {
+  [[ $1 =~ ^[0-9]+$ ]] && [ "${#1}" -le 4 ] || die "invalid limit: $1"
+  ((10#$1 >= 1 && 10#$1 <= 1000)) || die 'limit must be between 1 and 1000'
+}
+
+json=false
+if [ "${1:-}" = --json ]; then
+  json=true
+  shift
+fi
+
+command_name=${1:-}
+[ -n "$command_name" ] ||
+  die 'supported commands: bootstrap, configure, register, context, create, new, list, show, update, dep, close, reopen, link'
+case "$command_name" in -*) die "unsupported global option: $command_name" ;; esac
+shift
+
+if [ "$command_name" = bootstrap ]; then
+  ! $json && [ "$#" -eq 0 ] || die 'usage: wbd bootstrap'
   bootstrap
   exit 0
 fi
@@ -222,106 +314,275 @@ fi
 [ -d "$store" ] || die "store is missing; run 'wbd bootstrap'"
 need bd
 
-for arg in "$@"; do
-  case "$arg" in
-    --db|--db=*|--database|--database=*|--global|--global=*|-C|-C*|--directory|--directory=*)
-      die 'database routing and directory override flags are disabled'
-      ;;
-  esac
-done
-
-leading_args=()
-command_args=()
-command_name=
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    --actor|--dolt-auto-commit)
-      [ "$#" -ge 2 ] || die "missing value for leading global flag: $1"
-      leading_args+=("$1" "$2")
-      shift 2
-      ;;
-    --actor=*|--dolt-auto-commit=*|--help|--ignore-schema-skew|--json|--profile|--readonly|--sandbox|--version|-h|-q|-v|-V|--quiet|--verbose)
-      leading_args+=("$1")
-      shift
-      ;;
-    -*)
-      die 'put the bd command before its flags'
-      ;;
-    *)
-      command_name=$1
-      shift
-      command_args=("$@")
-      break
-      ;;
-  esac
-done
+global_args=()
+$json && global_args+=(--json)
 
 case "$command_name" in
-  init)
-    die "direct init is disabled; run 'wbd bootstrap'"
-    ;;
-  bootstrap)
-    die 'usage: wbd bootstrap'
-    ;;
   context)
-    [ "${#leading_args[@]}" -eq 0 ] && [ "${#command_args[@]}" -eq 0 ] ||
-      die 'usage: wbd context'
+    ! $json && [ "$#" -eq 0 ] || die 'usage: wbd context'
     context
     ;;
   configure)
-    [ "${#leading_args[@]}" -eq 0 ] && [ "${#command_args[@]}" -eq 0 ] ||
-      die 'usage: wbd configure'
+    ! $json && [ "$#" -eq 0 ] || die 'usage: wbd configure'
     ensure_work_config
     printf '%s\n' "$work_config"
     ;;
   register)
-    [ "${#leading_args[@]}" -eq 0 ] && [ "${#command_args[@]}" -eq 0 ] ||
-      die 'usage: wbd register'
+    ! $json && [ "$#" -eq 0 ] || die 'usage: wbd register'
     register_repository
     printf '%s\t%s\n' "$registered_context" "$registered_root"
     ;;
   create|new)
-    for arg in ${command_args[@]+"${command_args[@]}"}; do
+    seen=
+    args=()
+    titles=()
+    while [ "$#" -gt 0 ]; do
+      arg=$1
+      shift
       case "$arg" in
-        --repo|--repo=*) die 'create repository routing flags are disabled' ;;
+        --json) set_json ;;
+        --description|--type|--priority|--labels)
+          [ "$#" -gt 0 ] || die "missing value for $arg"
+          value=$1
+          shift
+          safe_value "$arg" "$value"
+          case "$arg" in
+            --type) mark_seen "$arg"; validate_type "$value" ;;
+            --priority) mark_seen "$arg"; validate_priority "$value" ;;
+            --labels) validate_labels "$value" ;;
+            *) mark_seen "$arg" ;;
+          esac
+          args+=("$arg" "$value")
+          ;;
+        --description=*|--type=*|--priority=*|--labels=*)
+          flag=${arg%%=*}
+          value=${arg#*=}
+          safe_value "$flag" "$value"
+          case "$flag" in
+            --type) mark_seen "$flag"; validate_type "$value" ;;
+            --priority) mark_seen "$flag"; validate_priority "$value" ;;
+            --labels) validate_labels "$value" ;;
+            *) mark_seen "$flag" ;;
+          esac
+          args+=("$flag" "$value")
+          ;;
+        -*) die "unsupported option for $command_name: $arg" ;;
+        *) safe_value title "$arg"; titles+=("$arg") ;;
       esac
     done
+    [ "${#titles[@]}" -eq 1 ] || die "usage: wbd $command_name <title> [options]"
+    global_args=()
+    $json && global_args+=(--json)
     register_repository
-    context_label=$registered_context
-    run_bd ${leading_args[@]+"${leading_args[@]}"} "$command_name" --labels "$context_label" ${command_args[@]+"${command_args[@]}"}
+    run_bd ${global_args[@]+"${global_args[@]}"} "$command_name" --labels "$registered_context" "${titles[0]}" ${args[@]+"${args[@]}"}
     ;;
   list)
-    all_contexts=false
+    seen=
     args=()
-    for arg in ${command_args[@]+"${command_args[@]}"}; do
-      if [ "$arg" = --all-contexts ]; then
-        all_contexts=true
-      else
-        args+=("$arg")
-      fi
+    all_contexts=false
+    while [ "$#" -gt 0 ]; do
+      arg=$1
+      shift
+      case "$arg" in
+        --json) set_json ;;
+        --all-contexts) mark_seen "$arg"; all_contexts=true ;;
+        --ready) mark_seen "$arg"; args+=("$arg") ;;
+        --status|--type|--priority|--label|--limit)
+          [ "$#" -gt 0 ] || die "missing value for $arg"
+          value=$1
+          shift
+          safe_value "$arg" "$value"
+          case "$arg" in
+            --status) mark_seen "$arg"; validate_statuses "$value" ;;
+            --type) mark_seen "$arg"; validate_type "$value" ;;
+            --priority) mark_seen "$arg"; validate_priority "$value" ;;
+            --label) validate_query_labels "$value" ;;
+            --limit) mark_seen "$arg"; validate_limit "$value" ;;
+          esac
+          args+=("$arg" "$value")
+          ;;
+        --status=*|--type=*|--priority=*|--label=*|--limit=*)
+          flag=${arg%%=*}
+          value=${arg#*=}
+          safe_value "$flag" "$value"
+          case "$flag" in
+            --status) mark_seen "$flag"; validate_statuses "$value" ;;
+            --type) mark_seen "$flag"; validate_type "$value" ;;
+            --priority) mark_seen "$flag"; validate_priority "$value" ;;
+            --label) validate_query_labels "$value" ;;
+            --limit) mark_seen "$flag"; validate_limit "$value" ;;
+          esac
+          args+=("$flag" "$value")
+          ;;
+        -*) die "unsupported option for list: $arg" ;;
+        *) die "list does not accept positional arguments: $arg" ;;
+      esac
     done
+    global_args=()
+    $json && global_args+=(--json)
     if $all_contexts; then
-      run_bd ${leading_args[@]+"${leading_args[@]}"} list ${args[@]+"${args[@]}"}
+      run_bd ${global_args[@]+"${global_args[@]}"} list ${args[@]+"${args[@]}"}
     else
       register_repository
-      context_label=$registered_context
-      run_bd ${leading_args[@]+"${leading_args[@]}"} list --label "$context_label" ${args[@]+"${args[@]}"}
+      run_bd ${global_args[@]+"${global_args[@]}"} list --label "$registered_context" ${args[@]+"${args[@]}"}
     fi
     ;;
+  show)
+    ids=()
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --json) set_json ;;
+        -*) die "unsupported option for show: $1" ;;
+        *) safe_id show "$1"; ids+=("$1") ;;
+      esac
+      shift
+    done
+    [ "${#ids[@]}" -eq 1 ] || die 'usage: wbd show <id> [--json]'
+    global_args=()
+    $json && global_args+=(--json)
+    run_bd ${global_args[@]+"${global_args[@]}"} show "${ids[0]}"
+    ;;
+  update)
+    seen=
+    args=()
+    ids=()
+    mutations=0
+    while [ "$#" -gt 0 ]; do
+      arg=$1
+      shift
+      case "$arg" in
+        --json) set_json ;;
+        --title|--description|--type|--priority|--status|--add-label)
+          [ "$#" -gt 0 ] || die "missing value for $arg"
+          value=$1
+          shift
+          safe_value "$arg" "$value"
+          case "$arg" in
+            --type) mark_seen "$arg"; validate_type "$value" ;;
+            --priority) mark_seen "$arg"; validate_priority "$value" ;;
+            --status)
+              mark_seen "$arg"
+              case "$value" in open|in_progress|blocked|deferred) ;; *) die "invalid update status: $value" ;; esac
+              ;;
+            --add-label) validate_labels "$value" ;;
+            *) mark_seen "$arg" ;;
+          esac
+          args+=("$arg" "$value")
+          mutations=$((mutations + 1))
+          ;;
+        --title=*|--description=*|--type=*|--priority=*|--status=*|--add-label=*)
+          flag=${arg%%=*}
+          value=${arg#*=}
+          safe_value "$flag" "$value"
+          case "$flag" in
+            --type) mark_seen "$flag"; validate_type "$value" ;;
+            --priority) mark_seen "$flag"; validate_priority "$value" ;;
+            --status)
+              mark_seen "$flag"
+              case "$value" in open|in_progress|blocked|deferred) ;; *) die "invalid update status: $value" ;; esac
+              ;;
+            --add-label) validate_labels "$value" ;;
+            *) mark_seen "$flag" ;;
+          esac
+          args+=("$flag" "$value")
+          mutations=$((mutations + 1))
+          ;;
+        -*) die "unsupported option for update: $arg" ;;
+        *) safe_id update "$arg"; ids+=("$arg") ;;
+      esac
+    done
+    [ "${#ids[@]}" -eq 1 ] && [ "$mutations" -gt 0 ] || die 'usage: wbd update <id> <mutation> [--json]'
+    global_args=()
+    $json && global_args+=(--json)
+    run_bd ${global_args[@]+"${global_args[@]}"} update "${ids[0]}" ${args[@]+"${args[@]}"}
+    ;;
+  dep)
+    subcommand=${1:-}
+    case "$subcommand" in add|remove) ;; *) die 'usage: wbd dep add|remove <issue-id> <depends-on-id> [options]' ;; esac
+    shift
+    seen=
+    args=()
+    ids=()
+    while [ "$#" -gt 0 ]; do
+      arg=$1
+      shift
+      case "$arg" in
+        --json) set_json ;;
+        --type)
+          [ "$subcommand" = add ] || die '--type is supported only for dep add'
+          [ "$#" -gt 0 ] || die 'missing value for --type'
+          value=$1
+          shift
+          safe_value --type "$value"
+          mark_seen --type
+          case "$value" in blocks|tracks|related|parent-child|discovered-from|until|caused-by|validates|relates-to|supersedes) ;; *) die "invalid dependency type: $value" ;; esac
+          args+=(--type "$value")
+          ;;
+        --type=*)
+          [ "$subcommand" = add ] || die '--type is supported only for dep add'
+          value=${arg#*=}
+          safe_value --type "$value"
+          mark_seen --type
+          case "$value" in blocks|tracks|related|parent-child|discovered-from|until|caused-by|validates|relates-to|supersedes) ;; *) die "invalid dependency type: $value" ;; esac
+          args+=(--type "$value")
+          ;;
+        -*) die "unsupported option for dep $subcommand: $arg" ;;
+        *) safe_id "dep $subcommand" "$arg"; ids+=("$arg") ;;
+      esac
+    done
+    [ "${#ids[@]}" -eq 2 ] || die "usage: wbd dep $subcommand <issue-id> <depends-on-id> [options]"
+    global_args=()
+    $json && global_args+=(--json)
+    run_bd ${global_args[@]+"${global_args[@]}"} dep "$subcommand" "${ids[@]}" ${args[@]+"${args[@]}"}
+    ;;
+  close|reopen)
+    seen=
+    args=()
+    ids=()
+    while [ "$#" -gt 0 ]; do
+      arg=$1
+      shift
+      case "$arg" in
+        --json) set_json ;;
+        --reason)
+          [ "$#" -gt 0 ] || die 'missing value for --reason'
+          value=$1
+          shift
+          safe_value --reason "$value"
+          mark_seen --reason
+          args+=(--reason "$value")
+          ;;
+        --reason=*)
+          value=${arg#*=}
+          safe_value --reason "$value"
+          mark_seen --reason
+          args+=(--reason "$value")
+          ;;
+        -*) die "unsupported option for $command_name: $arg" ;;
+        *) safe_id "$command_name" "$arg"; ids+=("$arg") ;;
+      esac
+    done
+    [ "${#ids[@]}" -eq 1 ] || die "usage: wbd $command_name <id> [--reason <text>] [--json]"
+    global_args=()
+    $json && global_args+=(--json)
+    run_bd ${global_args[@]+"${global_args[@]}"} "$command_name" "${ids[0]}" ${args[@]+"${args[@]}"}
+    ;;
   link)
-    [ "${#leading_args[@]}" -eq 0 ] || die 'usage: wbd link <bead-id> [commit]'
-    [ "${#command_args[@]}" -ge 1 ] && [ "${#command_args[@]}" -le 2 ] ||
-      die 'usage: wbd link <bead-id> [commit]'
+    ! $json && [ "$#" -ge 1 ] && [ "$#" -le 2 ] || die 'usage: wbd link <bead-id> [commit]'
+    safe_id link "$1"
+    commit=${2:-HEAD}
+    safe_value commit "$commit"
+    case "$commit" in -*) die "invalid commit: $commit" ;; esac
     need bv
     register_repository
     run_bv correlate add \
-      --bead "${command_args[0]}" \
+      --bead "$1" \
       --repo "$registered_context" \
-      --commit "${command_args[1]:-HEAD}" \
+      --commit "$commit" \
       --work-config "$work_config"
     ;;
-  show|update|dep|close|reopen)
-    run_bd ${leading_args[@]+"${leading_args[@]}"} "$command_name" ${command_args[@]+"${command_args[@]}"}
+  init)
+    die "direct init is disabled; run 'wbd bootstrap'"
     ;;
   *)
     die 'supported commands: bootstrap, configure, register, context, create, new, list, show, update, dep, close, reopen, link'

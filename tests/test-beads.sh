@@ -54,8 +54,13 @@ cat >"$fake_bin/bd" <<'EOF'
   printf 'BD_DB_SET=%s\n' "${BD_DB+x}"
   printf 'BD_GLOBAL_SET=%s\n' "${BD_GLOBAL+x}"
   printf 'BEADS_DOLT_DATA_DIR_SET=%s\n' "${BEADS_DOLT_DATA_DIR+x}"
+  printf 'BEADS_DOLT_PORT_SET=%s\n' "${BEADS_DOLT_PORT+x}"
   printf 'BEADS_DOLT_PROXIED_SERVER_SET=%s\n' "${BEADS_DOLT_PROXIED_SERVER+x}"
+  printf 'BEADS_DOLT_SERVER_DATABASE_SET=%s\n' "${BEADS_DOLT_SERVER_DATABASE+x}"
+  printf 'BEADS_DOLT_SERVER_HOST_SET=%s\n' "${BEADS_DOLT_SERVER_HOST+x}"
   printf 'BEADS_DOLT_SERVER_MODE_SET=%s\n' "${BEADS_DOLT_SERVER_MODE+x}"
+  printf 'BEADS_DOLT_SERVER_PORT_SET=%s\n' "${BEADS_DOLT_SERVER_PORT+x}"
+  printf 'BEADS_DOLT_SERVER_SOCKET_SET=%s\n' "${BEADS_DOLT_SERVER_SOCKET+x}"
   printf 'BEADS_DOLT_SHARED_SERVER_SET=%s\n' "${BEADS_DOLT_SHARED_SERVER+x}"
   for arg in "$@"; do printf 'arg=%s\n' "$arg"; done
   printf '%s\n' END_BD
@@ -86,12 +91,21 @@ cat >"$fake_bin/bv" <<'EOF'
   printf 'BD_DB_SET=%s\n' "${BD_DB+x}"
   printf 'BD_GLOBAL_SET=%s\n' "${BD_GLOBAL+x}"
   printf 'BEADS_DOLT_DATA_DIR_SET=%s\n' "${BEADS_DOLT_DATA_DIR+x}"
+  printf 'BEADS_DOLT_PORT_SET=%s\n' "${BEADS_DOLT_PORT+x}"
   printf 'BEADS_DOLT_PROXIED_SERVER_SET=%s\n' "${BEADS_DOLT_PROXIED_SERVER+x}"
+  printf 'BEADS_DOLT_SERVER_DATABASE_SET=%s\n' "${BEADS_DOLT_SERVER_DATABASE+x}"
+  printf 'BEADS_DOLT_SERVER_HOST_SET=%s\n' "${BEADS_DOLT_SERVER_HOST+x}"
   printf 'BEADS_DOLT_SERVER_MODE_SET=%s\n' "${BEADS_DOLT_SERVER_MODE+x}"
+  printf 'BEADS_DOLT_SERVER_PORT_SET=%s\n' "${BEADS_DOLT_SERVER_PORT+x}"
+  printf 'BEADS_DOLT_SERVER_SOCKET_SET=%s\n' "${BEADS_DOLT_SERVER_SOCKET+x}"
   printf 'BEADS_DOLT_SHARED_SERVER_SET=%s\n' "${BEADS_DOLT_SHARED_SERVER+x}"
   printf 'PWD=%s\n' "$PWD"
   printf 'BV_NO_GITIGNORE=%s\n' "${BV_NO_GITIGNORE:-}"
   printf 'BV_NO_CACHE=%s\n' "${BV_NO_CACHE:-}"
+  printf 'BV_OUTPUT_FORMAT_SET=%s\n' "${BV_OUTPUT_FORMAT+x}"
+  printf 'TOON_DEFAULT_FORMAT_SET=%s\n' "${TOON_DEFAULT_FORMAT+x}"
+  printf 'TOON_STATS_SET=%s\n' "${TOON_STATS+x}"
+  printf 'BV_PRETTY_JSON_SET=%s\n' "${BV_PRETTY_JSON+x}"
   for arg in "$@"; do printf 'arg=%s\n' "$arg"; done
   printf '%s\n' END_BV
 } >>"${FAKE_LOG:?}"
@@ -265,7 +279,7 @@ jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
 mv "$case_root/empty-config" "$work_config"
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" create 'Quoted task' --labels 'urgent,customer request' --json
-assert_last_args BD --db "$store" create --labels "$context_a" 'Quoted task' --labels 'urgent,customer request' --json
+assert_last_args BD --db "$store" --json create --labels "$context_a" 'Quoted task' --labels 'urgent,customer request'
 jq -e --arg context "$context_a" --arg path "$repo_a" '.repositories[$context].path == $path' "$work_config" >/dev/null
 
 jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
@@ -278,7 +292,47 @@ jq -e --arg context "$context_a" '.repositories | has($context)' "$work_config" 
 # Global list does not require or register a repository.
 : >"$FAKE_LOG"
 FAKE_GIT_FAIL=1 bash "$wbd" list --all-contexts --json
-assert_last_args BD --db "$store" list --json
+assert_last_args BD --db "$store" --json list
+
+# Every documented CRUD/query family is normalized through the positive parser.
+: >"$FAKE_LOG"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" new 'New task' \
+  --description 'Details' --type task --priority P1 --labels urgent --json
+assert_last_args BD --db "$store" --json new --labels "$context_a" 'New task' \
+  --description Details --type task --priority P1 --labels urgent
+
+: >"$FAKE_LOG"
+bash "$wbd" show work-123 --json
+assert_last_args BD --db "$store" --json show work-123
+
+: >"$FAKE_LOG"
+bash "$wbd" update work-123 --title 'Updated task' --description 'New details' \
+  --type bug --priority 0 --status blocked --add-label urgent --json
+assert_last_args BD --db "$store" --json update work-123 \
+  --title 'Updated task' --description 'New details' --type bug --priority 0 \
+  --status blocked --add-label urgent
+
+: >"$FAKE_LOG"
+bash "$wbd" dep add work-123 work-456 --type discovered-from --json
+assert_last_args BD --db "$store" --json dep add work-123 work-456 --type discovered-from
+
+: >"$FAKE_LOG"
+bash "$wbd" dep remove work-123 work-456 --json
+assert_last_args BD --db "$store" --json dep remove work-123 work-456
+
+: >"$FAKE_LOG"
+bash "$wbd" close work-123 --reason verified --json
+assert_last_args BD --db "$store" --json close work-123 --reason verified
+
+: >"$FAKE_LOG"
+bash "$wbd" reopen work-123 --reason regressed --json
+assert_last_args BD --db "$store" --json reopen work-123 --reason regressed
+
+: >"$FAKE_LOG"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" list --ready \
+  --status open,in_progress --type task --priority 2 --label urgent --limit 25 --json
+assert_last_args BD --db "$store" --json list --label "$context_a" --ready \
+  --status open,in_progress --type task --priority 2 --label urgent --limit 25
 
 # Link registers and forwards the exact correlate CLI, leaving ref resolution to bv.
 : >"$FAKE_LOG"
@@ -293,11 +347,84 @@ else
   test "$?" -eq 38
 fi
 
+# Unknown options, implicit IDs, context-label tampering, and unsafe globals
+# are rejected before either wrapped tool or private config is touched.
+for invocation in \
+  'create' \
+  'create one two' \
+  'create task --body-file /tmp/input' \
+  'create task --metadata @private.json' \
+  'create task --labels ctx:other' \
+  'create task --json=true' \
+  'list unexpected' \
+  'list --status open --status closed' \
+  'list --status custom' \
+  'list --label' \
+  'show' \
+  'show work-1 work-2' \
+  'show --current' \
+  'update' \
+  'update work-1' \
+  'update work-1 --json' \
+  'update work-1 --status closed' \
+  'update work-1 --set-labels urgent' \
+  'update work-1 --remove-label obsolete' \
+  'update work-1 --add-label ctx:other' \
+  'update work-1 --body-file /tmp/input' \
+  'dep' \
+  'dep list work-1' \
+  'dep add work-1' \
+  'dep add work-1 work-2 extra' \
+  'dep add work-1 --blocked-by work-2' \
+  'dep add --file /tmp/deps' \
+  'dep add work-1 work-2 --no-cycle-check' \
+  'dep remove work-1' \
+  'dep remove work-1 work-2 --type blocks' \
+  'close' \
+  'close work-1 work-2' \
+  'close work-1 --reason-file /tmp/reason' \
+  'close work-1 --force' \
+  'reopen' \
+  'reopen work-1 work-2' \
+  'link' \
+  'link work-1 HEAD extra' \
+  'link work-1 --json' \
+  '--actor someone show work-1' \
+  '--readonly list' \
+  '-json list'; do
+  : >"$FAKE_LOG"
+  cp "$work_config" "$case_root/config-before-rejection"
+  read -r -a args <<<"$invocation"
+  if bash "$wbd" "${args[@]}" >"$case_root/strict-rejected.out" 2>&1; then
+    fail "wbd allowed unsupported invocation: $invocation"
+  fi
+  test ! -s "$FAKE_LOG"
+  cmp -s "$case_root/config-before-rejection" "$work_config"
+done
+: >"$FAKE_LOG"
+if bash "$wbd" create task --labels 'urgent, ctx:other' >"$case_root/context-label-rejected.out" 2>&1; then
+  fail 'wbd allowed a whitespace-prefixed context label'
+fi
+test ! -s "$FAKE_LOG"
+for invocation in \
+  'create task --labels "ctx:other"' \
+  'update work-1 --add-label "ctx:other"'; do
+  : >"$FAKE_LOG"
+  read -r -a args <<<"$invocation"
+  if bash "$wbd" "${args[@]}" >"$case_root/quoted-context-label-rejected.out" 2>&1; then
+    fail "wbd allowed a CSV-quoted context label: $invocation"
+  fi
+  test ! -s "$FAKE_LOG"
+done
+
 # Stale routing variables are removed for both wrapped tools.
 : >"$FAKE_LOG"
-BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PROXIED_SERVER=x \
-  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SHARED_SERVER=x bash "$wbd" show work-123 --json
-for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_MODE BEADS_DOLT_SHARED_SERVER; do
+BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
+  BEADS_DOLT_PROXIED_SERVER=x BEADS_DOLT_SERVER_DATABASE=x BEADS_DOLT_SERVER_HOST=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SERVER_PORT=x BEADS_DOLT_SERVER_SOCKET=x \
+  BEADS_DOLT_SHARED_SERVER=x bash "$wbd" show work-123 --json
+assert_last_args BD --db "$store" --json show work-123
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PORT BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_DATABASE BEADS_DOLT_SERVER_HOST BEADS_DOLT_SERVER_MODE BEADS_DOLT_SERVER_PORT BEADS_DOLT_SERVER_SOCKET BEADS_DOLT_SHARED_SERVER; do
   grep -Fxq "${variable}_SET=" "$FAKE_LOG"
 done
 if FAKE_BD_EXIT=37 bash "$wbd" show work-123; then
@@ -405,31 +532,126 @@ fi
 grep -Fq 'supported commands:' "$case_root/missing-command.out"
 test ! -s "$FAKE_LOG"
 
-# wbv initializes config, preserves cwd, and directly selects external history.
+# Bare wbv is human-only and requires a real input/output TTY.
 viewer_cwd=$case_root/viewer-cwd
 mkdir -p "$viewer_cwd"
 rm -f "$work_config"
 : >"$FAKE_LOG"
+if bash "$wbv" >"$case_root/viewer-nontty.out" 2>&1; then
+  fail 'wbv allowed a bare non-interactive invocation'
+fi
+grep -Fq 'requires an interactive terminal' "$case_root/viewer-nontty.out"
+test ! -s "$FAKE_LOG"
+test ! -e "$work_config"
+
 (cd "$viewer_cwd" && \
-  BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PROXIED_SERVER=x \
-  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SHARED_SERVER=x sh "$wbv" --theme compact)
+  BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
+  BEADS_DOLT_PROXIED_SERVER=x BEADS_DOLT_SERVER_DATABASE=x BEADS_DOLT_SERVER_HOST=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SERVER_PORT=x BEADS_DOLT_SERVER_SOCKET=x \
+  BEADS_DOLT_SHARED_SERVER=x python3 - "$wbv" <<'PY'
+import os
+import pty
+import subprocess
+import sys
+
+master, slave = pty.openpty()
+try:
+    result = subprocess.run(
+        ["/bin/bash", sys.argv[1]],
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        env=os.environ,
+        check=False,
+    )
+finally:
+    os.close(slave)
+    os.close(master)
+if result.returncode != 0:
+    raise SystemExit(result.returncode)
+PY
+)
 assert_config
-assert_last_args BV --history-mode external --work-config "$work_config" --theme compact
+assert_last_args BV --history-mode external --work-config "$work_config"
 grep -Fxq "PWD=$viewer_cwd" "$FAKE_LOG"
 grep -Fxq 'BV_NO_GITIGNORE=1' "$FAKE_LOG"
 grep -Fxq 'BV_NO_CACHE=1' "$FAKE_LOG"
 ! grep -Fq BEGIN_BD "$FAKE_LOG" || fail 'wbv manually invoked bd/export'
-for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_MODE BEADS_DOLT_SHARED_SERVER; do
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PORT BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_DATABASE BEADS_DOLT_SERVER_HOST BEADS_DOLT_SERVER_MODE BEADS_DOLT_SERVER_PORT BEADS_DOLT_SERVER_SOCKET BEADS_DOLT_SHARED_SERVER; do
   grep -Fxq "${variable}_SET=" "$FAKE_LOG"
 done
 
-if FAKE_BV_EXIT=39 sh "$wbv" >"$case_root/viewer-failure.out" 2>&1; then
+# Every approved robot primary is forwarded with deterministic JSON.
+assert_robot() {
+  : >"$FAKE_LOG"
+  BV_OUTPUT_FORMAT=toon TOON_DEFAULT_FORMAT=toon TOON_STATS=1 BV_PRETTY_JSON=1 \
+    bash "$wbv" "$@"
+  assert_last_args BV --history-mode external --work-config "$work_config" "$@" --format json
+  grep -Fxq 'BV_OUTPUT_FORMAT_SET=' "$FAKE_LOG"
+  grep -Fxq 'TOON_DEFAULT_FORMAT_SET=' "$FAKE_LOG"
+  grep -Fxq 'TOON_STATS_SET=' "$FAKE_LOG"
+  grep -Fxq 'BV_PRETTY_JSON_SET=' "$FAKE_LOG"
+}
+
+assert_robot --robot-plan --label "$context_a"
+assert_robot --robot-priority --label backend --robot-min-confidence 0.5 \
+  --robot-max-results 20 --robot-by-label urgent --robot-by-assignee agent
+assert_robot --robot-insights --label "$context_a"
+assert_robot --robot-graph --graph-format mermaid \
+  --graph-root work-123 --graph-depth 3
+assert_robot --robot-label-health
+assert_robot --robot-label-flow
+assert_robot --robot-label-attention --attention-limit 5
+assert_robot --robot-blocker-chain work-123
+assert_robot --robot-sprint-list
+assert_robot --robot-sprint-show sprint-1
+assert_robot --robot-forecast all --forecast-label backend --forecast-sprint sprint-1 \
+  --forecast-agents 4
+assert_robot --robot-capacity --agents 4 --capacity-label backend
+assert_robot --robot-triage --brief --robot-not-ready-labels waiting
+
+if FAKE_BV_EXIT=39 bash "$wbv" --robot-plan >"$case_root/viewer-failure.out" 2>&1; then
   fail 'wbv accepted a bv failure'
 else
   test "$?" -eq 39
 fi
 
+# Unknown, mutating, noncanonical, and mode-inapplicable Viewer syntax never
+# reaches config initialization or Viewer.
 for invocation in \
+  '--theme dark' \
+  '--robot-triage' \
+  '--robot-triage --brief --robot-triage-by-track' \
+  '--robot-plan --robot-insights' \
+  '--robot-plan --label backend --label frontend' \
+  '--robot-plan --graph-depth 2' \
+  '--robot-label-health --label backend' \
+  '--robot-graph --label backend' \
+  '--robot-triage --brief --label backend' \
+  '--robot-graph --graph-format html' \
+  '--robot-graph --graph-depth 101' \
+  '--robot-priority --robot-min-confidence 1.1' \
+  '--robot-capacity --agents 0' \
+  '--robot-new-safe-mode' \
+  '--robot-next' \
+  '--robot-suggest' \
+  '--robot-search' \
+  '--robot-history' \
+  '--robot-confirm-correlation ctx@sha:id' \
+  '--robot-reject-correlation ctx@sha:id' \
+  '--robot-plan --format json' \
+  '--robot-plan --format=json' \
+  '--robot-plan --label=backend' \
+  '--robot-plan=true' \
+  '-robot-plan' \
+  '-work-config /tmp/other' \
+  '-history-mode git' \
+  '-workspace other' \
+  '-as-of HEAD~1' \
+  '-agents-add' \
+  '-f json' \
+  '-l backend' \
+  '--' \
   '--db /tmp/other' \
   '--db=/tmp/other' \
   '-db /tmp/other' \
@@ -441,26 +663,23 @@ for invocation in \
   '--workspace other' \
   '--workspace=other' \
   '--as-of HEAD~1' \
-  '--as-of=HEAD~1'; do
+  '--as-of=HEAD~1' \
+  '--update' \
+  '--rollback' \
+  '--export-md report.md' \
+  '--pages' \
+  '--cpu-profile profile.out' \
+  '--agents-add' \
+  '--feedback-accept work-1' \
+  'correlate add'; do
   : >"$FAKE_LOG"
+  cp "$work_config" "$case_root/viewer-config-before-rejection"
   read -r -a args <<<"$invocation"
-  if sh "$wbv" "${args[@]}" >"$case_root/viewer-rejected.out" 2>&1; then
-    fail "wbv allowed source/history override: $invocation"
+  if bash "$wbv" "${args[@]}" >"$case_root/viewer-rejected.out" 2>&1; then
+    fail "wbv allowed unsupported invocation: $invocation"
   fi
   test ! -s "$FAKE_LOG"
-done
-
-# Repository agent-file mutation flags never reach Viewer.
-for flag in \
-  --agents-add --agents-add=true \
-  --agents-remove --agents-remove=true \
-  --agents-update --agents-update=true; do
-  : >"$FAKE_LOG"
-  if sh "$wbv" "$flag" >"$case_root/viewer-agent-rejected.out" 2>&1; then
-    fail "wbv allowed repository agent-file mutation: $flag"
-  fi
-  grep -Fq 'Viewer repository agent-file mutation flags are disabled' "$case_root/viewer-agent-rejected.out"
-  test ! -s "$FAKE_LOG"
+  cmp -s "$case_root/viewer-config-before-rejection" "$work_config"
 done
 
 # Missing Viewer or wrapper commands fail before launch.
@@ -487,7 +706,7 @@ test ! -s "$FAKE_LOG"
 # Config initialization failure prevents Viewer launch.
 printf '%s\n' not-json >"$work_config"
 : >"$FAKE_LOG"
-if sh "$wbv" >"$case_root/viewer-config-failure.out" 2>&1; then
+if bash "$wbv" --robot-plan >"$case_root/viewer-config-failure.out" 2>&1; then
   fail 'wbv accepted config initialization failure'
 fi
 ! grep -Fq BEGIN_BV "$FAKE_LOG" || fail 'viewer launched after config failure'
