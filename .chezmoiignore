@@ -26,6 +26,9 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- if not .modules.herdr }}
 .config/herdr/**
 {{- end }}
+{{- if or (not .modules.herdr) (not .herdrPlugins.labels) }}
+.config/herdr-labels/**
+{{- end }}
 
 {{- if or (not .modules.herdr) (not .herdrPlugins.spaceUsage) }}
 .config/herdr/plugins/config/ez-corp.space-usage/**

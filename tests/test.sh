@@ -389,6 +389,8 @@ assert_contains "$work_home/.zshrc" 'portable chezmoi early setup'
 assert_contains "$work_home/.zshrc" 'portable chezmoi setup'
 assert_contains "$work_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 assert_contains "$work_home/.config/zsh/herdr-labels.zsh" 'angel-o.labels-*/shell/hook.zsh'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"wbv": "ai board"}' "$work_home/.config/herdr-labels/config.toml"
 assert_not_contains "$work_home/.config/zsh/herdr.zsh" 'hook.zsh'
 assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
@@ -595,6 +597,7 @@ test ! -e "$disabled_home/.config/herdr/plugins/config/ez-corp.space-usage/confi
 test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-bar/config.json"
 test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-zoxide/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
+test ! -e "$disabled_home/.config/herdr-labels/config.toml"
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disabled_home/.config/herdr/config.toml"
 
 ghostty_home="$root/ghostty-only/home"
