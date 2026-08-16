@@ -9,10 +9,46 @@ die() {
   exit 1
 }
 
-[ -d "$store" ] || die "store is missing; run 'wbd bootstrap'"
-command -v bd >/dev/null 2>&1 || die 'required command not found: bd'
-command -v bv >/dev/null 2>&1 || die 'required command not found: bv'
-command -v wbd >/dev/null 2>&1 || die 'required command not found: wbd'
+mode=auto
+if [ "${1:-}" = --local ] || [ "${1:-}" = --hub ]; then
+  mode=${1#--}
+  shift
+fi
+for arg in "$@"; do
+  case "$arg" in
+    --local|--hub) die "mode selector must be the first argument: $arg" ;;
+    --local=*|--hub=*) die "mode selector does not take a value: ${arg%%=*}" ;;
+  esac
+done
+
+git_root=
+if git_root=$(git rev-parse --show-toplevel 2>/dev/null) && [ -n "$git_root" ]; then
+  local_marker=$git_root/.beads
+else
+  git_root=
+  local_marker=
+fi
+
+if [ "$mode" = auto ]; then
+  mode=hub
+  if [ -n "$local_marker" ] && { [ -e "$local_marker" ] || [ -L "$local_marker" ]; }; then
+    mode=local
+  fi
+fi
+
+if [ "$mode" = local ]; then
+  [ -n "$git_root" ] || die 'local mode requires a Git worktree'
+  { [ -e "$local_marker" ] || [ -L "$local_marker" ]; } ||
+    die "local Beads store is missing at $local_marker"
+  [ ! -L "$local_marker" ] || die "local Beads marker must not be a symlink: $local_marker"
+  [ -d "$local_marker" ] || die "unsupported local Beads marker at $local_marker"
+  command -v bv >/dev/null 2>&1 || die 'required command not found: bv'
+else
+  [ -d "$store" ] || die "store is missing; run 'wbd bootstrap'"
+  command -v bd >/dev/null 2>&1 || die 'required command not found: bd'
+  command -v bv >/dev/null 2>&1 || die 'required command not found: bv'
+  command -v wbd >/dev/null 2>&1 || die 'required command not found: wbd'
+fi
 
 safe_value() {
   [ -n "$2" ] || die "missing value for $1"
@@ -194,8 +230,8 @@ else
   $needs_brief && die '--robot-triage requires --brief'
 fi
 
-wbd configure >/dev/null
 viewer_env=(
+  -u BEADS_DIR \
   -u BD_DB \
   -u BEADS_DB \
   -u BD_GLOBAL \
@@ -216,15 +252,20 @@ viewer_env=(
   -u BV_ROBOT_NOT_READY_LABELS \
   -u BV_ROBOT_HISTORY_TIMEOUT_MS \
   -u BV_INSIGHTS_MAP_LIMIT \
-  BEADS_DIR="$store" \
   BV_NO_GITIGNORE=1 \
   BV_NO_CACHE=1
 )
-if $robot; then
-  exec env "${viewer_env[@]}" \
-    bv --history-mode external --hub-config "$hub_config" \
-    "${viewer_args[@]}" --format json
+
+if [ "$mode" = local ]; then
+  cd "$git_root"
+  viewer_command=(bv --history-mode git)
 else
-  exec env "${viewer_env[@]}" \
-    bv --history-mode external --hub-config "$hub_config"
+  wbd configure >/dev/null
+  viewer_env+=(BEADS_DIR="$store")
+  viewer_command=(bv --history-mode external --hub-config "$hub_config")
 fi
+
+if $robot; then
+  viewer_command+=("${viewer_args[@]}" --format json)
+fi
+exec env "${viewer_env[@]}" "${viewer_command[@]}"

@@ -170,6 +170,11 @@ wbd=$source_dir/dot_local/bin/executable_wbd
 wbv=$source_dir/dot_local/bin/executable_wbv
 cat >"$fake_bin/wbd" <<'EOF'
 #!/bin/sh
+{
+  printf '%s\n' BEGIN_WBD
+  for arg in "$@"; do printf 'arg=%s\n' "$arg"; done
+  printf '%s\n' END_WBD
+} >>"${FAKE_LOG:?}"
 exec /bin/bash "${WBD_SOURCE:?}" "$@"
 EOF
 chmod +x "$fake_bin/wbd"
@@ -210,6 +215,10 @@ for line in open(path, encoding="utf-8"):
 assert blocks, f"no {command} invocation in {path}"
 assert blocks[-1] == expected, (blocks[-1], expected)
 PY
+}
+
+assert_no_call() {
+  ! grep -Fq "BEGIN_$1" "$FAKE_LOG" || fail "unexpected $1 invocation"
 }
 
 assert_migration_bd_calls() {
@@ -774,6 +783,7 @@ PY
 )
 assert_config
 assert_last_args BV --history-mode external --hub-config "$hub_config"
+assert_last_args WBD configure
 grep -Fxq "PWD=$viewer_cwd" "$FAKE_LOG"
 grep -Fxq 'BV_NO_GITIGNORE=1' "$FAKE_LOG"
 grep -Fxq 'BV_NO_CACHE=1' "$FAKE_LOG"
@@ -810,6 +820,150 @@ assert_robot --robot-forecast all --forecast-label backend --forecast-sprint spr
   --forecast-agents 4
 assert_robot --robot-capacity --agents 4 --capacity-label backend
 assert_robot --robot-triage --brief --robot-not-ready-labels waiting
+
+# Outside Git, automatic mode remains Hub.
+: >"$FAKE_LOG"
+FAKE_GIT_FAIL=1 bash "$wbv" --robot-plan
+assert_last_args BV --history-mode external --hub-config "$hub_config" --robot-plan --format json
+assert_last_args WBD configure
+
+# Explicit local mode requires a repository marker and never falls back to Hub.
+local_only_home=$case_root/local-only-home
+mkdir -p "$local_only_home"
+: >"$FAKE_LOG"
+if HOME=$local_only_home FAKE_GIT_ROOT=$repo_b bash "$wbv" --local --robot-plan \
+  >"$case_root/viewer-local-missing.out" 2>&1; then
+  fail 'wbv --local accepted a repository without .beads'
+fi
+grep -Fq 'local Beads store is missing' "$case_root/viewer-local-missing.out"
+assert_no_call BV
+assert_no_call WBD
+
+# A local marker wins automatically, including from a nested working directory.
+mkdir -p "$repo_a/.beads" "$repo_a/nested/deeper"
+printf '%s\n' project-local >"$repo_a/.beads/sentinel"
+cp "$repo_a/.beads/sentinel" "$case_root/viewer-local-sentinel.before"
+: >"$FAKE_LOG"
+(cd "$repo_a/nested/deeper" && \
+  BEADS_DIR=x BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
+  BEADS_DOLT_PROXIED_SERVER=x BEADS_DOLT_SERVER_DATABASE=x BEADS_DOLT_SERVER_HOST=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SERVER_PORT=x BEADS_DOLT_SERVER_SOCKET=x \
+  BEADS_DOLT_SHARED_SERVER=x bash "$wbv" --robot-plan)
+assert_last_args BV --history-mode git --robot-plan --format json
+assert_no_call WBD
+assert_no_call BD
+grep -Fxq "PWD=$repo_a" "$FAKE_LOG"
+grep -Fxq 'BEADS_DIR=' "$FAKE_LOG"
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PORT BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_DATABASE BEADS_DOLT_SERVER_HOST BEADS_DOLT_SERVER_MODE BEADS_DOLT_SERVER_PORT BEADS_DOLT_SERVER_SOCKET BEADS_DOLT_SHARED_SERVER; do
+  grep -Fxq "${variable}_SET=" "$FAKE_LOG"
+done
+cmp -s "$case_root/viewer-local-sentinel.before" "$repo_a/.beads/sentinel"
+
+# Local mode is independent of Hub commands and state.
+local_path=$case_root/local-bin
+mkdir -p "$local_path"
+cp "$fake_bin/git" "$fake_bin/bv" "$local_path/"
+: >"$FAKE_LOG"
+HOME=$local_only_home PATH=$local_path:/usr/bin:/bin bash "$wbv" --local --robot-plan
+assert_last_args BV --history-mode git --robot-plan --format json
+assert_no_call WBD
+assert_no_call BD
+test ! -e "$local_only_home/.config/bv/hub.yaml"
+test ! -e "$local_only_home/.local/share/beads/hub"
+
+# Every approved robot syntax follows the same automatic local decision.
+assert_local_robot() {
+  : >"$FAKE_LOG"
+  BV_OUTPUT_FORMAT=toon TOON_DEFAULT_FORMAT=toon TOON_STATS=1 BV_PRETTY_JSON=1 \
+    bash "$wbv" "$@"
+  assert_last_args BV --history-mode git "$@" --format json
+  assert_no_call WBD
+}
+
+assert_local_robot --robot-plan --label "$context_a"
+assert_local_robot --robot-priority --label backend --robot-min-confidence 0.5 \
+  --robot-max-results 20 --robot-by-label urgent --robot-by-assignee agent
+assert_local_robot --robot-insights --label "$context_a"
+assert_local_robot --robot-graph --graph-format mermaid \
+  --graph-root work-123 --graph-depth 3
+assert_local_robot --robot-label-health
+assert_local_robot --robot-label-flow
+assert_local_robot --robot-label-attention --attention-limit 5
+assert_local_robot --robot-blocker-chain work-123
+assert_local_robot --robot-sprint-list
+assert_local_robot --robot-sprint-show sprint-1
+assert_local_robot --robot-forecast all --forecast-label backend --forecast-sprint sprint-1 \
+  --forecast-agents 4
+assert_local_robot --robot-capacity --agents 4 --capacity-label backend
+assert_local_robot --robot-triage --brief --robot-not-ready-labels waiting
+
+# Interactive local selection uses the root and local Git history as well.
+: >"$FAKE_LOG"
+(cd "$repo_a/nested" && python3 - "$wbv" <<'PY'
+import os
+import pty
+import subprocess
+import sys
+
+master, slave = pty.openpty()
+try:
+    result = subprocess.run(
+        ["/bin/bash", sys.argv[1], "--local"],
+        stdin=slave,
+        stdout=slave,
+        stderr=slave,
+        env=os.environ,
+        check=False,
+    )
+finally:
+    os.close(slave)
+    os.close(master)
+if result.returncode != 0:
+    raise SystemExit(result.returncode)
+PY
+)
+assert_last_args BV --history-mode git
+assert_no_call WBD
+grep -Fxq "PWD=$repo_a" "$FAKE_LOG"
+
+# Forced Hub ignores a local marker and retains the fixed-Hub launch behavior.
+: >"$FAKE_LOG"
+bash "$wbv" --hub --robot-plan
+assert_last_args BV --history-mode external --hub-config "$hub_config" --robot-plan --format json
+assert_last_args WBD configure
+grep -Fxq "BEADS_DIR=$store" "$FAKE_LOG"
+
+# Viewer, not the wrapper, resolves supported worktree redirects.
+printf '%s\n' ../canonical/.beads >"$repo_a/.beads/redirect"
+cp "$repo_a/.beads/redirect" "$case_root/viewer-redirect.before"
+: >"$FAKE_LOG"
+bash "$wbv" --robot-plan
+assert_last_args BV --history-mode git --robot-plan --format json
+assert_no_call WBD
+cmp -s "$case_root/viewer-redirect.before" "$repo_a/.beads/redirect"
+cmp -s "$case_root/viewer-local-sentinel.before" "$repo_a/.beads/sentinel"
+
+# Present unsupported or symlinked markers fail closed without Hub fallback.
+rm -rf "$repo_a/.beads"
+printf '%s\n' unsupported >"$repo_a/.beads"
+: >"$FAKE_LOG"
+if HOME=$local_only_home bash "$wbv" --robot-plan >"$case_root/viewer-invalid-marker.out" 2>&1; then
+  fail 'wbv accepted an unsupported local marker'
+fi
+grep -Fq 'unsupported local Beads marker' "$case_root/viewer-invalid-marker.out"
+assert_no_call BV
+assert_no_call WBD
+rm -f "$repo_a/.beads"
+mkdir -p "$case_root/symlinked-local-store"
+ln -s "$case_root/symlinked-local-store" "$repo_a/.beads"
+: >"$FAKE_LOG"
+if HOME=$local_only_home bash "$wbv" --robot-plan >"$case_root/viewer-symlink-marker.out" 2>&1; then
+  fail 'wbv accepted a symlinked local marker'
+fi
+grep -Fq 'local Beads marker must not be a symlink' "$case_root/viewer-symlink-marker.out"
+assert_no_call BV
+assert_no_call WBD
+rm -f "$repo_a/.beads"
 
 if FAKE_BV_EXIT=39 bash "$wbv" --robot-plan >"$case_root/viewer-failure.out" 2>&1; then
   fail 'wbv accepted a bv failure'
@@ -1253,6 +1407,15 @@ for invocation in \
   '--robot-reject-correlation ctx@sha:id' \
   '--robot-plan --format json' \
   '--robot-plan --format=json' \
+  '--local --local --robot-plan' \
+  '--hub --hub --robot-plan' \
+  '--local --hub --robot-plan' \
+  '--robot-plan --local' \
+  '--robot-plan --hub' \
+  '--local=true --robot-plan' \
+  '--hub=1 --robot-plan' \
+  '--local unexpected' \
+  '--hub unexpected' \
   '--robot-plan --label=backend' \
   '--robot-plan=true' \
   '-robot-plan' \
@@ -1329,6 +1492,7 @@ fi
 ! grep -Fq 'bd --db "$store" export' "$wbv" || fail 'wbv contains a manual export'
 ! grep -Fq 'cd "$parent"' "$wbv" || fail 'wbv changes to the store parent'
 grep -Fq -- '--history-mode external --hub-config "$hub_config"' "$wbv"
+grep -Fq -- 'bv --history-mode git' "$wbv"
 grep -Fq 'run_bd_bootstrap metrics off' "$wbd"
 grep -Fq -- '--skip-hooks' "$wbd"
 grep -Fq -- '--skip-agents' "$wbd"
