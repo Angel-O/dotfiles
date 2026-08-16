@@ -88,13 +88,14 @@ Every managed plugin is a machine-local selection independent of role. `prefix+m
 | `opencode-handoff` | Unpinned | Shared | Select and pin a version |
 | `opencode-lmstudio@1.0.0-rc.2` | Pinned | Personal-only local AI | Install LM Studio if missing personally; omit all integration at work |
 | `opencode-history-search` | Unpinned | Shared | Select and pin a version; keep history databases local |
+| `opencode-mermaid-renderer@0.0.1` | Pinned | Shared | Render compact plan diagrams in terminal chat |
 
 ## OpenCode Local Plugins, Commands, and Skills
 
 | Artifact | Current location | Purpose | Approved treatment | Scope |
 | --- | --- | --- | --- | --- |
 | `env-protection.js` | `~/.config/opencode/plugins/` | Prevent OpenCode from reading `.env` paths | Track | Shared |
-| `plan-diagrams.js` | `~/.config/opencode/plugins/` | Adds ASCII diagram instructions to planning sessions | Track | Shared |
+| `plan-diagrams.js` | `~/.config/opencode/plugins/` | Adds renderer-compatible Mermaid instructions to planning sessions | Track | Shared |
 | `herdr-agent-state.js` | `~/.config/opencode/plugins/` | Reports OpenCode session state to Herdr | Regenerate through Herdr integration | Shared/generated |
 | `herdr-name.md` | `~/.config/opencode/command/` | Global command for naming the active Herdr agent | Track | Shared |
 | `grilling` | `~/.config/opencode/skills/` | Structured requirements/design interview workflow | Install from pinned source | Shared |

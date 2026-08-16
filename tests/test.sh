@@ -392,6 +392,7 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROM
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
+cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 assert_contains "$personal_home/.config/opencode/AGENTS.md" 'Keep this personal instruction.'
 assert_not_contains "$personal_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 test ! -e "$personal_home/.local/bin/wbd"
@@ -408,7 +409,7 @@ assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'cdmain() {'
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2"))' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1"))' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$personal_home/.config/herdr/config.toml"
 zsh -n "$personal_home"/.config/zsh/*.zsh
 
@@ -523,10 +524,11 @@ assert_beads_hub_skill "$work_home/.config/opencode/skills/beads-hub/SKILL.md"
 cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
+cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$work_home/.config/opencode/plugins/plan-diagrams.js"
 assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
-jq -e '(.plugin | index("opencode-handoff@0.5.0"))' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1"))' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
 HOME="$work_home" zsh -dfc 'alias zconfig="code ~/.zshrc"; alias reload="source ~/.zshrc"; source "$HOME/.config/zsh/helpers.zsh"'
@@ -561,6 +563,7 @@ test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
 work_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" --include files)
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/plugins/plan-diagrams.js'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/beads-hub/SKILL.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
 
@@ -611,6 +614,7 @@ test ! -e "$external_home/.config/opencode/skills/work-beads/SKILL.md"
 assert_beads_hub_skill "$external_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$external_home/.config/opencode/portable.jsonc"
 test ! -e "$external_home/.config/opencode/plugins/env-protection.js"
+test ! -e "$external_home/.config/opencode/plugins/plan-diagrams.js"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
 test ! -e "$external_home/.local/bin/opencode-env"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
