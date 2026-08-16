@@ -3,6 +3,10 @@ ohMyZsh = "7ea697fd8138550ddf7262456d412f0dcd1cbf84"
 zshTransientPrompt = "bdd5917f38db4b4995134e8fb0251ce01cd9a068"
 grillingSkill = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
 
+[pins.beadsViewer]
+source = "Angel-O/beads_viewer"
+ref = "3b787d10ce39928527e21d18cf2f086324ce7829"
+
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
 quota = "3.11.2"

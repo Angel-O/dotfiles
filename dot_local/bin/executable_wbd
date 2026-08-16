@@ -3,6 +3,8 @@ set -euo pipefail
 
 store=$HOME/.local/share/beads/work/.beads
 parent=${store%/.beads}
+work_config=$HOME/.config/bv/work-beads.yaml
+ledger=$parent/correlations.jsonl
 
 die() {
   printf 'wbd: %s\n' "$*" >&2
@@ -28,6 +30,92 @@ run_bd_bootstrap() {
 
 run_bd() {
   run_bd_bootstrap --db "$store" "$@"
+}
+
+run_bv() {
+  env \
+    -u BD_DB \
+    -u BEADS_DB \
+    -u BD_GLOBAL \
+    -u BEADS_DOLT_DATA_DIR \
+    -u BEADS_DOLT_PROXIED_SERVER \
+    -u BEADS_DOLT_SERVER_MODE \
+    -u BEADS_DOLT_SHARED_SERVER \
+    BEADS_DIR="$store" \
+    BV_NO_GITIGNORE=1 \
+    bv "$@"
+}
+
+replace_if_changed() {
+  local tmp=$1 target=$2
+  chmod 0600 "$tmp"
+  if [ -f "$target" ] && cmp -s "$tmp" "$target"; then
+    rm -f "$tmp"
+    chmod 0600 "$target"
+  else
+    mv "$tmp" "$target"
+  fi
+}
+
+ensure_work_config() {
+  need jq
+  [ ! -L "$work_config" ] || die "work config must not be a symlink: $work_config"
+  [ ! -e "$work_config" ] || [ -f "$work_config" ] ||
+    die "work config must be a regular file: $work_config"
+  umask 077
+  mkdir -p "${work_config%/*}"
+
+  local tmp
+  tmp=$(mktemp "$work_config.tmp.XXXXXX") || die 'cannot create temporary work config'
+  if [ -e "$work_config" ]; then
+    if ! jq -S \
+      --arg store "$store" \
+      --arg ledger "$ledger" \
+      'if type != "object" then error("work config must be an object")
+       elif (keys - ["ledger", "repositories", "store", "version"] | length) != 0 then error("unknown work config field")
+       elif .version != 1 then error("unsupported work config version")
+       elif ((.repositories // {}) | type) != "object" then error("repositories must be an object")
+       elif any((.repositories // {}) | to_entries[];
+         (.key | type) != "string" or (.key | startswith("ctx:") | not) or
+         (.value | type) != "object" or (.value | keys) != ["path"] or
+         (.value.path | type) != "string" or (.value.path | length) == 0)
+       then error("invalid repository entry")
+       else .store = $store | .ledger = $ledger | .repositories = (.repositories // {})
+       end' \
+      "$work_config" >"$tmp"; then
+      rm -f "$tmp"
+      die "cannot update work config: $work_config"
+    fi
+  else
+    jq -nS \
+      --arg store "$store" \
+      --arg ledger "$ledger" \
+      '{version: 1, store: $store, ledger: $ledger, repositories: {}}' >"$tmp"
+  fi
+  replace_if_changed "$tmp" "$work_config"
+}
+
+register_repository() {
+  need git
+  registered_context=$(context)
+  registered_root=$(git rev-parse --show-toplevel 2>/dev/null) ||
+    die 'cannot resolve the current Git repository root'
+  case "$registered_root" in
+    *$'\n'*|*$'\r'*|*$'\t'*) die 'repository path contains an unsupported control character' ;;
+  esac
+  ensure_work_config
+
+  local tmp
+  tmp=$(mktemp "$work_config.tmp.XXXXXX") || die 'cannot create temporary work config'
+  if ! jq -S \
+    --arg context "$registered_context" \
+    --arg path "$registered_root" \
+    '.repositories[$context] = {path: $path}' \
+    "$work_config" >"$tmp"; then
+    rm -f "$tmp"
+    die "cannot register repository in work config: $work_config"
+  fi
+  replace_if_changed "$tmp" "$work_config"
 }
 
 context() {
@@ -92,6 +180,7 @@ context() {
 bootstrap() {
   need bd
   need git
+  need jq
   [ ! -e "$store" ] || die "store already exists: $store"
   [ -d "$HOME" ] && [ -w "$HOME" ] || die "HOME is not writable: $HOME"
 
@@ -110,9 +199,10 @@ bootstrap() {
         --non-interactive \
         --skip-hooks \
         --skip-agents &&
-      run_bd config set export.auto false &&
-      run_bd config set export.git-add false &&
-      run_bd config set dolt.auto-push false
+       run_bd config set export.auto false &&
+       run_bd config set export.git-add false &&
+       run_bd config set dolt.auto-push false &&
+       ensure_work_config
   ); then
     return 0
   else
@@ -178,13 +268,26 @@ case "$command_name" in
       die 'usage: wbd context'
     context
     ;;
+  configure)
+    [ "${#leading_args[@]}" -eq 0 ] && [ "${#command_args[@]}" -eq 0 ] ||
+      die 'usage: wbd configure'
+    ensure_work_config
+    printf '%s\n' "$work_config"
+    ;;
+  register)
+    [ "${#leading_args[@]}" -eq 0 ] && [ "${#command_args[@]}" -eq 0 ] ||
+      die 'usage: wbd register'
+    register_repository
+    printf '%s\t%s\n' "$registered_context" "$registered_root"
+    ;;
   create|new)
     for arg in ${command_args[@]+"${command_args[@]}"}; do
       case "$arg" in
         --repo|--repo=*) die 'create repository routing flags are disabled' ;;
       esac
     done
-    context_label=$(context)
+    register_repository
+    context_label=$registered_context
     run_bd ${leading_args[@]+"${leading_args[@]}"} "$command_name" --labels "$context_label" ${command_args[@]+"${command_args[@]}"}
     ;;
   list)
@@ -200,14 +303,27 @@ case "$command_name" in
     if $all_contexts; then
       run_bd ${leading_args[@]+"${leading_args[@]}"} list ${args[@]+"${args[@]}"}
     else
-      context_label=$(context)
+      register_repository
+      context_label=$registered_context
       run_bd ${leading_args[@]+"${leading_args[@]}"} list --label "$context_label" ${args[@]+"${args[@]}"}
     fi
+    ;;
+  link)
+    [ "${#leading_args[@]}" -eq 0 ] || die 'usage: wbd link <bead-id> [commit]'
+    [ "${#command_args[@]}" -ge 1 ] && [ "${#command_args[@]}" -le 2 ] ||
+      die 'usage: wbd link <bead-id> [commit]'
+    need bv
+    register_repository
+    run_bv correlate add \
+      --bead "${command_args[0]}" \
+      --repo "$registered_context" \
+      --commit "${command_args[1]:-HEAD}" \
+      --work-config "$work_config"
     ;;
   show|update|dep|close|reopen)
     run_bd ${leading_args[@]+"${leading_args[@]}"} "$command_name" ${command_args[@]+"${command_args[@]}"}
     ;;
   *)
-    die 'supported commands: bootstrap, context, create, new, list, show, update, dep, close, reopen'
+    die 'supported commands: bootstrap, configure, register, context, create, new, list, show, update, dep, close, reopen, link'
     ;;
 esac

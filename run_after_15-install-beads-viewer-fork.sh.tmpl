@@ -1,0 +1,53 @@
+#!/bin/sh
+set -eu
+
+{{- if or (ne .role "work") (not .modules.beads) }}
+exit 0
+{{- else }}
+source_repo={{ .pins.beadsViewer.source | quote }}
+wanted_ref={{ .pins.beadsViewer.ref | quote }}
+state_dir=$HOME/.local/share/beads-viewer-fork
+stamp=$state_dir/installed-ref
+target=$HOME/.local/bin/bv
+
+if [ -x "$target" ] && [ -f "$stamp" ] &&
+  [ "$(cat "$stamp")" = "$source_repo@$wanted_ref" ]; then
+  exit 0
+fi
+
+for command in git go; do
+  if ! command -v "$command" >/dev/null 2>&1; then
+    printf 'The Beads Viewer fork installer requires %s.\n' "$command" >&2
+    exit 1
+  fi
+done
+
+tmp=$(mktemp -d)
+target_tmp=
+stamp_tmp=
+trap 'rm -rf "$tmp"; [ -z "$target_tmp" ] || rm -f "$target_tmp"; [ -z "$stamp_tmp" ] || rm -f "$stamp_tmp"' EXIT HUP INT TERM
+
+git clone --filter=blob:none --no-checkout \
+  "https://github.com/$source_repo.git" "$tmp/source"
+git -C "$tmp/source" fetch --depth 1 origin "$wanted_ref"
+resolved_ref=$(git -C "$tmp/source" rev-parse FETCH_HEAD)
+if [ "$resolved_ref" != "$wanted_ref" ]; then
+  printf 'Beads Viewer ref mismatch: expected %s, fetched %s.\n' \
+    "$wanted_ref" "$resolved_ref" >&2
+  exit 1
+fi
+git -C "$tmp/source" checkout --detach "$resolved_ref"
+
+mkdir -p "$HOME/.local/bin" "$state_dir"
+(cd "$tmp/source" && go build -trimpath -o "$tmp/bv" ./cmd/bv)
+
+target_tmp=$(mktemp "$HOME/.local/bin/.bv.tmp.XXXXXX")
+cp "$tmp/bv" "$target_tmp"
+chmod 0755 "$target_tmp"
+mv "$target_tmp" "$target"
+
+stamp_tmp=$(mktemp "$state_dir/.installed-ref.tmp.XXXXXX")
+printf '%s\n' "$source_repo@$wanted_ref" >"$stamp_tmp"
+chmod 0600 "$stamp_tmp"
+mv "$stamp_tmp" "$stamp"
+{{- end }}

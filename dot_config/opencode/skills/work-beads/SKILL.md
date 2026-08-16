@@ -12,8 +12,10 @@ Use `wbd`, never raw `bd`, for private work tracking. The wrapper targets one pr
 - Run `wbd context` in the current Git repository to discover its automatic `ctx:<slug>-<hash>` label. Repository context requires an `origin` remote and equivalent common SSH/HTTPS origins produce the same stable context.
 - `wbd create` and `wbd new` add the current context automatically while preserving labels supplied by the user. Do not add or duplicate the context label manually.
 - `wbd list` automatically limits results to the current context. Use `wbd list --all-contexts` only when a global cross-project query is intentional.
+- `wbd register` records the current repository path in the private Viewer configuration without modifying the repository. `wbd create`, scoped `wbd list`, and `wbd link` register it automatically.
+- `wbd link <bead-id> [commit]` records an explicit association between a bead and a real source commit; the commit defaults to `HEAD` and is resolved to an immutable full SHA.
 - Discover ready work in the current context with `wbd list --ready --json`. Raw `wbd ready` is not context-filtered.
-- Agent operations are limited to `create`, `new`, `list`, `show`, `update`, `dep`, `close`, and `reopen`. Stable issue IDs work directly in dependencies across repositories; use those IDs rather than project-name mappings. Do not use `wbd` for configuration, setup, hooks, maintenance, imports, exports, integrations, or repository routing.
+- Agent operations are limited to `create`, `new`, `list`, `show`, `update`, `dep`, `close`, `reopen`, and `link`. Stable issue IDs work directly in dependencies across repositories; use those IDs rather than project-name mappings. Do not use `wbd` for setup, hooks, maintenance, imports, exports, integrations, or repository routing.
 
 ## Agent Workflow
 
@@ -27,10 +29,11 @@ wbd create "Task title" --description "..." --json
 wbd show <id> --json
 wbd update <id> --status in_progress --json
 wbd dep add <issue-id> <dependency-id> --json
+wbd link <id> HEAD
 wbd close <id> --json
 wbd reopen <id> --json
 ```
 
-At the start of tracked work, inspect the current-context issues and create or update the relevant item. Record meaningful lifecycle changes as work starts, becomes blocked, changes scope, or gains dependencies. Close completed work only after verification; reopen it when completion no longer holds. For cross-project dependencies, query globally when needed and connect the stable IDs directly.
+At the start of tracked work, inspect the current-context issues and create or update the relevant item. Record meaningful lifecycle changes as work starts, becomes blocked, changes scope, or gains dependencies. After a verified source commit implements the work, associate it with `wbd link`; do not manufacture commit messages or synthetic history. Close completed work only after verification; reopen it when completion no longer holds. For cross-project dependencies, query globally when needed and connect the stable IDs directly.
 
 `wbv` is the human-facing global all-context viewer. Agents must not launch it; use `wbd ... --json` instead.
