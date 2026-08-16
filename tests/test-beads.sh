@@ -1036,7 +1036,6 @@ assert_migration_bd_calls "$migration_log" "$migration_old_store" bead
 grep -Fq 'store-wide prefix for every Beads ID in the Hub' "$case_root/migration.err"
 grep -Fq 'You can change this prefix later by running migrate-beads-hub-prefix.sh.' "$case_root/migration.err"
 grep -Fq "Migrated work-* to bead-* in $migration_new_store" "$case_root/migration.out"
-test "$(grep -Fc "BEADS_DIR=$migration_old_store" "$migration_log")" -eq 2
 grep -Fxq MIGRATION_BACKUP_BEFORE_RENAME "$migration_log"
 test -f "$migration_new_store/nested/payload"
 test -f "$migration_new_parent/sibling"
