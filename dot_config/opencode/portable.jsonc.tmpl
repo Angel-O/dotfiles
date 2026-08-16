@@ -4,7 +4,8 @@
     "opencode-openai-codex-auth@{{ .pins.openCodePlugins.codexAuth }}",
     "@slkiser/opencode-quota@{{ .pins.openCodePlugins.quota }}",
     "opencode-handoff@{{ .pins.openCodePlugins.handoff }}",
-    "opencode-history-search@{{ .pins.openCodePlugins.historySearch }}"{{ if eq .role "personal" }},
+    "opencode-history-search@{{ .pins.openCodePlugins.historySearch }}",
+    "opencode-mermaid-renderer@{{ .pins.openCodePlugins.mermaidRenderer }}"{{ if eq .role "personal" }},
     "@warp-dot-dev/opencode-warp@{{ .pins.openCodePlugins.warp }}",
     "opencode-lmstudio@{{ .pins.openCodePlugins.lmStudio }}"{{ end }}
   ]{{ if eq .role "personal" }},
