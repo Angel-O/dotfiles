@@ -69,14 +69,51 @@ cat >"$fake_bin/bd" <<'EOF'
 if [ "${1:-}" = --db ]; then
   shift 2
 fi
+if [ "${1:-}" = --json ]; then
+  shift
+fi
+if [ "${1:-}" = config ] && [ "${2:-}" = get ] && [ "${3:-}" = issue_prefix ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
+  count=0
+  if [ -f "$FAKE_MIGRATION_HOME/prefix-read-count" ]; then
+    IFS= read -r count <"$FAKE_MIGRATION_HOME/prefix-read-count"
+  fi
+  count=$((count + 1))
+  printf '%s\n' "$count" >"$FAKE_MIGRATION_HOME/prefix-read-count"
+  IFS= read -r prefix <"$FAKE_MIGRATION_HOME/current-prefix"
+  if [ -n "${FAKE_PREFIX_CHANGE_AT:-}" ] && [ "$count" -ge "$FAKE_PREFIX_CHANGE_AT" ]; then
+    prefix=${FAKE_CHANGED_PREFIX:?}
+  fi
+  printf '{"key":"issue_prefix","schema_version":%s,"value":"%s"}\n' "${FAKE_SCHEMA_VERSION:-1}" "$prefix"
+  exit 0
+fi
 if [ "${1:-}" = rename-prefix ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
-  old_parent=$FAKE_MIGRATION_HOME/.local/share/beads/work
-  set -- "$FAKE_MIGRATION_HOME"/.local/share/beads/work-to-hub-backup-*
-  [ "$#" -eq 1 ] && [ -d "$1/work/.beads" ] && [ -f "$1/work-beads.yaml" ] || exit 46
-  [ -d "$old_parent/.beads" ] && [ ! -e "$FAKE_MIGRATION_HOME/.local/share/beads/hub" ] || exit 47
+  if [ -d "$FAKE_MIGRATION_HOME/.local/share/beads/work/.beads" ]; then
+    old_parent=$FAKE_MIGRATION_HOME/.local/share/beads/work
+    backup_found=false
+    for candidate in "$FAKE_MIGRATION_HOME"/.local/share/beads/work-to-hub-backup-*; do
+      if [ -d "$candidate/work/.beads" ] && [ -f "$candidate/work-beads.yaml" ]; then
+        backup_found=true
+      fi
+    done
+  else
+    old_parent=$FAKE_MIGRATION_HOME/.local/share/beads/hub
+    backup_found=false
+    for candidate in "$FAKE_MIGRATION_HOME"/.local/share/beads/hub-prefix-backup-*; do
+      if [ -d "$candidate/hub/.beads" ] && [ -f "$candidate/hub.yaml" ]; then
+        backup_found=true
+      fi
+    done
+  fi
+  $backup_found || exit 46
+  if [ "$old_parent" = "$FAKE_MIGRATION_HOME/.local/share/beads/work" ]; then
+    [ -d "$old_parent/.beads" ] && [ ! -e "$FAKE_MIGRATION_HOME/.local/share/beads/hub" ] || exit 47
+  else
+    [ -d "$old_parent/.beads" ] || exit 47
+  fi
   printf '%s\n' MIGRATION_BACKUP_BEFORE_RENAME >>"${FAKE_LOG:?}"
   : >"$FAKE_MIGRATION_HOME/rename-complete"
   printf '%s\n' "${2:?}" >"$FAKE_MIGRATION_HOME/rename-prefix"
+  printf '%s\n' "${2:?}" >"$FAKE_MIGRATION_HOME/current-prefix"
 fi
 if [ "${1:-}" = export ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
   [ -f "$FAKE_MIGRATION_HOME/rename-complete" ] || exit 48
@@ -190,11 +227,98 @@ for line in open(path, encoding="utf-8"):
         current = None
     elif current is not None and line.startswith("arg="):
         current.append(line[4:])
-assert blocks[-2:] == [
+assert blocks == [
+    ["--db", store, "--json", "config", "get", "issue_prefix"],
+    ["--db", store, "--json", "config", "get", "issue_prefix"],
+    ["--db", store, "--json", "config", "get", "issue_prefix"],
     ["--db", store, "rename-prefix", prefix],
     ["--db", store, "export", "-o", f"{store}/issues.jsonl"],
-], blocks[-2:]
+], blocks
 PY
+}
+
+assert_hub_prefix_calls() {
+  python3 - "$1" "$2" "$3" <<'PY'
+import sys
+
+path, store, target = sys.argv[1:]
+blocks, current = [], None
+for line in open(path, encoding="utf-8"):
+    line = line.rstrip("\n")
+    if line == "BEGIN_BD":
+        current = []
+    elif line == "END_BD" and current is not None:
+        blocks.append(current)
+        current = None
+    elif current is not None and line.startswith("arg="):
+        current.append(line[4:])
+assert blocks == [
+    ["--db", store, "--json", "config", "get", "issue_prefix"],
+    ["--db", store, "--json", "config", "get", "issue_prefix"],
+    ["--db", store, "--json", "config", "get", "issue_prefix"],
+    ["--db", store, "rename-prefix", target],
+    ["--db", store, "export", "-o", f"{store}/issues.jsonl"],
+], blocks
+PY
+}
+
+assert_prefix_reads_only() {
+  python3 - "$1" "$2" "$3" <<'PY'
+import sys
+
+path, store, count = sys.argv[1:]
+expected = ["--db", store, "--json", "config", "get", "issue_prefix"]
+blocks, current = [], None
+for line in open(path, encoding="utf-8"):
+    line = line.rstrip("\n")
+    if line == "BEGIN_BD":
+        current = []
+    elif line == "END_BD" and current is not None:
+        blocks.append(current)
+        current = None
+    elif current is not None and line.startswith("arg="):
+        current.append(line[4:])
+assert blocks == [expected] * int(count), blocks
+PY
+}
+
+assert_hub_prefix_detection_only() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+
+path, store = sys.argv[1:]
+blocks, current = [], None
+for line in open(path, encoding="utf-8"):
+    line = line.rstrip("\n")
+    if line == "BEGIN_BD":
+        current = []
+    elif line == "END_BD" and current is not None:
+        blocks.append(current)
+        current = None
+    elif current is not None and line.startswith("arg="):
+        current.append(line[4:])
+assert blocks == [["--db", store, "--json", "config", "get", "issue_prefix"]], blocks
+PY
+}
+
+setup_hub_prefix_fixture() {
+  local fixture_home=$1 prefix=$2
+  local parent=$fixture_home/.local/share/beads/hub
+  local store=$parent/.beads
+  local config=$fixture_home/.config/bv/hub.yaml
+  mkdir -p "$store/nested" "${config%/*}" "$fixture_home/project/.beads"
+  printf '%s\n' "$prefix" >"$fixture_home/current-prefix"
+  printf '%s\n' complete >"$store/nested/payload"
+  printf '%s\n' project-local >"$fixture_home/project/.beads/sentinel"
+  printf '{"id":"%s-1gj","title":"Current export"}\n' "$prefix" >"$store/issues.jsonl"
+  printf '{"issue_id":"%s-1gj","nested":{"issue_id":"%s-8au"},"text":"mention %s-8au"}\n' \
+    "$prefix" "$prefix" "$prefix" >"$store/interactions.jsonl"
+  printf '%s-1gj\n' "$prefix" >"$store/last-touched"
+  printf '{"bead_id":"%s-1gj","nested":{"bead_id":"%s-8au"},"text":"mention %s-8au"}\n' \
+    "$prefix" "$prefix" "$prefix" >"$parent/correlations.jsonl"
+  cat >"$config" <<EOF
+{"version":1,"store":"$store","ledger":"$parent/correlations.jsonl","repositories":{"ctx:repo-1234567890":{"path":"$repo_a"}}}
+EOF
 }
 
 # Bootstrap creates the hub with the default bead prefix.
@@ -693,6 +817,183 @@ else
   test "$?" -eq 39
 fi
 
+# The standalone fixed-Hub migration detects the persisted prefix and a blank
+# selection is a true no-op with no backup or runtime mutation.
+hub_prefix_script=$source_dir/scripts/migrate-beads-hub-prefix.sh
+hub_noop_home=$case_root/hub-prefix-noop-home
+hub_noop_store=$hub_noop_home/.local/share/beads/hub/.beads
+setup_hub_prefix_fixture "$hub_noop_home" bead
+cp "$hub_noop_store/last-touched" "$case_root/hub-prefix-noop.before"
+: >"$case_root/hub-prefix-noop.log"
+printf '\n' | HOME=$hub_noop_home FAKE_LOG=$case_root/hub-prefix-noop.log \
+  FAKE_MIGRATION_HOME=$hub_noop_home PATH=$fake_bin:/usr/bin:/bin \
+  bash "$hub_prefix_script" >"$case_root/hub-prefix-noop.out" 2>"$case_root/hub-prefix-noop.err"
+assert_hub_prefix_detection_only "$case_root/hub-prefix-noop.log" "$hub_noop_store"
+grep -Fq 'Hub prefix is already bead; no changes made.' "$case_root/hub-prefix-noop.out"
+grep -Fq 'You can change this prefix later by running migrate-beads-hub-prefix.sh.' "$case_root/hub-prefix-noop.err"
+cmp -s "$case_root/hub-prefix-noop.before" "$hub_noop_store/last-touched"
+hub_noop_backups=("$hub_noop_home"/.local/share/beads/hub-prefix-backup-*)
+test "${hub_noop_backups[0]}" = "$hub_noop_home/.local/share/beads/hub-prefix-backup-*"
+
+# Invalid selections retry, then every current top-level runtime ID follows a
+# custom prefix while nested and prose references remain unchanged.
+hub_custom_home=$case_root/hub-prefix-custom-home
+hub_custom_parent=$hub_custom_home/.local/share/beads/hub
+hub_custom_store=$hub_custom_parent/.beads
+hub_custom_config=$hub_custom_home/.config/bv/hub.yaml
+setup_hub_prefix_fixture "$hub_custom_home" bead
+cp "$hub_custom_config" "$case_root/hub-prefix-config.before"
+: >"$case_root/hub-prefix-custom.log"
+printf '%s\n' Work work_1 1work work- work--item 'work space' \
+  abcdefghijklmnopqrstuvwxyzabcdefg team-core | \
+  HOME=$hub_custom_home FAKE_LOG=$case_root/hub-prefix-custom.log \
+  FAKE_MIGRATION_HOME=$hub_custom_home \
+  BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
+  BEADS_DOLT_PROXIED_SERVER=x BEADS_DOLT_SERVER_DATABASE=x BEADS_DOLT_SERVER_HOST=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SERVER_PORT=x BEADS_DOLT_SERVER_SOCKET=x \
+  BEADS_DOLT_SHARED_SERVER=x PATH=$fake_bin:/usr/bin:/bin \
+  bash "$hub_prefix_script" >"$case_root/hub-prefix-custom.out" 2>"$case_root/hub-prefix-custom.err"
+test "$(grep -Fc 'Invalid prefix:' "$case_root/hub-prefix-custom.err")" -eq 7
+grep -Fq 'You can change this prefix later by running migrate-beads-hub-prefix.sh.' "$case_root/hub-prefix-custom.err"
+assert_hub_prefix_calls "$case_root/hub-prefix-custom.log" "$hub_custom_store" team-core
+grep -Fxq '{"id":"team-core-1gj","title":"Renamed export"}' "$hub_custom_store/issues.jsonl"
+grep -Fxq '{"id":"team-core-8au","title":"Second renamed export"}' "$hub_custom_store/issues.jsonl"
+grep -Fxq '{"issue_id":"team-core-1gj","nested":{"issue_id":"bead-8au"},"text":"mention bead-8au"}' "$hub_custom_store/interactions.jsonl"
+grep -Fxq '{"bead_id":"team-core-1gj","nested":{"bead_id":"bead-8au"},"text":"mention bead-8au"}' "$hub_custom_parent/correlations.jsonl"
+grep -Fxq team-core-1gj "$hub_custom_store/last-touched"
+grep -Fxq project-local "$hub_custom_home/project/.beads/sentinel"
+cmp -s "$case_root/hub-prefix-config.before" "$hub_custom_config"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$hub_custom_parent/correlations.jsonl"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$hub_custom_store/interactions.jsonl"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$hub_custom_store/last-touched"
+jq -e '(.bead_id | startswith("bead-") | not)' "$hub_custom_parent/correlations.jsonl" >/dev/null
+jq -e '(.issue_id | startswith("bead-") | not)' "$hub_custom_store/interactions.jsonl" >/dev/null
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PORT BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_DATABASE BEADS_DOLT_SERVER_HOST BEADS_DOLT_SERVER_MODE BEADS_DOLT_SERVER_PORT BEADS_DOLT_SERVER_SOCKET BEADS_DOLT_SHARED_SERVER; do
+  grep -Fxq "${variable}_SET=" "$case_root/hub-prefix-custom.log"
+done
+! grep -Eq '_SET=.+' "$case_root/hub-prefix-custom.log"
+grep -Fq 'Run migrate-beads-hub-prefix.sh again to change the Hub prefix later.' "$case_root/hub-prefix-custom.out"
+hub_custom_backups=("$hub_custom_home"/.local/share/beads/hub-prefix-backup-*)
+test "${#hub_custom_backups[@]}" -eq 1
+grep -Fxq bead-1gj "${hub_custom_backups[0]}/hub/.beads/last-touched"
+cmp -s "$case_root/hub-prefix-config.before" "${hub_custom_backups[0]}/hub.yaml"
+test -f "${hub_custom_backups[0]}/hub/.beads/nested/payload"
+
+# A second invocation detects a hyphenated current prefix and creates a
+# collision-safe second backup before applying another rename.
+: >"$case_root/hub-prefix-repeat.log"
+printf '%s\n' final-prefix | HOME=$hub_custom_home FAKE_LOG=$case_root/hub-prefix-repeat.log \
+  FAKE_MIGRATION_HOME=$hub_custom_home PATH=$fake_bin:/usr/bin:/bin \
+  bash "$hub_prefix_script" >"$case_root/hub-prefix-repeat.out" 2>"$case_root/hub-prefix-repeat.err"
+assert_hub_prefix_calls "$case_root/hub-prefix-repeat.log" "$hub_custom_store" final-prefix
+grep -Fxq final-prefix-1gj "$hub_custom_store/last-touched"
+grep -Fxq '{"issue_id":"final-prefix-1gj","nested":{"issue_id":"bead-8au"},"text":"mention bead-8au"}' "$hub_custom_store/interactions.jsonl"
+grep -Fxq '{"bead_id":"final-prefix-1gj","nested":{"bead_id":"bead-8au"},"text":"mention bead-8au"}' "$hub_custom_parent/correlations.jsonl"
+hub_repeat_backups=("$hub_custom_home"/.local/share/beads/hub-prefix-backup-*)
+test "${#hub_repeat_backups[@]}" -eq 2
+
+# EOF and invalid fixed state fail before backup or mutation. Prefix detection
+# is read-only and may be the sole bd call before an EOF failure.
+hub_eof_home=$case_root/hub-prefix-eof-home
+hub_eof_store=$hub_eof_home/.local/share/beads/hub/.beads
+setup_hub_prefix_fixture "$hub_eof_home" bead
+cp "$hub_eof_store/last-touched" "$case_root/hub-prefix-eof.before"
+: >"$case_root/hub-prefix-eof.log"
+if HOME=$hub_eof_home FAKE_LOG=$case_root/hub-prefix-eof.log FAKE_MIGRATION_HOME=$hub_eof_home \
+  PATH=$fake_bin:/usr/bin:/bin bash "$hub_prefix_script" </dev/null \
+  >"$case_root/hub-prefix-eof.out" 2>"$case_root/hub-prefix-eof.err"; then
+  fail 'standalone Hub prefix migration accepted EOF'
+fi
+assert_hub_prefix_detection_only "$case_root/hub-prefix-eof.log" "$hub_eof_store"
+grep -Fq 'end of input while reading target prefix' "$case_root/hub-prefix-eof.err"
+cmp -s "$case_root/hub-prefix-eof.before" "$hub_eof_store/last-touched"
+hub_eof_backups=("$hub_eof_home"/.local/share/beads/hub-prefix-backup-*)
+test "${hub_eof_backups[0]}" = "$hub_eof_home/.local/share/beads/hub-prefix-backup-*"
+
+# A source-prefix change at the engine's final check preserves the backed-up
+# pre-migration state and never reaches native rename or export.
+hub_engine_mismatch_home=$case_root/hub-prefix-engine-mismatch-home
+hub_engine_mismatch_store=$hub_engine_mismatch_home/.local/share/beads/hub/.beads
+setup_hub_prefix_fixture "$hub_engine_mismatch_home" bead
+cp "$hub_engine_mismatch_store/last-touched" "$case_root/hub-prefix-engine-mismatch.before"
+: >"$case_root/hub-prefix-engine-mismatch.log"
+if printf '%s\n' task | HOME=$hub_engine_mismatch_home \
+  FAKE_LOG=$case_root/hub-prefix-engine-mismatch.log \
+  FAKE_MIGRATION_HOME=$hub_engine_mismatch_home \
+  FAKE_PREFIX_CHANGE_AT=3 FAKE_CHANGED_PREFIX=other \
+  PATH=$fake_bin:/usr/bin:/bin bash "$hub_prefix_script" \
+  >"$case_root/hub-prefix-engine-mismatch.out" 2>"$case_root/hub-prefix-engine-mismatch.err"; then
+  fail 'shared prefix engine accepted a changed persisted source prefix'
+fi
+assert_prefix_reads_only "$case_root/hub-prefix-engine-mismatch.log" "$hub_engine_mismatch_store" 3
+cmp -s "$case_root/hub-prefix-engine-mismatch.before" "$hub_engine_mismatch_store/last-touched"
+grep -Fxq bead "$hub_engine_mismatch_home/current-prefix"
+test ! -e "$hub_engine_mismatch_home/rename-complete"
+hub_engine_mismatch_backups=("$hub_engine_mismatch_home"/.local/share/beads/hub-prefix-backup-*)
+test "${#hub_engine_mismatch_backups[@]}" -eq 1
+grep -Fxq bead-1gj "${hub_engine_mismatch_backups[0]}/hub/.beads/last-touched"
+
+hub_missing_home=$case_root/hub-prefix-missing-home
+mkdir -p "$hub_missing_home"
+: >"$case_root/hub-prefix-missing.log"
+if HOME=$hub_missing_home FAKE_LOG=$case_root/hub-prefix-missing.log FAKE_MIGRATION_HOME=$hub_missing_home \
+  PATH=$fake_bin:/usr/bin:/bin bash "$hub_prefix_script" </dev/null \
+  >"$case_root/hub-prefix-missing.out" 2>&1; then
+  fail 'standalone Hub prefix migration accepted a missing store'
+fi
+test ! -s "$case_root/hub-prefix-missing.log"
+
+hub_invalid_home=$case_root/hub-prefix-invalid-home
+setup_hub_prefix_fixture "$hub_invalid_home" bead
+printf '%s\n' '{"version":1,"repositories":{}}' >"$hub_invalid_home/.config/bv/hub.yaml"
+: >"$case_root/hub-prefix-invalid.log"
+if HOME=$hub_invalid_home FAKE_LOG=$case_root/hub-prefix-invalid.log FAKE_MIGRATION_HOME=$hub_invalid_home \
+  PATH=$fake_bin:/usr/bin:/bin bash "$hub_prefix_script" </dev/null \
+  >"$case_root/hub-prefix-invalid.out" 2>&1; then
+  fail 'standalone Hub prefix migration accepted an invalid config'
+fi
+test ! -s "$case_root/hub-prefix-invalid.log"
+
+hub_bad_prefix_home=$case_root/hub-prefix-bad-detection-home
+hub_bad_prefix_store=$hub_bad_prefix_home/.local/share/beads/hub/.beads
+setup_hub_prefix_fixture "$hub_bad_prefix_home" bead
+printf '%s\n' Bad_Prefix >"$hub_bad_prefix_home/current-prefix"
+: >"$case_root/hub-prefix-bad-detection.log"
+if HOME=$hub_bad_prefix_home FAKE_LOG=$case_root/hub-prefix-bad-detection.log \
+  FAKE_MIGRATION_HOME=$hub_bad_prefix_home PATH=$fake_bin:/usr/bin:/bin \
+  bash "$hub_prefix_script" </dev/null >"$case_root/hub-prefix-bad-detection.out" 2>&1; then
+  fail 'standalone Hub prefix migration accepted invalid persisted prefix output'
+fi
+assert_hub_prefix_detection_only "$case_root/hub-prefix-bad-detection.log" "$hub_bad_prefix_store"
+hub_bad_prefix_backups=("$hub_bad_prefix_home"/.local/share/beads/hub-prefix-backup-*)
+test "${hub_bad_prefix_backups[0]}" = "$hub_bad_prefix_home/.local/share/beads/hub-prefix-backup-*"
+
+hub_bad_schema_home=$case_root/hub-prefix-bad-schema-home
+hub_bad_schema_store=$hub_bad_schema_home/.local/share/beads/hub/.beads
+setup_hub_prefix_fixture "$hub_bad_schema_home" bead
+: >"$case_root/hub-prefix-bad-schema.log"
+if HOME=$hub_bad_schema_home FAKE_LOG=$case_root/hub-prefix-bad-schema.log \
+  FAKE_MIGRATION_HOME=$hub_bad_schema_home FAKE_SCHEMA_VERSION=2 \
+  PATH=$fake_bin:/usr/bin:/bin bash "$hub_prefix_script" </dev/null \
+  >"$case_root/hub-prefix-bad-schema.out" 2>&1; then
+  fail 'standalone Hub prefix migration accepted an unsupported prefix schema'
+fi
+assert_hub_prefix_detection_only "$case_root/hub-prefix-bad-schema.log" "$hub_bad_schema_store"
+hub_bad_schema_backups=("$hub_bad_schema_home"/.local/share/beads/hub-prefix-backup-*)
+test "${hub_bad_schema_backups[0]}" = "$hub_bad_schema_home/.local/share/beads/hub-prefix-backup-*"
+
+hub_symlink_home=$case_root/hub-prefix-symlink-home
+setup_hub_prefix_fixture "$hub_symlink_home" bead
+mv "$hub_symlink_home/.local/share/beads/hub/.beads/interactions.jsonl" "$case_root/hub-prefix-interactions-target"
+ln -s "$case_root/hub-prefix-interactions-target" "$hub_symlink_home/.local/share/beads/hub/.beads/interactions.jsonl"
+: >"$case_root/hub-prefix-symlink.log"
+if HOME=$hub_symlink_home FAKE_LOG=$case_root/hub-prefix-symlink.log \
+  FAKE_MIGRATION_HOME=$hub_symlink_home PATH=$fake_bin:/usr/bin:/bin \
+  bash "$hub_prefix_script" </dev/null >"$case_root/hub-prefix-symlink.out" 2>&1; then
+  fail 'standalone Hub prefix migration accepted a symlinked runtime file'
+fi
+test ! -s "$case_root/hub-prefix-symlink.log"
+
 # The repository-only migration uses a synthetic home and fake bd. It backs up
 # before renaming, narrowly rewrites top-level IDs, then moves the whole parent.
 migration_home=$case_root/migration-home
@@ -704,6 +1005,7 @@ migration_new_store=$migration_new_parent/.beads
 migration_new_config=$migration_home/.config/bv/hub.yaml
 migration_log=$case_root/migration.log
 mkdir -p "$migration_old_store/nested" "${migration_old_config%/*}"
+printf '%s\n' work >"$migration_home/current-prefix"
 printf '%s\n' 'complete parent payload' >"$migration_old_store/nested/payload"
 printf '%s\n' 'parent sibling payload' >"$migration_old_parent/sibling"
 printf '%s\n' '{"id":"work-1gj","title":"Stale export"}' >"$migration_old_store/issues.jsonl"
@@ -732,7 +1034,7 @@ printf '\n' | HOME=$migration_home FAKE_LOG=$migration_log FAKE_MIGRATION_HOME=$
   >"$case_root/migration.out" 2>"$case_root/migration.err"
 assert_migration_bd_calls "$migration_log" "$migration_old_store" bead
 grep -Fq 'store-wide prefix for every Beads ID in the Hub' "$case_root/migration.err"
-grep -Fq 'Changing it later requires another migration' "$case_root/migration.err"
+grep -Fq 'You can change this prefix later by running migrate-beads-hub-prefix.sh.' "$case_root/migration.err"
 grep -Fq "Migrated work-* to bead-* in $migration_new_store" "$case_root/migration.out"
 test "$(grep -Fc "BEADS_DIR=$migration_old_store" "$migration_log")" -eq 2
 grep -Fxq MIGRATION_BACKUP_BEFORE_RENAME "$migration_log"
@@ -785,6 +1087,7 @@ no_ledger_old_config=$no_ledger_home/.config/bv/work-beads.yaml
 no_ledger_new_parent=$no_ledger_home/.local/share/beads/hub
 no_ledger_new_config=$no_ledger_home/.config/bv/hub.yaml
 mkdir -p "$no_ledger_old_store" "${no_ledger_old_config%/*}"
+printf '%s\n' work >"$no_ledger_home/current-prefix"
 printf '%s\n' 'store without ledger' >"$no_ledger_old_store/payload"
 cat >"$no_ledger_old_config" <<EOF
 {"version":1,"store":"$no_ledger_old_store","ledger":"$no_ledger_old_parent/correlations.jsonl","repositories":{"ctx:repo-1234567890":{"path":"$repo_a"}}}
@@ -815,6 +1118,7 @@ custom_new_parent=$custom_migration_home/.local/share/beads/hub
 custom_new_store=$custom_new_parent/.beads
 custom_log=$case_root/migration-custom.log
 mkdir -p "$custom_old_store" "${custom_old_config%/*}"
+printf '%s\n' work >"$custom_migration_home/current-prefix"
 printf '%s\n' '{"id":"work-1gj","title":"Stale export"}' >"$custom_old_store/issues.jsonl"
 cat >"$custom_old_store/interactions.jsonl" <<'EOF'
 {"issue_id":"work-1gj","nested":{"issue_id":"work-8au"},"text":"work-8au"}
@@ -844,12 +1148,14 @@ custom_backups=("$custom_migration_home"/.local/share/beads/work-to-hub-backup-*
 test "${#custom_backups[@]}" -eq 1
 grep -Fxq work-1gj "${custom_backups[0]}/work/.beads/last-touched"
 
-# EOF fails cleanly before backup, dispatch, destination creation, or source mutation.
+# EOF fails cleanly after one read-only prefix query and before backup,
+# destination creation, or source mutation.
 eof_home=$case_root/migration-eof-home
 eof_old_parent=$eof_home/.local/share/beads/work
 eof_old_store=$eof_old_parent/.beads
 eof_old_config=$eof_home/.config/bv/work-beads.yaml
 mkdir -p "$eof_old_store" "${eof_old_config%/*}"
+printf '%s\n' work >"$eof_home/current-prefix"
 printf '%s\n' source >"$eof_old_store/payload"
 cat >"$eof_old_config" <<EOF
 {"version":1,"store":"$eof_old_store","ledger":"$eof_old_parent/correlations.jsonl","repositories":{}}
@@ -862,13 +1168,43 @@ if HOME=$eof_home FAKE_LOG=$case_root/migration-eof.log FAKE_MIGRATION_HOME=$eof
   fail 'migration accepted EOF while reading the target prefix'
 fi
 grep -Fq 'end of input while reading target prefix' "$case_root/migration-eof.err"
-test ! -s "$case_root/migration-eof.log"
+assert_hub_prefix_detection_only "$case_root/migration-eof.log" "$eof_old_store"
 grep -Fxq source "$eof_old_store/payload"
 cmp -s "$case_root/migration-eof-config.before" "$eof_old_config"
 test ! -e "$eof_home/.local/share/beads/hub"
 test ! -e "$eof_home/.config/bv/hub.yaml"
 eof_backups=("$eof_home"/.local/share/beads/work-to-hub-backup-*)
 test "${eof_backups[0]}" = "$eof_home/.local/share/beads/work-to-hub-backup-*"
+
+# The one-time migration requires the persisted source prefix to be exactly
+# work before prompting, backing up, or changing any source/destination state.
+legacy_mismatch_home=$case_root/migration-source-mismatch-home
+legacy_mismatch_parent=$legacy_mismatch_home/.local/share/beads/work
+legacy_mismatch_store=$legacy_mismatch_parent/.beads
+legacy_mismatch_config=$legacy_mismatch_home/.config/bv/work-beads.yaml
+mkdir -p "$legacy_mismatch_store" "${legacy_mismatch_config%/*}"
+printf '%s\n' task >"$legacy_mismatch_home/current-prefix"
+printf '%s\n' source >"$legacy_mismatch_store/payload"
+cat >"$legacy_mismatch_config" <<EOF
+{"version":1,"store":"$legacy_mismatch_store","ledger":"$legacy_mismatch_parent/correlations.jsonl","repositories":{}}
+EOF
+cp "$legacy_mismatch_config" "$case_root/migration-source-mismatch-config.before"
+: >"$case_root/migration-source-mismatch.log"
+if HOME=$legacy_mismatch_home FAKE_LOG=$case_root/migration-source-mismatch.log \
+  FAKE_MIGRATION_HOME=$legacy_mismatch_home PATH=$fake_bin:/usr/bin:/bin \
+  bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" </dev/null \
+  >"$case_root/migration-source-mismatch.out" 2>"$case_root/migration-source-mismatch.err"; then
+  fail 'legacy migration accepted a persisted prefix other than work'
+fi
+assert_hub_prefix_detection_only "$case_root/migration-source-mismatch.log" "$legacy_mismatch_store"
+grep -Fq 'legacy store prefix must be work, found: task' "$case_root/migration-source-mismatch.err"
+! grep -Fq 'Choose the store-wide prefix' "$case_root/migration-source-mismatch.err"
+grep -Fxq source "$legacy_mismatch_store/payload"
+cmp -s "$case_root/migration-source-mismatch-config.before" "$legacy_mismatch_config"
+test ! -e "$legacy_mismatch_home/.local/share/beads/hub"
+test ! -e "$legacy_mismatch_home/.config/bv/hub.yaml"
+legacy_mismatch_backups=("$legacy_mismatch_home"/.local/share/beads/work-to-hub-backup-*)
+test "${legacy_mismatch_backups[0]}" = "$legacy_mismatch_home/.local/share/beads/work-to-hub-backup-*"
 
 # Existing destination state rejects migration before backup, bd, or source mutation.
 precondition_home=$case_root/migration-precondition-home
@@ -998,3 +1334,9 @@ grep -Fq 'run_bd_bootstrap metrics off' "$wbd"
 grep -Fq -- '--skip-hooks' "$wbd"
 grep -Fq -- '--skip-agents' "$wbd"
 ! grep -Fq 'no-git-ops' "$wbd" || fail 'unsupported no-git-ops setting was added'
+grep -Fq '. "$script_dir/beads-hub-prefix-internal.sh"' "$source_dir/scripts/migrate-beads-work-to-hub.sh"
+grep -Fq '. "$script_dir/beads-hub-prefix-internal.sh"' "$source_dir/scripts/migrate-beads-hub-prefix.sh"
+grep -Fq 'hub_prefix_migrate' "$source_dir/scripts/migrate-beads-work-to-hub.sh"
+grep -Fq 'hub_prefix_migrate' "$source_dir/scripts/migrate-beads-hub-prefix.sh"
+! grep -Fq 'jq -c' "$source_dir/scripts/migrate-beads-work-to-hub.sh"
+! grep -Fq 'jq -c' "$source_dir/scripts/migrate-beads-hub-prefix.sh"

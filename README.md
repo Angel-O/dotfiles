@@ -48,7 +48,14 @@ When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather th
 
 The `beads` module is optional for both personal and work roles. It installs Beads, Go, and `jq`, builds the pinned external-history `Angel-O/beads_viewer` fork as `~/.local/bin/bv`, and manages `~/.local/bin/wbd` and `~/.local/bin/wbv`. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/hub/.beads` with the default `bead` issue prefix, or run `wbd bootstrap --prefix <prefix>` for a custom prefix. Bootstrap also creates the private Viewer config at `~/.config/bv/hub.yaml` and disables Beads anonymous command metrics. The hub store supports direct dependencies across projects by stable issue ID, while `wbd` derives credential-free `ctx:` labels from each real origin-backed repository. `wbd register` records the current checkout in the private config, create and scoped-list operations register automatically, and `wbd link <bead-id> [commit]` writes a real source association to the private ledger through `bv correlate add`. `wbv` launches the all-context Viewer with external history from any working directory. Existing project-local `.beads` stores are not migrated or modified, and no `.beads`, hooks, team files, or project agent guidance are added to a source repository. Disabling the module stops management and fork installation but does not uninstall packages or delete the private store, config, or ledger.
 
-Machines with the previous repository-managed `~/.local/share/beads/work` store can run this explicit one-time migration from the dotfiles source checkout. The script is repository-only and is not run by chezmoi. It prompts for the store-wide prefix applied to every Beads ID in the Hub, defaulting to `bead` on blank input; changing that global prefix later requires another migration. It preserves repository registrations and creates a timestamped backup before moving data:
+Both migration commands are repository-only and are never run by chezmoi. On a machine that already has the Hub store at `~/.local/share/beads/hub/.beads`, use the repeatable naming-only migration. It detects the persisted prefix, defaults blank input to that current prefix as a no-op, and backs up the complete Hub parent plus `~/.config/bv/hub.yaml` before a change. Run the same command again for any future prefix change:
+
+```sh
+source_dir="$(chezmoi source-path)"
+bash "$source_dir/scripts/migrate-beads-hub-prefix.sh"
+```
+
+On a machine that still has the legacy `~/.local/share/beads/work` store and no Hub destination, use the one-time path migration instead. It prompts for the store-wide prefix applied to every Beads ID in the new Hub, defaults blank input to `bead`, preserves repository registrations, and creates its legacy-layout backup before mutation. After this path migration, use `migrate-beads-hub-prefix.sh` for later naming changes; do not rerun the one-time work-to-Hub script:
 
 ```sh
 source_dir="$(chezmoi source-path)"
