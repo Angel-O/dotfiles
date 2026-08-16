@@ -6,9 +6,9 @@ root=$2
 case_root=$root/beads-wrapper
 fake_bin=$case_root/bin
 home=$case_root/home
-store=$home/.local/share/beads/work/.beads
-work_config=$home/.config/bv/work-beads.yaml
-ledger=$home/.local/share/beads/work/correlations.jsonl
+store=$home/.local/share/beads/hub/.beads
+hub_config=$home/.config/bv/hub.yaml
+ledger=$home/.local/share/beads/hub/correlations.jsonl
 repo_a=$case_root/repos/repo-a
 repo_b=$case_root/repos/repo-b
 mkdir -p "$fake_bin" "$store" "$repo_a" "$repo_b"
@@ -68,6 +68,19 @@ cat >"$fake_bin/bd" <<'EOF'
 
 if [ "${1:-}" = --db ]; then
   shift 2
+fi
+if [ "${1:-}" = rename-prefix ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
+  old_parent=$FAKE_MIGRATION_HOME/.local/share/beads/work
+  set -- "$FAKE_MIGRATION_HOME"/.local/share/beads/work-to-hub-backup-*
+  [ "$#" -eq 1 ] && [ -d "$1/work/.beads" ] && [ -f "$1/work-beads.yaml" ] || exit 46
+  [ -d "$old_parent/.beads" ] && [ ! -e "$FAKE_MIGRATION_HOME/.local/share/beads/hub" ] || exit 47
+  printf '%s\n' MIGRATION_BACKUP_BEFORE_RENAME >>"${FAKE_LOG:?}"
+  : >"$FAKE_MIGRATION_HOME/rename-complete"
+fi
+if [ "${1:-}" = export ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
+  [ -f "$FAKE_MIGRATION_HOME/rename-complete" ] || exit 48
+  [ "${2:-}" = -o ] && [ -n "${3:-}" ] || exit 49
+  printf '%s\n' '{"id":"bead-1gj","title":"Renamed export"}' '{"id":"bead-8au","title":"Second renamed export"}' >"$3"
 fi
 if [ "${1:-}" = init ]; then
   mkdir -p "${BEADS_DIR:?}"
@@ -133,7 +146,7 @@ assert_config() {
     --arg store "$store" \
     --arg ledger "$ledger" \
     '.version == 1 and .store == $store and .ledger == $ledger and (.repositories | type == "object")' \
-    "$work_config" >/dev/null || fail 'work config contents are invalid'
+    "$hub_config" >/dev/null || fail 'hub config contents are invalid'
 }
 
 assert_last_args() {
@@ -159,10 +172,10 @@ assert blocks[-1] == expected, (blocks[-1], expected)
 PY
 }
 
-# Bootstrap creates the store and a valid empty private work config.
+# Bootstrap creates the hub with the default bead prefix.
 bootstrap_home=$case_root/bootstrap-home
-bootstrap_store=$bootstrap_home/.local/share/beads/work/.beads
-bootstrap_config=$bootstrap_home/.config/bv/work-beads.yaml
+bootstrap_store=$bootstrap_home/.local/share/beads/hub/.beads
+bootstrap_config=$bootstrap_home/.config/bv/hub.yaml
 mkdir -p "$bootstrap_home"
 HOME=$bootstrap_home FAKE_LOG=$case_root/bootstrap.log bash "$wbd" bootstrap
 test -d "$bootstrap_store"
@@ -172,10 +185,49 @@ test "$(grep -Fc BEGIN_BD "$case_root/bootstrap.log")" -eq 5
 grep -Fq 'arg=metrics' "$case_root/bootstrap.log"
 grep -Fq 'arg=--skip-hooks' "$case_root/bootstrap.log"
 grep -Fq 'arg=--skip-agents' "$case_root/bootstrap.log"
+grep -Fq 'arg=bead' "$case_root/bootstrap.log"
+
+# A caller may select another valid prefix.
+custom_home=$case_root/bootstrap-custom-home
+custom_store=$custom_home/.local/share/beads/hub/.beads
+mkdir -p "$custom_home"
+HOME=$custom_home FAKE_LOG=$case_root/bootstrap-custom.log bash "$wbd" bootstrap --prefix custom-prefix
+test -d "$custom_store"
+grep -Fq 'arg=custom-prefix' "$case_root/bootstrap-custom.log"
+
+# Invalid prefixes are rejected before creating paths or invoking bd.
+for prefix in '' Work work_1 1work work- work--item 'work space' 'abcdefghijklmnopqrstuvwxyzabcdefg'; do
+  invalid_home=$case_root/bootstrap-invalid-${prefix//[^a-zA-Z0-9]/x}
+  invalid_log=$invalid_home.log
+  mkdir -p "$invalid_home"
+  : >"$invalid_log"
+  if HOME=$invalid_home FAKE_LOG=$invalid_log bash "$wbd" bootstrap --prefix "$prefix" \
+    >"$invalid_home.out" 2>&1; then
+    fail "bootstrap accepted invalid prefix: $prefix"
+  fi
+  test ! -s "$invalid_log"
+  test ! -e "$invalid_home/.local/share/beads/hub"
+  test ! -e "$invalid_home/.config/bv/hub.yaml"
+done
+
+for invocation in '--prefix' '--prefix bead extra' '--prefix bead --prefix other' '--prefix=bead' '--unknown bead'; do
+  invalid_home=$case_root/bootstrap-invalid-syntax-${invocation//[^a-zA-Z0-9]/x}
+  invalid_log=$invalid_home.log
+  mkdir -p "$invalid_home"
+  : >"$invalid_log"
+  read -r -a args <<<"$invocation"
+  if HOME=$invalid_home FAKE_LOG=$invalid_log bash "$wbd" bootstrap "${args[@]}" \
+    >"$invalid_home.out" 2>&1; then
+    fail "bootstrap accepted invalid syntax: $invocation"
+  fi
+  test ! -s "$invalid_log"
+  test ! -e "$invalid_home/.local/share/beads/hub"
+  test ! -e "$invalid_home/.config/bv/hub.yaml"
+done
 
 # Bootstrap failures propagate and remove only the partially created store.
 failure_home=$case_root/bootstrap-failure-home
-failure_store=$failure_home/.local/share/beads/work/.beads
+failure_store=$failure_home/.local/share/beads/hub/.beads
 failure_parent=${failure_store%/.beads}
 mkdir -p "$failure_parent"
 printf '%s\n' keep >"$failure_parent/sentinel"
@@ -191,7 +243,7 @@ grep -Fxq keep "$failure_parent/sentinel"
 
 # Metrics failure stops before init and preserves the store parent.
 metrics_home=$case_root/bootstrap-metrics-home
-metrics_store=$metrics_home/.local/share/beads/work/.beads
+metrics_store=$metrics_home/.local/share/beads/hub/.beads
 metrics_parent=${metrics_store%/.beads}
 metrics_log=$case_root/bootstrap-metrics.log
 mkdir -p "$metrics_parent"
@@ -210,7 +262,7 @@ grep -Fq 'arg=metrics' "$metrics_log"
 
 # Init failure stops before config writes and preserves the store parent.
 init_home=$case_root/bootstrap-init-home
-init_store=$init_home/.local/share/beads/work/.beads
+init_store=$init_home/.local/share/beads/hub/.beads
 init_parent=${init_store%/.beads}
 init_log=$case_root/bootstrap-init.log
 mkdir -p "$init_parent"
@@ -229,16 +281,16 @@ grep -Fq 'arg=init' "$init_log"
 
 # Configure is idempotent and creates JSON-valid YAML with private permissions.
 config_path=$(bash "$wbd" configure)
-test "$config_path" = "$work_config"
+test "$config_path" = "$hub_config"
 assert_config
-python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$work_config"
-cp "$work_config" "$case_root/config.before"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$hub_config"
+cp "$hub_config" "$case_root/config.before"
 bash "$wbd" configure >/dev/null
-cmp -s "$case_root/config.before" "$work_config"
-chmod 0644 "$work_config"
+cmp -s "$case_root/config.before" "$hub_config"
+chmod 0644 "$hub_config"
 bash "$wbd" configure >/dev/null
-cmp -s "$case_root/config.before" "$work_config"
-python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$work_config"
+cmp -s "$case_root/config.before" "$hub_config"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$hub_config"
 
 # Equivalent origins have one stable context.
 context_ssh=$(FAKE_ORIGIN=git@Example.COM:Group/Repo-A.git bash "$wbd" context)
@@ -259,35 +311,35 @@ context_a=$(cut -f1 "$case_root/register-a.out")
 FAKE_ORIGIN=$origin_b FAKE_GIT_ROOT=$repo_b bash "$wbd" register >"$case_root/register-b.out"
 context_b=$(cut -f1 "$case_root/register-b.out")
 jq -e --arg a "$context_a" --arg ap "$repo_a" --arg b "$context_b" --arg bp "$repo_b" \
-  '.repositories == {($a): {path: $ap}, ($b): {path: $bp}}' "$work_config" >/dev/null
-cp "$work_config" "$case_root/config-a-then-b"
-jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
-mv "$case_root/empty-config" "$work_config"
+  '.repositories == {($a): {path: $ap}, ($b): {path: $bp}}' "$hub_config" >/dev/null
+cp "$hub_config" "$case_root/config-a-then-b"
+jq '.repositories = {}' "$hub_config" >"$case_root/empty-config"
+mv "$case_root/empty-config" "$hub_config"
 FAKE_ORIGIN=$origin_b FAKE_GIT_ROOT=$repo_b bash "$wbd" register >/dev/null
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" register >/dev/null
-cmp -s "$case_root/config-a-then-b" "$work_config" || fail 'registration order changed serialized config'
+cmp -s "$case_root/config-a-then-b" "$hub_config" || fail 'registration order changed serialized config'
 
 # Failed context discovery neither registers nor rewrites the config.
-cp "$work_config" "$case_root/config-before-missing-origin"
+cp "$hub_config" "$case_root/config-before-missing-origin"
 if FAKE_ORIGIN_MISSING=1 bash "$wbd" register >"$case_root/missing-origin.out" 2>&1; then
   fail 'register accepted a repository without origin'
 fi
-cmp -s "$case_root/config-before-missing-origin" "$work_config"
+cmp -s "$case_root/config-before-missing-origin" "$hub_config"
 
 # Create and scoped list register the checkout before forwarding to bd.
-jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
-mv "$case_root/empty-config" "$work_config"
+jq '.repositories = {}' "$hub_config" >"$case_root/empty-config"
+mv "$case_root/empty-config" "$hub_config"
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" create 'Quoted task' --labels 'urgent,customer request' --json
 assert_last_args BD --db "$store" --json create --labels "$context_a" 'Quoted task' --labels 'urgent,customer request'
-jq -e --arg context "$context_a" --arg path "$repo_a" '.repositories[$context].path == $path' "$work_config" >/dev/null
+jq -e --arg context "$context_a" --arg path "$repo_a" '.repositories[$context].path == $path' "$hub_config" >/dev/null
 
-jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
-mv "$case_root/empty-config" "$work_config"
+jq '.repositories = {}' "$hub_config" >"$case_root/empty-config"
+mv "$case_root/empty-config" "$hub_config"
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" --json list --status open
 assert_last_args BD --db "$store" --json list --label "$context_a" --status open
-jq -e --arg context "$context_a" '.repositories | has($context)' "$work_config" >/dev/null
+jq -e --arg context "$context_a" '.repositories | has($context)' "$hub_config" >/dev/null
 
 # Global list does not require or register a repository.
 : >"$FAKE_LOG"
@@ -337,10 +389,10 @@ assert_last_args BD --db "$store" --json list --label "$context_a" --ready \
 # Link registers and forwards the exact correlate CLI, leaving ref resolution to bv.
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123
-assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit HEAD --work-config "$work_config"
+assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit HEAD --hub-config "$hub_config"
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123 refs/tags/release-1
-assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit refs/tags/release-1 --work-config "$work_config"
+assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit refs/tags/release-1 --hub-config "$hub_config"
 if FAKE_BV_EXIT=38 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123; then
   fail 'link accepted a bv failure'
 else
@@ -393,13 +445,13 @@ for invocation in \
   '--readonly list' \
   '-json list'; do
   : >"$FAKE_LOG"
-  cp "$work_config" "$case_root/config-before-rejection"
+  cp "$hub_config" "$case_root/config-before-rejection"
   read -r -a args <<<"$invocation"
   if bash "$wbd" "${args[@]}" >"$case_root/strict-rejected.out" 2>&1; then
     fail "wbd allowed unsupported invocation: $invocation"
   fi
   test ! -s "$FAKE_LOG"
-  cmp -s "$case_root/config-before-rejection" "$work_config"
+  cmp -s "$case_root/config-before-rejection" "$hub_config"
 done
 : >"$FAKE_LOG"
 if bash "$wbd" create task --labels 'urgent, ctx:other' >"$case_root/context-label-rejected.out" 2>&1; then
@@ -465,21 +517,21 @@ grep -Fq 'required command not found: bv' "$case_root/missing-link-bv.out"
 test ! -s "$FAKE_LOG"
 
 # Malformed and symlinked configs are rejected without replacement.
-cp "$work_config" "$case_root/valid-config"
-printf '%s\n' '{"version":1,"repositories":[]}' >"$work_config"
-cp "$work_config" "$case_root/malformed-before"
+cp "$hub_config" "$case_root/valid-config"
+printf '%s\n' '{"version":1,"repositories":[]}' >"$hub_config"
+cp "$hub_config" "$case_root/malformed-before"
 if bash "$wbd" configure >"$case_root/malformed.out" 2>&1; then
   fail 'configure accepted malformed config'
 fi
-cmp -s "$case_root/malformed-before" "$work_config"
-rm "$work_config"
-ln -s "$case_root/valid-config" "$work_config"
+cmp -s "$case_root/malformed-before" "$hub_config"
+rm "$hub_config"
+ln -s "$case_root/valid-config" "$hub_config"
 if bash "$wbd" configure >"$case_root/symlink.out" 2>&1; then
   fail 'configure accepted a symlink config'
 fi
-test -L "$work_config"
-rm "$work_config"
-cp "$case_root/valid-config" "$work_config"
+test -L "$hub_config"
+rm "$hub_config"
+cp "$case_root/valid-config" "$hub_config"
 
 # Direct init remains blocked, including after a leading global flag.
 : >"$FAKE_LOG"
@@ -535,14 +587,14 @@ test ! -s "$FAKE_LOG"
 # Bare wbv is human-only and requires a real input/output TTY.
 viewer_cwd=$case_root/viewer-cwd
 mkdir -p "$viewer_cwd"
-rm -f "$work_config"
+rm -f "$hub_config"
 : >"$FAKE_LOG"
 if bash "$wbv" >"$case_root/viewer-nontty.out" 2>&1; then
   fail 'wbv allowed a bare non-interactive invocation'
 fi
 grep -Fq 'requires an interactive terminal' "$case_root/viewer-nontty.out"
 test ! -s "$FAKE_LOG"
-test ! -e "$work_config"
+test ! -e "$hub_config"
 
 (cd "$viewer_cwd" && \
   BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
@@ -572,7 +624,7 @@ if result.returncode != 0:
 PY
 )
 assert_config
-assert_last_args BV --history-mode external --work-config "$work_config"
+assert_last_args BV --history-mode external --hub-config "$hub_config"
 grep -Fxq "PWD=$viewer_cwd" "$FAKE_LOG"
 grep -Fxq 'BV_NO_GITIGNORE=1' "$FAKE_LOG"
 grep -Fxq 'BV_NO_CACHE=1' "$FAKE_LOG"
@@ -586,7 +638,7 @@ assert_robot() {
   : >"$FAKE_LOG"
   BV_OUTPUT_FORMAT=toon TOON_DEFAULT_FORMAT=toon TOON_STATS=1 BV_PRETTY_JSON=1 \
     bash "$wbv" "$@"
-  assert_last_args BV --history-mode external --work-config "$work_config" "$@" --format json
+  assert_last_args BV --history-mode external --hub-config "$hub_config" "$@" --format json
   grep -Fxq 'BV_OUTPUT_FORMAT_SET=' "$FAKE_LOG"
   grep -Fxq 'TOON_DEFAULT_FORMAT_SET=' "$FAKE_LOG"
   grep -Fxq 'TOON_STATS_SET=' "$FAKE_LOG"
@@ -615,6 +667,157 @@ if FAKE_BV_EXIT=39 bash "$wbv" --robot-plan >"$case_root/viewer-failure.out" 2>&
 else
   test "$?" -eq 39
 fi
+
+# The repository-only migration uses a synthetic home and fake bd. It backs up
+# before renaming, narrowly rewrites top-level IDs, then moves the whole parent.
+migration_home=$case_root/migration-home
+migration_old_parent=$migration_home/.local/share/beads/work
+migration_old_store=$migration_old_parent/.beads
+migration_old_config=$migration_home/.config/bv/work-beads.yaml
+migration_new_parent=$migration_home/.local/share/beads/hub
+migration_new_store=$migration_new_parent/.beads
+migration_new_config=$migration_home/.config/bv/hub.yaml
+migration_log=$case_root/migration.log
+mkdir -p "$migration_old_store/nested" "${migration_old_config%/*}"
+printf '%s\n' 'complete parent payload' >"$migration_old_store/nested/payload"
+printf '%s\n' 'parent sibling payload' >"$migration_old_parent/sibling"
+printf '%s\n' '{"id":"work-1gj","title":"Stale export"}' >"$migration_old_store/issues.jsonl"
+cat >"$migration_old_store/interactions.jsonl" <<'EOF'
+{"issue_id":"work-1gj","kind":"view","nested":{"issue_id":"work-8au"},"text":"mention work-8au"}
+{"issue_id":"other-1","kind":"view","nested":{"issue_id":"work-1gj"}}
+EOF
+printf '%s\n' work-1gj >"$migration_old_store/last-touched"
+cat >"$migration_old_parent/correlations.jsonl" <<'EOF'
+{"bead_id":"work-1","nested":{"bead_id":"work-2"},"text":"mention work-3"}
+{"bead_id":"other-1","nested":{"bead_id":"work-4"},"text":"work-5"}
+{"bead_id":"work-work-6","items":["work-7",{"bead_id":"work-8"}]}
+EOF
+cat >"$migration_old_config" <<EOF
+{"version":1,"store":"$migration_old_store","ledger":"$migration_old_parent/correlations.jsonl","repositories":{"ctx:repo-1234567890":{"path":"$repo_a"}}}
+EOF
+cp "$migration_old_parent/correlations.jsonl" "$case_root/migration-ledger.before"
+cp "$migration_old_config" "$case_root/migration-config.before"
+: >"$migration_log"
+HOME=$migration_home FAKE_LOG=$migration_log FAKE_MIGRATION_HOME=$migration_home \
+  BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
+  BEADS_DOLT_PROXIED_SERVER=x BEADS_DOLT_SERVER_DATABASE=x BEADS_DOLT_SERVER_HOST=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SERVER_PORT=x BEADS_DOLT_SERVER_SOCKET=x \
+  BEADS_DOLT_SHARED_SERVER=x \
+  PATH=$fake_bin:/usr/bin:/bin bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
+  >"$case_root/migration.out"
+python3 - "$migration_log" "$migration_old_store" <<'PY'
+import sys
+
+path, store = sys.argv[1:]
+blocks, current = [], None
+for line in open(path, encoding="utf-8"):
+    line = line.rstrip("\n")
+    if line == "BEGIN_BD":
+        current = []
+    elif line == "END_BD" and current is not None:
+        blocks.append(current)
+        current = None
+    elif current is not None and line.startswith("arg="):
+        current.append(line[4:])
+assert blocks[-2:] == [
+    ["--db", store, "rename-prefix", "bead"],
+    ["--db", store, "export", "-o", f"{store}/issues.jsonl"],
+], blocks[-2:]
+PY
+test "$(grep -Fc "BEADS_DIR=$migration_old_store" "$migration_log")" -eq 2
+grep -Fxq MIGRATION_BACKUP_BEFORE_RENAME "$migration_log"
+test -f "$migration_new_store/nested/payload"
+test -f "$migration_new_parent/sibling"
+test ! -e "$migration_old_parent"
+test ! -e "$migration_old_config"
+jq -e --arg store "$migration_new_store" --arg ledger "$migration_new_parent/correlations.jsonl" \
+  --arg context ctx:repo-1234567890 --arg path "$repo_a" \
+  '.store == $store and .ledger == $ledger and .repositories[$context].path == $path' \
+  "$migration_new_config" >/dev/null
+cat >"$case_root/migration-ledger.expected" <<'EOF'
+{"bead_id":"bead-1","nested":{"bead_id":"work-2"},"text":"mention work-3"}
+{"bead_id":"other-1","nested":{"bead_id":"work-4"},"text":"work-5"}
+{"bead_id":"bead-work-6","items":["work-7",{"bead_id":"work-8"}]}
+EOF
+cmp -s "$case_root/migration-ledger.expected" "$migration_new_parent/correlations.jsonl"
+cat >"$case_root/migration-interactions.expected" <<'EOF'
+{"issue_id":"bead-1gj","kind":"view","nested":{"issue_id":"work-8au"},"text":"mention work-8au"}
+{"issue_id":"other-1","kind":"view","nested":{"issue_id":"work-1gj"}}
+EOF
+cmp -s "$case_root/migration-interactions.expected" "$migration_new_store/interactions.jsonl"
+grep -Fxq '{"id":"bead-1gj","title":"Renamed export"}' "$migration_new_store/issues.jsonl"
+grep -Fxq '{"id":"bead-8au","title":"Second renamed export"}' "$migration_new_store/issues.jsonl"
+grep -Fxq bead-1gj "$migration_new_store/last-touched"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$migration_new_parent/correlations.jsonl"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$migration_new_store/interactions.jsonl"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$migration_new_store/last-touched"
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PORT BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_DATABASE BEADS_DOLT_SERVER_HOST BEADS_DOLT_SERVER_MODE BEADS_DOLT_SERVER_PORT BEADS_DOLT_SERVER_SOCKET BEADS_DOLT_SHARED_SERVER; do
+  grep -Fxq "${variable}_SET=" "$migration_log"
+done
+! grep -Eq '_SET=.+' "$migration_log"
+migration_backups=("$migration_home"/.local/share/beads/work-to-hub-backup-*)
+test "${#migration_backups[@]}" -eq 1
+migration_backup=${migration_backups[0]}
+cmp -s "$case_root/migration-ledger.before" "$migration_backup/work/correlations.jsonl"
+cmp -s "$case_root/migration-config.before" "$migration_backup/work-beads.yaml"
+test -f "$migration_backup/work/.beads/nested/payload"
+test -f "$migration_backup/work/sibling"
+grep -Fxq '{"id":"work-1gj","title":"Stale export"}' "$migration_backup/work/.beads/issues.jsonl"
+grep -Fq '"issue_id":"work-1gj"' "$migration_backup/work/.beads/interactions.jsonl"
+grep -Fxq work-1gj "$migration_backup/work/.beads/last-touched"
+test "$(find "$migration_backup/work" -name '*.tmp.*' | wc -l | tr -d ' ')" -eq 0
+
+# A legacy deployment without a ledger still migrates and does not create one.
+no_ledger_home=$case_root/migration-no-ledger-home
+no_ledger_old_parent=$no_ledger_home/.local/share/beads/work
+no_ledger_old_store=$no_ledger_old_parent/.beads
+no_ledger_old_config=$no_ledger_home/.config/bv/work-beads.yaml
+no_ledger_new_parent=$no_ledger_home/.local/share/beads/hub
+no_ledger_new_config=$no_ledger_home/.config/bv/hub.yaml
+mkdir -p "$no_ledger_old_store" "${no_ledger_old_config%/*}"
+printf '%s\n' 'store without ledger' >"$no_ledger_old_store/payload"
+cat >"$no_ledger_old_config" <<EOF
+{"version":1,"store":"$no_ledger_old_store","ledger":"$no_ledger_old_parent/correlations.jsonl","repositories":{"ctx:repo-1234567890":{"path":"$repo_a"}}}
+EOF
+: >"$case_root/migration-no-ledger.log"
+HOME=$no_ledger_home FAKE_LOG=$case_root/migration-no-ledger.log FAKE_MIGRATION_HOME=$no_ledger_home \
+  PATH=$fake_bin:/usr/bin:/bin bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
+  >"$case_root/migration-no-ledger.out"
+test -f "$no_ledger_new_parent/.beads/payload"
+grep -Fxq '{"id":"bead-1gj","title":"Renamed export"}' "$no_ledger_new_parent/.beads/issues.jsonl"
+test ! -e "$no_ledger_new_parent/correlations.jsonl"
+test ! -e "$no_ledger_old_parent"
+test ! -e "$no_ledger_old_config"
+jq -e --arg store "$no_ledger_new_parent/.beads" --arg ledger "$no_ledger_new_parent/correlations.jsonl" \
+  --arg context ctx:repo-1234567890 --arg path "$repo_a" \
+  '.store == $store and .ledger == $ledger and .repositories[$context].path == $path' \
+  "$no_ledger_new_config" >/dev/null
+no_ledger_backups=("$no_ledger_home"/.local/share/beads/work-to-hub-backup-*)
+test "${#no_ledger_backups[@]}" -eq 1
+test ! -e "${no_ledger_backups[0]}/work/correlations.jsonl"
+
+# Existing destination state rejects migration before backup, bd, or source mutation.
+precondition_home=$case_root/migration-precondition-home
+precondition_parent=$precondition_home/.local/share/beads/work
+precondition_store=$precondition_parent/.beads
+precondition_config=$precondition_home/.config/bv/work-beads.yaml
+mkdir -p "$precondition_store" "$precondition_home/.local/share/beads/hub" "${precondition_config%/*}"
+printf '%s\n' source >"$precondition_store/payload"
+printf '%s\n' '{"bead_id":"work-1"}' >"$precondition_parent/correlations.jsonl"
+printf '%s\n' '{"version":1,"repositories":{}}' >"$precondition_config"
+: >"$case_root/migration-precondition.log"
+if HOME=$precondition_home FAKE_LOG=$case_root/migration-precondition.log \
+  FAKE_MIGRATION_HOME=$precondition_home PATH=$fake_bin:/usr/bin:/bin \
+  bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
+  >"$case_root/migration-precondition.out" 2>&1; then
+  fail 'migration accepted an existing hub destination'
+fi
+grep -Fq 'hub destination already exists' "$case_root/migration-precondition.out"
+test ! -s "$case_root/migration-precondition.log"
+grep -Fxq source "$precondition_store/payload"
+test ! -e "$precondition_home/.config/bv/hub.yaml"
+precondition_backups=("$precondition_home"/.local/share/beads/work-to-hub-backup-*)
+test "${precondition_backups[0]}" = "$precondition_home/.local/share/beads/work-to-hub-backup-*"
 
 # Unknown, mutating, noncanonical, and mode-inapplicable Viewer syntax never
 # reaches config initialization or Viewer.
@@ -656,6 +859,8 @@ for invocation in \
   '--db=/tmp/other' \
   '-db /tmp/other' \
   '-db=/tmp/other' \
+  '--hub-config /tmp/other' \
+  '--hub-config=/tmp/other' \
   '--work-config /tmp/other' \
   '--work-config=/tmp/other' \
   '--history-mode git' \
@@ -673,13 +878,13 @@ for invocation in \
   '--feedback-accept work-1' \
   'correlate add'; do
   : >"$FAKE_LOG"
-  cp "$work_config" "$case_root/viewer-config-before-rejection"
+  cp "$hub_config" "$case_root/viewer-config-before-rejection"
   read -r -a args <<<"$invocation"
   if bash "$wbv" "${args[@]}" >"$case_root/viewer-rejected.out" 2>&1; then
     fail "wbv allowed unsupported invocation: $invocation"
   fi
   test ! -s "$FAKE_LOG"
-  cmp -s "$case_root/viewer-config-before-rejection" "$work_config"
+  cmp -s "$case_root/viewer-config-before-rejection" "$hub_config"
 done
 
 # Missing Viewer or wrapper commands fail before launch.
@@ -704,7 +909,7 @@ grep -Fq 'required command not found: wbd' "$case_root/viewer-missing-wbd.out"
 test ! -s "$FAKE_LOG"
 
 # Config initialization failure prevents Viewer launch.
-printf '%s\n' not-json >"$work_config"
+printf '%s\n' not-json >"$hub_config"
 : >"$FAKE_LOG"
 if bash "$wbv" --robot-plan >"$case_root/viewer-config-failure.out" 2>&1; then
   fail 'wbv accepted config initialization failure'
@@ -714,7 +919,7 @@ fi
 # Static guards ensure the rejected shadow export/chdir workaround stays absent.
 ! grep -Fq 'bd --db "$store" export' "$wbv" || fail 'wbv contains a manual export'
 ! grep -Fq 'cd "$parent"' "$wbv" || fail 'wbv changes to the store parent'
-grep -Fq -- '--history-mode external --work-config "$work_config"' "$wbv"
+grep -Fq -- '--history-mode external --hub-config "$hub_config"' "$wbv"
 grep -Fq 'run_bd_bootstrap metrics off' "$wbd"
 grep -Fq -- '--skip-hooks' "$wbd"
 grep -Fq -- '--skip-agents' "$wbd"

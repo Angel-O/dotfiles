@@ -5,7 +5,7 @@ grillingSkill = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
-ref = "3b787d10ce39928527e21d18cf2f086324ce7829"
+ref = "c9e881d04e393cc2b9553e7267e85324ed3ac93c"
 
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
