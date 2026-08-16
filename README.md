@@ -99,7 +99,7 @@ chezmoi cat-config
 chezmoi diff
 chezmoi apply --dry-run --verbose --no-tty
 chezmoi apply --verbose --no-tty
-chezmoi diff
+chezmoi diff --exclude scripts
 ```
 
 For routine source-machine updates, use the persisted source and omit `init`:
@@ -115,7 +115,7 @@ chezmoi cat-config
 chezmoi diff
 chezmoi apply --dry-run --verbose --no-tty
 chezmoi apply --verbose --no-tty
-chezmoi diff
+chezmoi diff --exclude scripts
 ```
 
 ### Target Machine
@@ -132,7 +132,7 @@ chezmoi cat-config
 chezmoi diff
 chezmoi apply --dry-run --verbose --no-tty
 chezmoi apply --verbose --no-tty
-chezmoi diff
+chezmoi diff --exclude scripts
 ```
 
 If the pull introduces a changed chezmoi config template, regenerate the target's local selections after pulling and before `cat-config` or `diff`:
@@ -141,7 +141,7 @@ If the pull introduces a changed chezmoi config template, regenerate the target'
 chezmoi init --source "$source_dir" --prompt
 ```
 
-Do not pass `--no-tty` to `init --prompt`, which intentionally requires user input. Use `--no-tty` for the dry run and final apply to prevent chezmoi from acquiring an interactive terminal unexpectedly. The final `chezmoi diff` should produce no output; run focused smoke tests afterward for affected applications, packages, and plugins. See [WORKFLOW.md](WORKFLOW.md) for backup, adoption, and reconciliation details.
+Do not pass `--no-tty` to `init --prompt`, which intentionally requires user input. Use `--no-tty` for the dry run and final apply to prevent chezmoi from acquiring an interactive terminal unexpectedly. Plain `chezmoi diff` includes recurring `run_before_*` and `run_after_*` scripts as virtual additions because they run on every apply. The final `chezmoi diff --exclude scripts` checks managed-file drift and should produce no output; run focused smoke tests afterward for affected applications, packages, and plugins. See [WORKFLOW.md](WORKFLOW.md) for backup, adoption, and reconciliation details.
 
 ## Privacy
 
