@@ -7,27 +7,35 @@ case_root=$root/beads-wrapper
 fake_bin=$case_root/bin
 home=$case_root/home
 store=$home/.local/share/beads/work/.beads
-mkdir -p "$fake_bin" "$store"
+work_config=$home/.config/bv/work-beads.yaml
+ledger=$home/.local/share/beads/work/correlations.jsonl
+repo_a=$case_root/repos/repo-a
+repo_b=$case_root/repos/repo-b
+mkdir -p "$fake_bin" "$store" "$repo_a" "$repo_b"
 
 fail() {
   printf 'beads test: %s\n' "$*" >&2
   exit 1
 }
 
+jq_path=$(command -v jq) || fail 'jq is required to run wrapper tests'
+ln -s "$jq_path" "$fake_bin/jq"
+
 cat >"$fake_bin/git" <<'EOF'
 #!/bin/sh
 if [ "${FAKE_GIT_FAIL:-0}" = 1 ]; then
   exit 1
 fi
-if [ "$#" -eq 1 ] && [ "$1" = rev-parse ]; then
-  exit 2
+if [ "$#" -eq 4 ] && [ "$1" = -C ] && [ "$3" = rev-parse ] && [ "$4" = --git-dir ]; then
+  exit 1
 fi
 if [ "$#" -eq 2 ] && [ "$1" = rev-parse ] && [ "$2" = --is-inside-work-tree ]; then
   printf '%s\n' true
   exit 0
 fi
-if [ "$#" -eq 4 ] && [ "$1" = -C ] && [ "$3" = rev-parse ] && [ "$4" = --git-dir ]; then
-  exit 1
+if [ "$#" -eq 2 ] && [ "$1" = rev-parse ] && [ "$2" = --show-toplevel ]; then
+  printf '%s\n' "${FAKE_GIT_ROOT:?}"
+  exit 0
 fi
 if [ "$#" -eq 3 ] && [ "$1" = config ] && [ "$2" = --get ] && [ "$3" = remote.origin.url ]; then
   [ "${FAKE_ORIGIN_MISSING:-0}" != 1 ] || exit 1
@@ -40,47 +48,31 @@ EOF
 cat >"$fake_bin/bd" <<'EOF'
 #!/bin/sh
 {
-  printf '%s\n' 'BEGIN_BD'
+  printf '%s\n' BEGIN_BD
   printf 'BEADS_DIR=%s\n' "${BEADS_DIR:-}"
-  printf 'BEADS_DB=%s\n' "${BEADS_DB:-}"
-  printf 'BD_DB=%s\n' "${BD_DB:-}"
   printf 'BEADS_DB_SET=%s\n' "${BEADS_DB+x}"
   printf 'BD_DB_SET=%s\n' "${BD_DB+x}"
+  printf 'BD_GLOBAL_SET=%s\n' "${BD_GLOBAL+x}"
   printf 'BEADS_DOLT_DATA_DIR_SET=%s\n' "${BEADS_DOLT_DATA_DIR+x}"
   printf 'BEADS_DOLT_PROXIED_SERVER_SET=%s\n' "${BEADS_DOLT_PROXIED_SERVER+x}"
+  printf 'BEADS_DOLT_SERVER_MODE_SET=%s\n' "${BEADS_DOLT_SERVER_MODE+x}"
+  printf 'BEADS_DOLT_SHARED_SERVER_SET=%s\n' "${BEADS_DOLT_SHARED_SERVER+x}"
   for arg in "$@"; do printf 'arg=%s\n' "$arg"; done
-  printf '%s\n' 'END_BD'
+  printf '%s\n' END_BD
 } >>"${FAKE_LOG:?}"
 
 if [ "${1:-}" = --db ]; then
-  [ "$#" -ge 3 ] || exit 90
   shift 2
 fi
-
 if [ "${1:-}" = init ]; then
   mkdir -p "${BEADS_DIR:?}"
   exit "${FAKE_INIT_EXIT:-0}"
 fi
-
 if [ "${1:-}" = config ] && [ "${2:-}" = set ] && [ "${3:-}" = "${FAKE_CONFIG_FAIL_KEY:-__never__}" ]; then
   exit 43
 fi
-
 if [ "${1:-}" = metrics ] && [ "${FAKE_METRICS_FAIL:-0}" = 1 ]; then
   exit 44
-fi
-
-if [ "${1:-}" = export ]; then
-  [ "${FAKE_EXPORT_FAIL:-0}" != 1 ] || exit 42
-  shift
-  output=
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --output) output=$2; shift 2 ;;
-      *) shift ;;
-    esac
-  done
-  printf '%s\n' '{"id":"work-test"}' >"$output"
 fi
 exit "${FAKE_BD_EXIT:-0}"
 EOF
@@ -88,374 +80,423 @@ EOF
 cat >"$fake_bin/bv" <<'EOF'
 #!/bin/sh
 {
-  printf '%s\n' 'BEGIN_BV'
+  printf '%s\n' BEGIN_BV
   printf 'BEADS_DIR=%s\n' "${BEADS_DIR:-}"
-  printf 'BEADS_DB=%s\n' "${BEADS_DB:-}"
-  printf 'BD_DB=%s\n' "${BD_DB:-}"
   printf 'BEADS_DB_SET=%s\n' "${BEADS_DB+x}"
   printf 'BD_DB_SET=%s\n' "${BD_DB+x}"
+  printf 'BD_GLOBAL_SET=%s\n' "${BD_GLOBAL+x}"
   printf 'BEADS_DOLT_DATA_DIR_SET=%s\n' "${BEADS_DOLT_DATA_DIR+x}"
   printf 'BEADS_DOLT_PROXIED_SERVER_SET=%s\n' "${BEADS_DOLT_PROXIED_SERVER+x}"
+  printf 'BEADS_DOLT_SERVER_MODE_SET=%s\n' "${BEADS_DOLT_SERVER_MODE+x}"
+  printf 'BEADS_DOLT_SHARED_SERVER_SET=%s\n' "${BEADS_DOLT_SHARED_SERVER+x}"
   printf 'PWD=%s\n' "$PWD"
   printf 'BV_NO_GITIGNORE=%s\n' "${BV_NO_GITIGNORE:-}"
   printf 'BV_NO_CACHE=%s\n' "${BV_NO_CACHE:-}"
   for arg in "$@"; do printf 'arg=%s\n' "$arg"; done
-  printf '%s\n' 'END_BV'
+  printf '%s\n' END_BV
 } >>"${FAKE_LOG:?}"
+exit "${FAKE_BV_EXIT:-0}"
 EOF
 chmod +x "$fake_bin/git" "$fake_bin/bd" "$fake_bin/bv"
 
 wbd=$source_dir/dot_local/bin/executable_wbd
 wbv=$source_dir/dot_local/bin/executable_wbv
+cat >"$fake_bin/wbd" <<'EOF'
+#!/bin/sh
+exec /bin/bash "${WBD_SOURCE:?}" "$@"
+EOF
+chmod +x "$fake_bin/wbd"
 export HOME=$home
 export PATH=$fake_bin:/usr/bin:/bin
 export FAKE_LOG=$case_root/calls.log
+export WBD_SOURCE=$wbd
+export FAKE_ORIGIN=git@example.com:Group/Repo-A.git
+export FAKE_GIT_ROOT=$repo_a
+: >"$FAKE_LOG"
 
-bootstrap_failure_home=$case_root/bootstrap-failure-home
-bootstrap_failure_store=$bootstrap_failure_home/.local/share/beads/work/.beads
-bootstrap_failure_parent=${bootstrap_failure_store%/.beads}
-bootstrap_failure_log=$case_root/bootstrap-failure.log
-mkdir -p "$bootstrap_failure_parent"
-printf '%s\n' keep-parent >"$bootstrap_failure_parent/sentinel"
-if HOME=$bootstrap_failure_home \
-  FAKE_LOG=$bootstrap_failure_log \
-  FAKE_CONFIG_FAIL_KEY=export.git-add \
-  bash "$wbd" bootstrap >"$case_root/bootstrap-failure.out" 2>&1; then
-  fail 'wbd bootstrap accepted a config failure'
+assert_config() {
+  jq -e \
+    --arg store "$store" \
+    --arg ledger "$ledger" \
+    '.version == 1 and .store == $store and .ledger == $ledger and (.repositories | type == "object")' \
+    "$work_config" >/dev/null || fail 'work config contents are invalid'
+}
+
+assert_last_args() {
+  local command=$1
+  shift
+  python3 - "$FAKE_LOG" "$command" "$@" <<'PY'
+import sys
+
+path, command, *expected = sys.argv[1:]
+begin, end = f"BEGIN_{command}", f"END_{command}"
+blocks, current = [], None
+for line in open(path, encoding="utf-8"):
+    line = line.rstrip("\n")
+    if line == begin:
+        current = []
+    elif line == end and current is not None:
+        blocks.append(current)
+        current = None
+    elif current is not None and line.startswith("arg="):
+        current.append(line[4:])
+assert blocks, f"no {command} invocation in {path}"
+assert blocks[-1] == expected, (blocks[-1], expected)
+PY
+}
+
+# Bootstrap creates the store and a valid empty private work config.
+bootstrap_home=$case_root/bootstrap-home
+bootstrap_store=$bootstrap_home/.local/share/beads/work/.beads
+bootstrap_config=$bootstrap_home/.config/bv/work-beads.yaml
+mkdir -p "$bootstrap_home"
+HOME=$bootstrap_home FAKE_LOG=$case_root/bootstrap.log bash "$wbd" bootstrap
+test -d "$bootstrap_store"
+jq -e --arg store "$bootstrap_store" \
+  '.version == 1 and .store == $store and .repositories == {}' "$bootstrap_config" >/dev/null
+test "$(grep -Fc BEGIN_BD "$case_root/bootstrap.log")" -eq 5
+grep -Fq 'arg=metrics' "$case_root/bootstrap.log"
+grep -Fq 'arg=--skip-hooks' "$case_root/bootstrap.log"
+grep -Fq 'arg=--skip-agents' "$case_root/bootstrap.log"
+
+# Bootstrap failures propagate and remove only the partially created store.
+failure_home=$case_root/bootstrap-failure-home
+failure_store=$failure_home/.local/share/beads/work/.beads
+failure_parent=${failure_store%/.beads}
+mkdir -p "$failure_parent"
+printf '%s\n' keep >"$failure_parent/sentinel"
+if HOME=$failure_home FAKE_LOG=$case_root/bootstrap-failure.log \
+  FAKE_CONFIG_FAIL_KEY=export.git-add bash "$wbd" bootstrap; then
+  fail 'bootstrap accepted a configuration failure'
 else
-  [ "$?" -eq 43 ] || fail 'wbd bootstrap changed config failure status'
+  test "$?" -eq 43
 fi
-test -d "$bootstrap_failure_parent"
-test ! -e "$bootstrap_failure_store"
-grep -Fxq keep-parent "$bootstrap_failure_parent/sentinel"
-grep -Fq 'arg=init' "$bootstrap_failure_log"
-grep -Fq 'arg=metrics' "$bootstrap_failure_log"
-grep -Fq 'arg=off' "$bootstrap_failure_log"
-grep -Fq 'arg=export.auto' "$bootstrap_failure_log"
-grep -Fq 'arg=export.git-add' "$bootstrap_failure_log"
-! grep -Fq 'arg=dolt.auto-push' "$bootstrap_failure_log" || fail 'bootstrap continued after config failure'
-test "$(grep -Fc 'arg=--db' "$bootstrap_failure_log")" -eq 2
-test "$(grep -Fc "arg=$bootstrap_failure_store" "$bootstrap_failure_log")" -eq 2
-metrics_line=$(grep -nF 'arg=metrics' "$bootstrap_failure_log" | cut -d: -f1)
-init_line=$(grep -nF 'arg=init' "$bootstrap_failure_log" | cut -d: -f1)
-[ "$metrics_line" -lt "$init_line" ] || fail 'bootstrap initialized before disabling metrics'
+test ! -e "$failure_store"
+grep -Fxq keep "$failure_parent/sentinel"
+! grep -Fq 'arg=dolt.auto-push' "$case_root/bootstrap-failure.log" || fail 'bootstrap continued after failure'
 
-bootstrap_success_home=$case_root/bootstrap-success-home
-bootstrap_success_store=$bootstrap_success_home/.local/share/beads/work/.beads
-bootstrap_success_log=$case_root/bootstrap-success.log
-mkdir -p "$bootstrap_success_home"
-HOME=$bootstrap_success_home FAKE_LOG=$bootstrap_success_log bash "$wbd" bootstrap
-test -d "$bootstrap_success_store"
-test "$(grep -Fc 'BEGIN_BD' "$bootstrap_success_log")" -eq 5
-grep -Fq 'arg=init' "$bootstrap_success_log"
-grep -Fq 'arg=--prefix' "$bootstrap_success_log"
-grep -Fq 'arg=work' "$bootstrap_success_log"
-grep -Fq 'arg=metrics' "$bootstrap_success_log"
-grep -Fq 'arg=off' "$bootstrap_success_log"
-grep -Fq 'arg=export.auto' "$bootstrap_success_log"
-grep -Fq 'arg=export.git-add' "$bootstrap_success_log"
-grep -Fq 'arg=dolt.auto-push' "$bootstrap_success_log"
-test "$(grep -Fc 'arg=--db' "$bootstrap_success_log")" -eq 3
-test "$(grep -Fc "arg=$bootstrap_success_store" "$bootstrap_success_log")" -eq 3
-metrics_line=$(grep -nF 'arg=metrics' "$bootstrap_success_log" | cut -d: -f1)
-init_line=$(grep -nF 'arg=init' "$bootstrap_success_log" | cut -d: -f1)
-[ "$metrics_line" -lt "$init_line" ] || fail 'successful bootstrap initialized before disabling metrics'
-
-bootstrap_metrics_home=$case_root/bootstrap-metrics-failure-home
-bootstrap_metrics_store=$bootstrap_metrics_home/.local/share/beads/work/.beads
-bootstrap_metrics_parent=${bootstrap_metrics_store%/.beads}
-bootstrap_metrics_log=$case_root/bootstrap-metrics-failure.log
-mkdir -p "$bootstrap_metrics_parent"
-printf '%s\n' keep-parent >"$bootstrap_metrics_parent/sentinel"
-if HOME=$bootstrap_metrics_home \
-  FAKE_LOG=$bootstrap_metrics_log \
-  FAKE_METRICS_FAIL=1 \
-  bash "$wbd" bootstrap >"$case_root/bootstrap-metrics-failure.out" 2>&1; then
-  fail 'wbd bootstrap accepted a metrics opt-out failure'
+# Metrics failure stops before init and preserves the store parent.
+metrics_home=$case_root/bootstrap-metrics-home
+metrics_store=$metrics_home/.local/share/beads/work/.beads
+metrics_parent=${metrics_store%/.beads}
+metrics_log=$case_root/bootstrap-metrics.log
+mkdir -p "$metrics_parent"
+printf '%s\n' keep >"$metrics_parent/sentinel"
+if HOME=$metrics_home FAKE_LOG=$metrics_log FAKE_METRICS_FAIL=1 bash "$wbd" bootstrap; then
+  fail 'bootstrap accepted a metrics failure'
 else
-  [ "$?" -eq 44 ] || fail 'wbd bootstrap changed metrics failure status'
+  test "$?" -eq 44
 fi
-test ! -e "$bootstrap_metrics_store"
-grep -Fxq keep-parent "$bootstrap_metrics_parent/sentinel"
-grep -Fq 'arg=metrics' "$bootstrap_metrics_log"
-grep -Fq 'arg=off' "$bootstrap_metrics_log"
-test "$(grep -Fc 'BEGIN_BD' "$bootstrap_metrics_log")" -eq 1
-! grep -Fq 'arg=init' "$bootstrap_metrics_log" || fail 'bootstrap initialized after metrics failure'
-! grep -Fq 'arg=export.auto' "$bootstrap_metrics_log" || fail 'bootstrap continued after metrics failure'
-! grep -Fq 'arg=--db' "$bootstrap_metrics_log" || fail 'metrics opt-out received a database path'
+test ! -e "$metrics_store"
+grep -Fxq keep "$metrics_parent/sentinel"
+test "$(grep -Fc BEGIN_BD "$metrics_log")" -eq 1
+grep -Fq 'arg=metrics' "$metrics_log"
+! grep -Fq 'arg=init' "$metrics_log" || fail 'bootstrap initialized after metrics failure'
+! grep -Fq 'arg=export.auto' "$metrics_log" || fail 'bootstrap configured after metrics failure'
 
-bootstrap_init_home=$case_root/bootstrap-init-failure-home
-bootstrap_init_store=$bootstrap_init_home/.local/share/beads/work/.beads
-bootstrap_init_parent=${bootstrap_init_store%/.beads}
-bootstrap_init_log=$case_root/bootstrap-init-failure.log
-mkdir -p "$bootstrap_init_parent"
-printf '%s\n' keep-parent >"$bootstrap_init_parent/sentinel"
-if HOME=$bootstrap_init_home \
-  FAKE_LOG=$bootstrap_init_log \
-  FAKE_INIT_EXIT=45 \
-  bash "$wbd" bootstrap >"$case_root/bootstrap-init-failure.out" 2>&1; then
-  fail 'wbd bootstrap accepted an init failure'
+# Init failure stops before config writes and preserves the store parent.
+init_home=$case_root/bootstrap-init-home
+init_store=$init_home/.local/share/beads/work/.beads
+init_parent=${init_store%/.beads}
+init_log=$case_root/bootstrap-init.log
+mkdir -p "$init_parent"
+printf '%s\n' keep >"$init_parent/sentinel"
+if HOME=$init_home FAKE_LOG=$init_log FAKE_INIT_EXIT=45 bash "$wbd" bootstrap; then
+  fail 'bootstrap accepted an init failure'
 else
-  [ "$?" -eq 45 ] || fail 'wbd bootstrap changed init failure status'
+  test "$?" -eq 45
 fi
-test ! -e "$bootstrap_init_store"
-grep -Fxq keep-parent "$bootstrap_init_parent/sentinel"
-test "$(grep -Fc 'BEGIN_BD' "$bootstrap_init_log")" -eq 2
-grep -Fq 'arg=metrics' "$bootstrap_init_log"
-grep -Fq 'arg=init' "$bootstrap_init_log"
-! grep -Fq 'arg=export.auto' "$bootstrap_init_log" || fail 'bootstrap continued after init failure'
-! grep -Fq 'arg=--db' "$bootstrap_init_log" || fail 'pre-init commands received a database path'
+test ! -e "$init_store"
+grep -Fxq keep "$init_parent/sentinel"
+test "$(grep -Fc BEGIN_BD "$init_log")" -eq 2
+grep -Fq 'arg=metrics' "$init_log"
+grep -Fq 'arg=init' "$init_log"
+! grep -Fq 'arg=export.auto' "$init_log" || fail 'bootstrap configured after init failure'
 
-origin_ssh=git@Example.COM:Group/Repo.git
-origin_scp=Example.COM:Group/Repo.git
-origin_https=https://example.com/Group/Repo.git/
-context_ssh=$(FAKE_ORIGIN=$origin_ssh bash "$wbd" context)
-context_scp=$(FAKE_ORIGIN=$origin_scp bash "$wbd" context)
-context_https=$(FAKE_ORIGIN=$origin_https bash "$wbd" context)
-[ "$context_ssh" = "$context_https" ] || fail 'equivalent origins produced different contexts'
-[ "$context_scp" = "$context_https" ] || fail 'username-less SSH origin produced a different context'
+# Configure is idempotent and creates JSON-valid YAML with private permissions.
+config_path=$(bash "$wbd" configure)
+test "$config_path" = "$work_config"
+assert_config
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$work_config"
+cp "$work_config" "$case_root/config.before"
+bash "$wbd" configure >/dev/null
+cmp -s "$case_root/config.before" "$work_config"
+chmod 0644 "$work_config"
+bash "$wbd" configure >/dev/null
+cmp -s "$case_root/config.before" "$work_config"
+python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$work_config"
+
+# Equivalent origins have one stable context.
+context_ssh=$(FAKE_ORIGIN=git@Example.COM:Group/Repo-A.git bash "$wbd" context)
+context_scp=$(FAKE_ORIGIN=Example.COM:Group/Repo-A.git bash "$wbd" context)
+context_https=$(FAKE_ORIGIN=https://example.com/Group/Repo-A.git/ bash "$wbd" context)
+test "$context_ssh" = "$context_scp"
+test "$context_ssh" = "$context_https"
 case "$context_ssh" in
-  ctx:repo-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
-  *) fail "unexpected context format: $context_ssh" ;;
+  ctx:repo-a-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+  *) fail "unexpected context: $context_ssh" ;;
 esac
 
-: >"$FAKE_LOG"
-FAKE_ORIGIN=$origin_ssh bash "$wbd" create 'Quoted task title' --labels 'urgent,customer request' --json
-grep -Fq 'arg=create' "$FAKE_LOG"
-grep -Fq "arg=$context_ssh" "$FAKE_LOG"
-grep -Fq 'arg=urgent,customer request' "$FAKE_LOG"
-[ "$(grep -Fc 'arg=--labels' "$FAKE_LOG")" -eq 2 ] || fail 'create did not preserve and append labels'
-[ "$(grep -Fc "arg=$context_ssh" "$FAKE_LOG")" -eq 1 ] || fail 'create context label count is not one'
+# Registration is deterministic regardless of insertion order.
+origin_a=git@example.com:Group/Repo-A.git
+origin_b=https://example.com/Group/Repo-B.git
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" register >"$case_root/register-a.out"
+context_a=$(cut -f1 "$case_root/register-a.out")
+FAKE_ORIGIN=$origin_b FAKE_GIT_ROOT=$repo_b bash "$wbd" register >"$case_root/register-b.out"
+context_b=$(cut -f1 "$case_root/register-b.out")
+jq -e --arg a "$context_a" --arg ap "$repo_a" --arg b "$context_b" --arg bp "$repo_b" \
+  '.repositories == {($a): {path: $ap}, ($b): {path: $bp}}' "$work_config" >/dev/null
+cp "$work_config" "$case_root/config-a-then-b"
+jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
+mv "$case_root/empty-config" "$work_config"
+FAKE_ORIGIN=$origin_b FAKE_GIT_ROOT=$repo_b bash "$wbd" register >/dev/null
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" register >/dev/null
+cmp -s "$case_root/config-a-then-b" "$work_config" || fail 'registration order changed serialized config'
 
-: >"$FAKE_LOG"
-FAKE_ORIGIN=$origin_ssh bash "$wbd" --json create 'Leading global create'
-grep -Fq 'arg=--json' "$FAKE_LOG"
-grep -Fq 'arg=create' "$FAKE_LOG"
-grep -Fq 'arg=--labels' "$FAKE_LOG"
-grep -Fq "arg=$context_ssh" "$FAKE_LOG"
+# Failed context discovery neither registers nor rewrites the config.
+cp "$work_config" "$case_root/config-before-missing-origin"
+if FAKE_ORIGIN_MISSING=1 bash "$wbd" register >"$case_root/missing-origin.out" 2>&1; then
+  fail 'register accepted a repository without origin'
+fi
+cmp -s "$case_root/config-before-missing-origin" "$work_config"
 
+# Create and scoped list register the checkout before forwarding to bd.
+jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
+mv "$case_root/empty-config" "$work_config"
 : >"$FAKE_LOG"
-FAKE_ORIGIN=$origin_ssh bash "$wbd" list --status open --json
-grep -Fq 'arg=list' "$FAKE_LOG"
-grep -Fq 'arg=--label' "$FAKE_LOG"
-grep -Fq "arg=$context_ssh" "$FAKE_LOG"
-grep -Fq 'arg=--status' "$FAKE_LOG"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" create 'Quoted task' --labels 'urgent,customer request' --json
+assert_last_args BD --db "$store" create --labels "$context_a" 'Quoted task' --labels 'urgent,customer request' --json
+jq -e --arg context "$context_a" --arg path "$repo_a" '.repositories[$context].path == $path' "$work_config" >/dev/null
 
+jq '.repositories = {}' "$work_config" >"$case_root/empty-config"
+mv "$case_root/empty-config" "$work_config"
 : >"$FAKE_LOG"
-FAKE_ORIGIN=$origin_ssh bash "$wbd" --json list --status open
-grep -Fq 'arg=--json' "$FAKE_LOG"
-grep -Fq 'arg=list' "$FAKE_LOG"
-grep -Fq 'arg=--label' "$FAKE_LOG"
-grep -Fq "arg=$context_ssh" "$FAKE_LOG"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" --json list --status open
+assert_last_args BD --db "$store" --json list --label "$context_a" --status open
+jq -e --arg context "$context_a" '.repositories | has($context)' "$work_config" >/dev/null
 
+# Global list does not require or register a repository.
 : >"$FAKE_LOG"
-FAKE_GIT_FAIL=1 bash "$wbd" list --json --all-contexts --status open
-grep -Fq 'arg=list' "$FAKE_LOG"
-grep -Fq 'arg=--json' "$FAKE_LOG"
-grep -Fq 'arg=--status' "$FAKE_LOG"
-! grep -Fq 'arg=--all-contexts' "$FAKE_LOG" || fail 'custom all-contexts flag leaked to bd'
-! grep -Fq 'arg=--label' "$FAKE_LOG" || fail 'global list gained a context filter'
+FAKE_GIT_FAIL=1 bash "$wbd" list --all-contexts --json
+assert_last_args BD --db "$store" list --json
 
-if FAKE_BD_EXIT=37 bash "$wbd" show work-test --json; then
-  fail 'wbd did not forward bd failure'
+# Link registers and forwards the exact correlate CLI, leaving ref resolution to bv.
+: >"$FAKE_LOG"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123
+assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit HEAD --work-config "$work_config"
+: >"$FAKE_LOG"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123 refs/tags/release-1
+assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit refs/tags/release-1 --work-config "$work_config"
+if FAKE_BV_EXIT=38 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123; then
+  fail 'link accepted a bv failure'
 else
-  [ "$?" -eq 37 ] || fail 'wbd changed bd exit status'
+  test "$?" -eq 38
 fi
 
+# Stale routing variables are removed for both wrapped tools.
+: >"$FAKE_LOG"
+BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PROXIED_SERVER=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SHARED_SERVER=x bash "$wbd" show work-123 --json
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_MODE BEADS_DOLT_SHARED_SERVER; do
+  grep -Fxq "${variable}_SET=" "$FAKE_LOG"
+done
+if FAKE_BD_EXIT=37 bash "$wbd" show work-123; then
+  fail 'wbd accepted a bd failure'
+else
+  test "$?" -eq 37
+fi
+
+# A missing global store fails with bootstrap guidance before dispatch.
 mv "$store" "$case_root/store-away"
+: >"$FAKE_LOG"
 if bash "$wbd" list --all-contexts >"$case_root/missing-store.out" 2>&1; then
-  fail 'wbd accepted a missing store'
+  fail 'wbd accepted a missing global store'
 fi
 grep -Fq "run 'wbd bootstrap'" "$case_root/missing-store.out"
+test ! -s "$FAKE_LOG"
 mv "$case_root/store-away" "$store"
 
-if FAKE_ORIGIN_MISSING=1 FAKE_ORIGIN=unused bash "$wbd" context >"$case_root/missing-origin.out" 2>&1; then
-  fail 'wbd accepted a missing origin'
+# Required command checks fail before dispatch.
+no_bd=$case_root/no-bd
+mkdir -p "$no_bd"
+cp "$fake_bin/git" "$fake_bin/bv" "$fake_bin/jq" "$no_bd/"
+: >"$FAKE_LOG"
+if PATH=$no_bd:/usr/bin:/bin /bin/bash "$wbd" show work-123 >"$case_root/missing-bd.out" 2>&1; then
+  fail 'wbd accepted a missing bd command'
 fi
-grep -Fq 'no origin remote' "$case_root/missing-origin.out"
+grep -Fq 'required command not found: bd' "$case_root/missing-bd.out"
+test ! -s "$FAKE_LOG"
 
-if FAKE_GIT_FAIL=1 bash "$wbd" create test >"$case_root/missing-git.out" 2>&1; then
-  fail 'wbd accepted a missing repository context'
+no_bv_link=$case_root/no-bv-link
+mkdir -p "$no_bv_link"
+cp "$fake_bin/git" "$fake_bin/bd" "$fake_bin/jq" "$no_bv_link/"
+: >"$FAKE_LOG"
+if PATH=$no_bv_link:/usr/bin:/bin /bin/bash "$wbd" link work-123 >"$case_root/missing-link-bv.out" 2>&1; then
+  fail 'wbd link accepted a missing bv command'
 fi
-grep -Eq 'Git repository|origin remote' "$case_root/missing-git.out"
+grep -Fq 'required command not found: bv' "$case_root/missing-link-bv.out"
+test ! -s "$FAKE_LOG"
 
+# Malformed and symlinked configs are rejected without replacement.
+cp "$work_config" "$case_root/valid-config"
+printf '%s\n' '{"version":1,"repositories":[]}' >"$work_config"
+cp "$work_config" "$case_root/malformed-before"
+if bash "$wbd" configure >"$case_root/malformed.out" 2>&1; then
+  fail 'configure accepted malformed config'
+fi
+cmp -s "$case_root/malformed-before" "$work_config"
+rm "$work_config"
+ln -s "$case_root/valid-config" "$work_config"
+if bash "$wbd" configure >"$case_root/symlink.out" 2>&1; then
+  fail 'configure accepted a symlink config'
+fi
+test -L "$work_config"
+rm "$work_config"
+cp "$case_root/valid-config" "$work_config"
+
+# Direct init remains blocked, including after a leading global flag.
+: >"$FAKE_LOG"
 if bash "$wbd" init >"$case_root/direct-init.out" 2>&1; then
   fail 'wbd allowed direct init'
 fi
 grep -Fq "run 'wbd bootstrap'" "$case_root/direct-init.out"
-
-assert_wbd_rejected() {
-  local name=$1
-  shift
-  if bash "$wbd" "$@" >"$case_root/$name.out" 2>&1; then
-    fail "wbd allowed routing override: $name"
-  fi
-}
-
-assert_wbd_rejected db-split --db /tmp/not-the-work-store list
-assert_wbd_rejected db-equals --db=/tmp/not-the-work-store list
-assert_wbd_rejected database-split --database other list
-assert_wbd_rejected database-equals --database=other list
-assert_wbd_rejected global --global list
-assert_wbd_rejected global-equals --global=true list
-assert_wbd_rejected repo-split create test --repo elsewhere
-assert_wbd_rejected repo-equals create test --repo=elsewhere
-assert_wbd_rejected short-directory-split -C /tmp list
-assert_wbd_rejected short-directory-joined -C/tmp list
-assert_wbd_rejected directory-split --directory /tmp list
-assert_wbd_rejected directory-equals --directory=/tmp list
-
+test ! -s "$FAKE_LOG"
 if bash "$wbd" --json init >"$case_root/leading-init.out" 2>&1; then
-  fail 'wbd allowed init after a global flag'
+  fail 'wbd allowed direct init after a leading global flag'
 fi
 grep -Fq "run 'wbd bootstrap'" "$case_root/leading-init.out"
+test ! -s "$FAKE_LOG"
 
-: >"$FAKE_LOG"
-BEADS_DB=/tmp/stale-beads-db \
-  BD_DB=/tmp/stale-bd-db \
-  BEADS_DOLT_DATA_DIR=/tmp/stale-dolt-data \
-  BEADS_DOLT_PROXIED_SERVER=1 \
-  bash "$wbd" show work-test --json
-grep -Fq "BEADS_DIR=$store" "$FAKE_LOG"
-grep -Fxq 'BEADS_DB=' "$FAKE_LOG"
-grep -Fxq 'BD_DB=' "$FAKE_LOG"
-grep -Fxq 'BEADS_DB_SET=' "$FAKE_LOG"
-grep -Fxq 'BD_DB_SET=' "$FAKE_LOG"
-grep -Fxq 'BEADS_DOLT_DATA_DIR_SET=' "$FAKE_LOG"
-grep -Fxq 'BEADS_DOLT_PROXIED_SERVER_SET=' "$FAKE_LOG"
-grep -Fq 'arg=--db' "$FAKE_LOG"
-grep -Fq "arg=$store" "$FAKE_LOG"
-
-assert_wbd_command_rejected() {
-  local command=$1
+# Every database, directory, and create-routing override form remains blocked.
+for invocation in \
+  '--db /tmp/other list' \
+  '--db=/tmp/other list' \
+  '--database /tmp/other list' \
+  '--database=/tmp/other list' \
+  '--global list' \
+  '--global=true list' \
+  '-C /tmp list' \
+  '-C/tmp list' \
+  '--directory /tmp list' \
+  '--directory=/tmp list' \
+  'create task --repo elsewhere' \
+  'create task --repo=elsewhere'; do
   : >"$FAKE_LOG"
-  if bash "$wbd" "$command" >"$case_root/unsupported-$command.out" 2>&1; then
+  read -r -a args <<<"$invocation"
+  if bash "$wbd" "${args[@]}" >"$case_root/rejected.out" 2>&1; then
+    fail "wbd allowed routing override: $invocation"
+  fi
+  test ! -s "$FAKE_LOG"
+done
+
+# Unsupported and missing commands never dispatch to bd or bv.
+for command in config setup hooks doctor sync admin repo worktree edit import export; do
+  : >"$FAKE_LOG"
+  if bash "$wbd" "$command" >"$case_root/unsupported.out" 2>&1; then
     fail "wbd allowed unsupported command: $command"
   fi
-  grep -Fq 'supported commands:' "$case_root/unsupported-$command.out"
+  grep -Fq 'supported commands:' "$case_root/unsupported.out"
   test ! -s "$FAKE_LOG"
-}
-
-assert_wbd_command_rejected config
-assert_wbd_command_rejected setup
-assert_wbd_command_rejected hooks
-assert_wbd_command_rejected doctor
-assert_wbd_command_rejected sync
-assert_wbd_command_rejected admin
-assert_wbd_command_rejected repo
-assert_wbd_command_rejected worktree
-assert_wbd_command_rejected edit
-assert_wbd_command_rejected import
-assert_wbd_command_rejected export
-
+done
 : >"$FAKE_LOG"
-if bash "$wbd" >"$case_root/unsupported-missing.out" 2>&1; then
+if bash "$wbd" >"$case_root/missing-command.out" 2>&1; then
   fail 'wbd allowed a missing command'
 fi
-grep -Fq 'supported commands:' "$case_root/unsupported-missing.out"
+grep -Fq 'supported commands:' "$case_root/missing-command.out"
 test ! -s "$FAKE_LOG"
 
-no_bd=$case_root/no-bd
-mkdir -p "$no_bd"
-cp "$fake_bin/git" "$no_bd/git"
-if PATH=$no_bd /bin/bash "$wbd" show work-test >"$case_root/missing-bd.out" 2>&1; then
-  fail 'wbd accepted a missing bd command'
-fi
-grep -Fq 'required command not found: bd' "$case_root/missing-bd.out"
-
+# wbv initializes config, preserves cwd, and directly selects external history.
+viewer_cwd=$case_root/viewer-cwd
+mkdir -p "$viewer_cwd"
+rm -f "$work_config"
 : >"$FAKE_LOG"
-BEADS_DB=/tmp/stale-beads-db \
-  BD_DB=/tmp/stale-bd-db \
-  BEADS_DOLT_DATA_DIR=/tmp/stale-dolt-data \
-  BEADS_DOLT_PROXIED_SERVER=1 \
-  FAKE_ORIGIN=$origin_ssh \
-  sh "$wbv" --theme compact
-grep -Fq 'arg=export' "$FAKE_LOG"
-grep -Fq 'arg=--output' "$FAKE_LOG"
-grep -Fq 'BEGIN_BV' "$FAKE_LOG"
-grep -Fq "BEADS_DIR=$store" "$FAKE_LOG"
-grep -Fq 'BV_NO_GITIGNORE=1' "$FAKE_LOG"
-grep -Fq 'BV_NO_CACHE=1' "$FAKE_LOG"
-grep -Fxq "PWD=${store%/.beads}" "$FAKE_LOG"
-test "$(grep -Fxc 'BEADS_DB=' "$FAKE_LOG")" -eq 2
-test "$(grep -Fxc 'BD_DB=' "$FAKE_LOG")" -eq 2
-test "$(grep -Fxc 'BEADS_DB_SET=' "$FAKE_LOG")" -eq 2
-test "$(grep -Fxc 'BD_DB_SET=' "$FAKE_LOG")" -eq 2
-test "$(grep -Fxc 'BEADS_DOLT_DATA_DIR_SET=' "$FAKE_LOG")" -eq 2
-test "$(grep -Fxc 'BEADS_DOLT_PROXIED_SERVER_SET=' "$FAKE_LOG")" -eq 2
-grep -Fq 'arg=--db' "$FAKE_LOG"
-grep -Fq "arg=$store" "$FAKE_LOG"
-test "$(grep -Fxc 'arg=--db' "$FAKE_LOG")" -eq 2
-test "$(grep -Fxc "arg=$store" "$FAKE_LOG")" -eq 2
-grep -Fq 'arg=--theme' "$FAKE_LOG"
-grep -Fq '"id":"work-test"' "$store/issues.jsonl"
-export_line=$(grep -nF 'arg=export' "$FAKE_LOG" | cut -d: -f1)
-viewer_line=$(grep -nF 'BEGIN_BV' "$FAKE_LOG" | cut -d: -f1)
-[ "$export_line" -lt "$viewer_line" ] || fail 'viewer launched before export'
+(cd "$viewer_cwd" && \
+  BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PROXIED_SERVER=x \
+  BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SHARED_SERVER=x sh "$wbv" --theme compact)
+assert_config
+assert_last_args BV --history-mode external --work-config "$work_config" --theme compact
+grep -Fxq "PWD=$viewer_cwd" "$FAKE_LOG"
+grep -Fxq 'BV_NO_GITIGNORE=1' "$FAKE_LOG"
+grep -Fxq 'BV_NO_CACHE=1' "$FAKE_LOG"
+! grep -Fq BEGIN_BD "$FAKE_LOG" || fail 'wbv manually invoked bd/export'
+for variable in BEADS_DB BD_DB BD_GLOBAL BEADS_DOLT_DATA_DIR BEADS_DOLT_PROXIED_SERVER BEADS_DOLT_SERVER_MODE BEADS_DOLT_SHARED_SERVER; do
+  grep -Fxq "${variable}_SET=" "$FAKE_LOG"
+done
 
-: >"$FAKE_LOG"
-if sh "$wbv" --db /tmp/not-the-work-store >"$case_root/viewer-db-split.out" 2>&1; then
-  fail 'wbv allowed a split database override'
+if FAKE_BV_EXIT=39 sh "$wbv" >"$case_root/viewer-failure.out" 2>&1; then
+  fail 'wbv accepted a bv failure'
+else
+  test "$?" -eq 39
 fi
-grep -Fq 'Viewer database override flags are disabled' "$case_root/viewer-db-split.out"
-test ! -s "$FAKE_LOG"
 
-if sh "$wbv" --db=/tmp/not-the-work-store >"$case_root/viewer-db-equals.out" 2>&1; then
-  fail 'wbv allowed an equals database override'
-fi
-grep -Fq 'Viewer database override flags are disabled' "$case_root/viewer-db-equals.out"
-test ! -s "$FAKE_LOG"
+for invocation in \
+  '--db /tmp/other' \
+  '--db=/tmp/other' \
+  '-db /tmp/other' \
+  '-db=/tmp/other' \
+  '--work-config /tmp/other' \
+  '--work-config=/tmp/other' \
+  '--history-mode git' \
+  '--history-mode=git' \
+  '--workspace other' \
+  '--workspace=other' \
+  '--as-of HEAD~1' \
+  '--as-of=HEAD~1'; do
+  : >"$FAKE_LOG"
+  read -r -a args <<<"$invocation"
+  if sh "$wbv" "${args[@]}" >"$case_root/viewer-rejected.out" 2>&1; then
+    fail "wbv allowed source/history override: $invocation"
+  fi
+  test ! -s "$FAKE_LOG"
+done
 
-if sh "$wbv" -db=/tmp/not-the-work-store >"$case_root/viewer-db-single-dash.out" 2>&1; then
-  fail 'wbv allowed a single-dash database override'
-fi
-grep -Fq 'Viewer database override flags are disabled' "$case_root/viewer-db-single-dash.out"
-test ! -s "$FAKE_LOG"
-
-assert_wbv_agents_rejected() {
-  local name=$1
-  local flag=$2
-  if sh "$wbv" "$flag" >"$case_root/$name.out" 2>&1; then
+# Repository agent-file mutation flags never reach Viewer.
+for flag in \
+  --agents-add --agents-add=true \
+  --agents-remove --agents-remove=true \
+  --agents-update --agents-update=true; do
+  : >"$FAKE_LOG"
+  if sh "$wbv" "$flag" >"$case_root/viewer-agent-rejected.out" 2>&1; then
     fail "wbv allowed repository agent-file mutation: $flag"
   fi
-  grep -Fq 'Viewer repository agent-file mutation flags are disabled' "$case_root/$name.out"
+  grep -Fq 'Viewer repository agent-file mutation flags are disabled' "$case_root/viewer-agent-rejected.out"
   test ! -s "$FAKE_LOG"
-}
+done
 
-assert_wbv_agents_rejected viewer-agents-add --agents-add
-assert_wbv_agents_rejected viewer-agents-add-equals --agents-add=true
-assert_wbv_agents_rejected viewer-agents-remove --agents-remove
-assert_wbv_agents_rejected viewer-agents-remove-equals --agents-remove=true
-assert_wbv_agents_rejected viewer-agents-update --agents-update
-assert_wbv_agents_rejected viewer-agents-update-equals --agents-update=true
-
-printf '%s\n' original >"$store/issues.jsonl"
+# Missing Viewer or wrapper commands fail before launch.
+no_wbv_bv=$case_root/no-wbv-bv
+mkdir -p "$no_wbv_bv"
+cp "$fake_bin/bd" "$fake_bin/wbd" "$no_wbv_bv/"
 : >"$FAKE_LOG"
-if FAKE_EXPORT_FAIL=1 sh "$wbv" >"$case_root/export-failure.out" 2>&1; then
-  fail 'wbv accepted export failure'
-else
-  [ "$?" -eq 42 ] || fail 'wbv changed export failure status'
-fi
-grep -Fxq original "$store/issues.jsonl"
-! grep -Fq 'BEGIN_BV' "$FAKE_LOG" || fail 'viewer launched after export failure'
-
-no_bv=$case_root/no-bv
-mkdir -p "$no_bv"
-cp "$fake_bin/bd" "$no_bv/bd"
-if PATH=$no_bv /bin/sh "$wbv" >"$case_root/missing-bv.out" 2>&1; then
+if PATH=$no_wbv_bv:/usr/bin:/bin /bin/sh "$wbv" >"$case_root/viewer-missing-bv.out" 2>&1; then
   fail 'wbv accepted a missing bv command'
 fi
-grep -Fq 'required command not found: bv' "$case_root/missing-bv.out"
+grep -Fq 'required command not found: bv' "$case_root/viewer-missing-bv.out"
+test ! -s "$FAKE_LOG"
 
-# Bootstrap runs only against fake commands and temporary homes; static checks pin its flags.
-grep -Fq 'cd "$parent"' "$wbd"
-grep -Fq 'git -C "$parent" rev-parse --git-dir' "$wbd"
-grep -Fq -- '--non-interactive' "$wbd"
+no_wbv_wbd=$case_root/no-wbv-wbd
+mkdir -p "$no_wbv_wbd"
+cp "$fake_bin/bd" "$fake_bin/bv" "$no_wbv_wbd/"
+: >"$FAKE_LOG"
+if PATH=$no_wbv_wbd:/usr/bin:/bin /bin/sh "$wbv" >"$case_root/viewer-missing-wbd.out" 2>&1; then
+  fail 'wbv accepted a missing wbd command'
+fi
+grep -Fq 'required command not found: wbd' "$case_root/viewer-missing-wbd.out"
+test ! -s "$FAKE_LOG"
+
+# Config initialization failure prevents Viewer launch.
+printf '%s\n' not-json >"$work_config"
+: >"$FAKE_LOG"
+if sh "$wbv" >"$case_root/viewer-config-failure.out" 2>&1; then
+  fail 'wbv accepted config initialization failure'
+fi
+! grep -Fq BEGIN_BV "$FAKE_LOG" || fail 'viewer launched after config failure'
+
+# Static guards ensure the rejected shadow export/chdir workaround stays absent.
+! grep -Fq 'bd --db "$store" export' "$wbv" || fail 'wbv contains a manual export'
+! grep -Fq 'cd "$parent"' "$wbv" || fail 'wbv changes to the store parent'
+grep -Fq -- '--history-mode external --work-config "$work_config"' "$wbv"
+grep -Fq 'run_bd_bootstrap metrics off' "$wbd"
 grep -Fq -- '--skip-hooks' "$wbd"
 grep -Fq -- '--skip-agents' "$wbd"
-grep -Fq 'run_bd_bootstrap metrics off' "$wbd"
-grep -Fq 'run_bd_bootstrap init' "$wbd"
-grep -Fq 'run_bd config set export.auto false' "$wbd"
-grep -Fq 'run_bd config set export.git-add false' "$wbd"
-grep -Fq 'run_bd config set dolt.auto-push false' "$wbd"
 ! grep -Fq 'no-git-ops' "$wbd" || fail 'unsupported no-git-ops setting was added'

@@ -2,7 +2,10 @@ brew "eza"
 brew "elio"
 {{- if and (eq .role "work") .modules.beads }}
 brew "beads"
-brew "beads_viewer"
+brew "go"
+{{- end }}
+{{- if or (and (eq .role "work") .modules.beads) .modules.herdr }}
+brew "jq"
 {{- end }}
 {{- if .modules.ghostty }}
 cask "ghostty"
@@ -10,7 +13,6 @@ cask "font-hack"
 cask "font-jetbrains-mono"
 {{- end }}
 {{- if .modules.herdr }}
-brew "jq"
 {{- if .herdrPlugins.reviewr }}
 brew "glow"
 {{- end }}

@@ -277,6 +277,8 @@ assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "glow"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "beads"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "beads_viewer"'
+assert_not_contains "$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'Angel-O/beads_viewer'
+assert_contains "$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'exit 0'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "bat"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "git-delta"'
 assert_contains "$source_dir/.chezmoi.toml.tmpl" 'sourceDir = {{ .chezmoi.sourceDir | quote }}'
@@ -334,7 +336,11 @@ assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "glow"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "beads"'
-assert_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "go"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "jq"'
+assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="3b787d10ce39928527e21d18cf2f086324ce7829"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
@@ -383,6 +389,8 @@ assert_contains "$work_home/.zshrc" 'portable chezmoi early setup'
 assert_contains "$work_home/.zshrc" 'portable chezmoi setup'
 assert_contains "$work_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 assert_contains "$work_home/.config/zsh/herdr-labels.zsh" 'angel-o.labels-*/shell/hook.zsh'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"wbv": "ai board"}' "$work_home/.config/herdr-labels/config.toml"
 assert_not_contains "$work_home/.config/zsh/herdr.zsh" 'hook.zsh'
 assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
@@ -440,7 +448,11 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SK
 external_home="$root/external-opencode-beads/home"
 render_scripts external-opencode-beads
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads"'
-assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
+assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "go"'
+assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "jq"'
+assert_not_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="3b787d10ce39928527e21d18cf2f086324ce7829"'
 mkdir -p "$external_home/.config/opencode/skills/existing-skill"
 cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"external_opencode_setting": true}
@@ -585,6 +597,7 @@ test ! -e "$disabled_home/.config/herdr/plugins/config/ez-corp.space-usage/confi
 test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-bar/config.json"
 test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-zoxide/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
+test ! -e "$disabled_home/.config/herdr-labels/config.toml"
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disabled_home/.config/herdr/config.toml"
 
 ghostty_home="$root/ghostty-only/home"
