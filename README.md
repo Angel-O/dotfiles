@@ -99,8 +99,8 @@ chezmoi cat-config
 "$source_dir/scripts/backup-home-paths.sh"
 
 chezmoi diff
-chezmoi apply --dry-run --verbose --no-tty
-chezmoi apply --verbose --no-tty
+chezmoi apply --dry-run --verbose --no-tty --no-pager
+chezmoi apply --verbose --no-tty --no-pager
 chezmoi diff --exclude scripts
 ```
 
@@ -115,8 +115,8 @@ bash "$source_dir/tests/run-docker.sh"
 
 chezmoi cat-config
 chezmoi diff
-chezmoi apply --dry-run --verbose --no-tty
-chezmoi apply --verbose --no-tty
+chezmoi apply --dry-run --verbose --no-tty --no-pager
+chezmoi apply --verbose --no-tty --no-pager
 chezmoi diff --exclude scripts
 ```
 
@@ -132,8 +132,8 @@ git -C "$source_dir" pull --ff-only
 
 chezmoi cat-config
 chezmoi diff
-chezmoi apply --dry-run --verbose --no-tty
-chezmoi apply --verbose --no-tty
+chezmoi apply --dry-run --verbose --no-tty --no-pager
+chezmoi apply --verbose --no-tty --no-pager
 chezmoi diff --exclude scripts
 ```
 
@@ -143,7 +143,7 @@ If the pull introduces a changed chezmoi config template, regenerate the target'
 chezmoi init --source "$source_dir" --prompt
 ```
 
-Do not pass `--no-tty` to `init --prompt`, which intentionally requires user input. Use `--no-tty` for the dry run and final apply to prevent chezmoi from acquiring an interactive terminal unexpectedly. Plain `chezmoi diff` includes recurring `run_before_*` and `run_after_*` scripts as virtual additions because they run on every apply. The final `chezmoi diff --exclude scripts` checks managed-file drift and should produce no output; run focused smoke tests afterward for affected applications, packages, and plugins. See [WORKFLOW.md](WORKFLOW.md) for backup, adoption, and reconciliation details.
+Do not pass `--no-tty` to `init --prompt`, which intentionally requires user input. Use `--no-tty` for the dry run and final apply to prevent chezmoi from acquiring an interactive terminal unexpectedly, and `--no-pager` so verbose output cannot pause invisibly in `less` waiting for input. Plain `chezmoi diff` includes recurring `run_before_*` and `run_after_*` scripts as virtual additions because they run on every apply. The final `chezmoi diff --exclude scripts` checks managed-file drift and should produce no output; run focused smoke tests afterward for affected applications, packages, and plugins. See [WORKFLOW.md](WORKFLOW.md) for backup, adoption, and reconciliation details.
 
 ## Privacy
 
