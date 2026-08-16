@@ -69,11 +69,11 @@ Review both direct file changes and script effects before applying:
 
 ```sh
 chezmoi diff
-chezmoi apply --dry-run --verbose --no-tty
-chezmoi apply --verbose --no-tty
+chezmoi apply --dry-run --verbose --no-tty --no-pager
+chezmoi apply --verbose --no-tty --no-pager
 ```
 
-`--no-tty` prevents chezmoi from acquiring a terminal unexpectedly. The final command applies the already-reviewed state without interactive prompts.
+`--no-tty` prevents chezmoi from acquiring a terminal unexpectedly. `--no-pager` prevents verbose output from pausing in `less` while appearing to be a long-running apply. The final command applies the already-reviewed state without interactive prompts.
 
 The apply scripts install missing Homebrew packages additively, install pinned shell externals under `~/.oh-my-zsh`, install or replace selected pinned Herdr plugins under `~/.config/herdr`, and generate shell completions under `~/.zsh/completions` when their modules are enabled. The optional SDKMAN installer writes under `~/.sdkman`. These script effects may not appear as ordinary managed-file diffs.
 
@@ -100,7 +100,7 @@ After reconciliation:
 
 ```sh
 chezmoi diff
-chezmoi apply --verbose --no-tty
+chezmoi apply --verbose --no-tty --no-pager
 ```
 
 For Zsh and Git, marker-based `modify_` scripts preserve the work-owned files and add one portable include block. OpenCode keeps its private global config and consumes the managed portable layer through `OPENCODE_CONFIG`. Plugin cleanup is manual because private plugin names must not enter public source state.

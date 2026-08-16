@@ -1,0 +1,29 @@
+[data]
+role = "personal"
+
+[data.modules]
+ghostty = false
+warp = false
+herdr = true
+opencode = true
+starship = false
+shell = false
+git = false
+beads = true
+
+[data.integrations]
+opencodeBeads = true
+
+[data.features]
+nodeDevelopment = false
+jvmDevelopment = false
+
+[data.herdrPlugins]
+agentResume = false
+labels = true
+recentNavigator = false
+spaceUsage = false
+bar = false
+zoxide = false
+elio = false
+reviewr = false

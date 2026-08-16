@@ -12,8 +12,6 @@ scripts
 scripts/**
 .idea
 .idea/**
-{{- $opencodeBeads := dig "integrations" "opencodeBeads" false . }}
-
 {{- if not .modules.ghostty }}
 .config/ghostty/**
 run_once_after_25-migrate-ghostty-config.sh
@@ -48,12 +46,10 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/*
 !.config/opencode/AGENTS.md
 .local/bin/opencode-env
-{{- if and (eq .role "work") .modules.beads $opencodeBeads }}
 !.config/opencode/skills
 .config/opencode/skills/*
 !.config/opencode/skills/work-beads
 !.config/opencode/skills/work-beads/**
-{{- end }}
 {{- end }}
 
 {{- if eq .role "work" }}
@@ -65,11 +61,7 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/skills/herdr-agent-name/**
 {{- end }}
 
-{{- if or (ne .role "work") (not .modules.beads) (not $opencodeBeads) }}
-.config/opencode/skills/work-beads/**
-{{- end }}
-
-{{- if or (ne .role "work") (not .modules.beads) }}
+{{- if not .modules.beads }}
 .local/bin/wbd
 .local/bin/wbv
 {{- end }}

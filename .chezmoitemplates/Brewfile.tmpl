@@ -1,10 +1,10 @@
 brew "eza"
 brew "elio"
-{{- if and (eq .role "work") .modules.beads }}
+{{- if .modules.beads }}
 brew "beads"
 brew "go"
 {{- end }}
-{{- if or (and (eq .role "work") .modules.beads) .modules.herdr }}
+{{- if or .modules.beads .modules.herdr }}
 brew "jq"
 {{- end }}
 {{- if .modules.ghostty }}

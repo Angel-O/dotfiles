@@ -18,11 +18,9 @@
 {{- $zoxide := false -}}
 {{- $elio := false -}}
 {{- $reviewr := false -}}
-{{- if eq $role "work" -}}
-{{- $beads = promptBoolOnce . "modules.beads" "Enable the work Beads module" false -}}
-{{- end -}}
-{{- if and (eq $role "work") $beads -}}
-{{- $opencodeBeads = promptBoolOnce . "integrations.opencodeBeads" "Enable the OpenCode Beads integration" true -}}
+{{- $beads = promptBool "Enable the Beads module" (dig "modules" "beads" false .) -}}
+{{- if $beads -}}
+{{- $opencodeBeads = promptBool "Enable the OpenCode Beads integration" (dig "integrations" "opencodeBeads" true .) -}}
 {{- end -}}
 {{- if $shell -}}
 {{- $nodeDevelopment = promptBoolOnce . "features.nodeDevelopment" "Enable optional Node development setup" false -}}
