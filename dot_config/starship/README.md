@@ -73,13 +73,19 @@ The intended Warp experience differs from Ghostty and ordinary terminals:
 | Terminal | Active input prompt | Completed command prompt |
 | --- | --- | --- |
 | Warp | Warp's native folder-style prompt | Compact lilac `❯` |
+| Herdr panes, including Herdr launched from Warp | Full active Starship theme | Compact lilac `❯` |
 | Ghostty and other terminals | Full active Starship theme | Compact lilac `❯` |
 
-Warp is detected through `TERM_PROGRAM=WarpTerminal`. In that environment,
-`~/.config/zsh/starship.zsh` does not initialize Starship and gives the
-transient-prompt plugin an empty full shell prompt. This prevents the large
-Starship powerline region from appearing above Warp's native input area while
-retaining the colored marker on completed command blocks.
+Native Warp shells are detected through `TERM_PROGRAM=WarpTerminal` without
+`HERDR_ENV=1`. In that environment, `~/.config/zsh/starship.zsh` does not
+initialize Starship and gives the transient-prompt plugin an empty full shell
+prompt. This prevents the large Starship powerline region from appearing above
+Warp's native input area while retaining the colored marker on completed
+command blocks.
+
+Herdr-managed shells always initialize Starship. Herdr's long-lived process can
+inherit `TERM_PROGRAM=WarpTerminal` when launched from Warp, so `HERDR_ENV=1`
+takes precedence over the Warp detection.
 
 If Warp shows a large Starship region above its native folder prompt, the Warp
 special case is missing or the shell predates the latest configuration. Open a

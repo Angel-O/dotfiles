@@ -73,6 +73,27 @@ assert_warp_policy() {
   python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); keys=data["terminal"]["input"]["extra_meta_keys"]; assert keys["left_alt"] is True; assert keys["right_alt"] is False' "$file"
 }
 
+starship_test_dir="$root/starship-init"
+mkdir -p "$starship_test_dir/bin" "$starship_test_dir/home"
+cat >"$starship_test_dir/bin/starship" <<'EOF'
+#!/bin/sh
+test "$1 $2" = "init zsh" && printf 'STARSHIP_TEST_INITIALIZED=1\n'
+EOF
+chmod +x "$starship_test_dir/bin/starship"
+
+starship_init_state() {
+  HOME="$starship_test_dir/home" \
+    PATH="$starship_test_dir/bin:$PATH" \
+    TERM_PROGRAM=$1 \
+    HERDR_ENV=$2 \
+    STARSHIP_SOURCE="$source_dir/dot_config/zsh/starship.zsh" \
+    zsh -dfc 'source "$STARSHIP_SOURCE"; printf "%s|%s|%s\n" "${STARSHIP_TEST_INITIALIZED:-0}" "${TRANSIENT_PROMPT_PROMPT-unset}" "${TRANSIENT_PROMPT_RPROMPT-unset}"'
+}
+
+test "$(starship_init_state WarpTerminal '')" = '0||'
+test "$(starship_init_state WarpTerminal 1)" = '1|unset|unset'
+test "$(starship_init_state Apple_Terminal '')" = '1|unset|unset'
+
 warp_dir="$root/warp-modifier"
 mkdir -p "$warp_dir"
 
@@ -305,7 +326,7 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "herdr-zox
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
-assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" ]]'
+assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" && ${HERDR_ENV:-} != 1 ]]'
 assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROMPT=''"
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"

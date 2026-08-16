@@ -38,7 +38,7 @@ stheme() {
 
 # Keep this terminal-specific behavior aligned with the user-facing policy in
 # ~/.config/starship/README.md under "Warp Prompt Behavior."
-if [[ ${TERM_PROGRAM:-} == "WarpTerminal" ]]; then
+if [[ ${TERM_PROGRAM:-} == "WarpTerminal" && ${HERDR_ENV:-} != 1 ]]; then
   TRANSIENT_PROMPT_PROMPT=''
   TRANSIENT_PROMPT_RPROMPT=''
 elif command -v starship >/dev/null 2>&1; then
