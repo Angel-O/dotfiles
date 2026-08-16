@@ -2,7 +2,7 @@
 
 This repository makes a customized macOS terminal and AI-assisted development environment reproducible with chezmoi.
 
-The source state is modular: Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, Git, and work-only Beads can be enabled independently. Personal/work role data and module choices live only in each machine's local chezmoi configuration.
+The source state is modular: Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, Git, and Beads can be enabled independently. Personal/work role data and module choices live only in each machine's local chezmoi configuration.
 
 ## Documents
 
@@ -42,11 +42,11 @@ The inventory uses these classifications:
 | `starship` | Starship, themes, selector, and `stheme` support |
 | `shell` | Zsh fragments, Oh My Zsh, FZF, Zoxide, and cross-tool hooks |
 | `git` | Non-destructive portable include, worktree aliases, and ignore rules |
-| `beads` | Work-only private task store and `wbd`/`wbv` wrappers |
+| `beads` | Optional private global task store and `wbd`/`wbv` wrappers on either role |
 
 When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather than tracked in full: left Option sends Alt/Meta for terminal keybindings, while right Option remains available for macOS character entry. The module does not install Warp. When disabled, chezmoi does not manage, alter, or delete existing Warp settings. Warp hot-reloads `settings.toml`; smoke-test the enabled policy by confirming `Alt+T` reaches the shell or application instead of producing `†`.
 
-The `beads` module is offered only for the work role. It installs Beads, Go, and `jq`, builds the pinned external-history `Angel-O/beads_viewer` fork as `~/.local/bin/bv`, and manages `~/.local/bin/wbd` and `~/.local/bin/wbv`. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/work/.beads`; bootstrap also creates the private Viewer config at `~/.config/bv/work-beads.yaml` and disables Beads anonymous command metrics. One global store supports direct dependencies across projects by stable issue ID, while `wbd` derives credential-free `ctx:` labels from each real origin-backed repository. `wbd register` records the current checkout in the private config, create and scoped-list operations register automatically, and `wbd link <bead-id> [commit]` writes a real source association to the private ledger through `bv correlate add`. `wbv` launches the all-context Viewer with external history from any working directory. No `.beads`, hooks, team files, or agent guidance are added to a source repository. Disabling the module stops management and fork installation but does not uninstall packages or delete the private store, config, or ledger.
+The `beads` module is optional for both personal and work roles. It installs Beads, Go, and `jq`, builds the pinned external-history `Angel-O/beads_viewer` fork as `~/.local/bin/bv`, and manages `~/.local/bin/wbd` and `~/.local/bin/wbv`. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/work/.beads`; bootstrap also creates the private Viewer config at `~/.config/bv/work-beads.yaml` and disables Beads anonymous command metrics. One global store supports direct dependencies across projects by stable issue ID, while `wbd` derives credential-free `ctx:` labels from each real origin-backed repository. `wbd register` records the current checkout in the private config, create and scoped-list operations register automatically, and `wbd link <bead-id> [commit]` writes a real source association to the private ledger through `bv correlate add`. `wbv` launches the all-context Viewer with external history from any working directory. Existing project-local `.beads` stores are not migrated or modified, and no `.beads`, hooks, team files, or project agent guidance are added to a source repository. Disabling the module stops management and fork installation but does not uninstall packages or delete the private store, config, or ledger.
 
 ## Integrations
 
@@ -54,7 +54,7 @@ The `beads` module is offered only for the work role. It installs Beads, Go, and
 | --- | --- |
 | `opencodeBeads` | OpenCode-only `work-beads` skill and marker-managed user `~/.config/opencode/AGENTS.md` guidance |
 
-The `opencodeBeads` integration is offered after enabling the work-only `beads` module and defaults to enabled. It assumes the OpenCode executable is already available, whether installed externally or accompanied by the separate `opencode` configuration module. Enabling both is supported: the module owns the portable OpenCode configuration and launcher, while the integration owns only the Beads skill and its marked user guidance. With an external OpenCode installation, no general OpenCode configuration or launcher is managed. Disabling the integration stops managing the skill and removes only its own AGENTS marker block; unrelated OpenCode files and user guidance remain untouched. Future agent adapters, such as `codexBeads`, should follow the same independent integration pattern rather than becoming Beads module or package-installation concerns.
+The `opencodeBeads` integration is offered after enabling `beads` on either role and defaults to enabled. It assumes the OpenCode executable is already available, whether installed externally or accompanied by the separate `opencode` configuration module. Enabling both is supported: the module owns the portable OpenCode configuration and launcher, while the integration owns only the Beads skill and its marked user guidance. With an external OpenCode installation, no general OpenCode configuration or launcher is managed. Disabling the integration stops managing the skill and removes only its own AGENTS marker block; unrelated OpenCode files and user guidance remain untouched. Future agent adapters, such as `codexBeads`, should follow the same independent integration pattern rather than becoming Beads module or package-installation concerns.
 
 ## Safe Validation
 
@@ -79,6 +79,8 @@ Renovate opens one grouped `Herdr plugins` PR when updates are available. Releas
 Homebrew and chezmoi are prerequisites. Select one or more modules and offered integrations when prompted. When Herdr is enabled, select each managed plugin independently. Disabling a module, integration, or Herdr plugin selection stops future management and installation; it does not uninstall packages or live plugins.
 
 `chezmoi init --source <path> --prompt` both regenerates the machine-local configuration and persists that checkout as the source. Run it on first setup, when changing module selections, or when chezmoi reports that the config template changed. It is not required for routine updates.
+
+Existing personal installations must run this command once after receiving cross-role Beads support. Personal Beads answers moved to the persisted `selections.beads` and `selections.opencodeBeads` keys so the canonical prompt is not suppressed by the old unprompted `modules.beads = false`; work-role keys and existing selections are unchanged.
 
 ### Source Machine
 

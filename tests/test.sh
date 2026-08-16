@@ -290,6 +290,30 @@ sh "$agents_modifier_dir/disabled.sh" \
 printf '%s\r\n' 'Preserve CRLF before.' 'Preserve CRLF after.' >"$agents_modifier_dir/crlf.expected"
 cmp -s "$agents_modifier_dir/crlf.expected" "$agents_modifier_dir/crlf.disabled"
 
+config_migration_dir="$root/config-migration"
+mkdir -p "$config_migration_dir"
+chezmoi execute-template --init \
+  --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/personal.toml" \
+  --promptBool 'Enable the Beads module=true' \
+  --promptBool 'Enable the OpenCode Beads integration=true' \
+  <"$source_dir/.chezmoi.toml.tmpl" >"$config_migration_dir/personal.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True; assert data["selections"] == {"beads": True, "opencodeBeads": True}' "$config_migration_dir/personal.toml"
+chezmoi execute-template --init \
+  --source "$source_dir" \
+  --config "$config_migration_dir/personal.toml" \
+  --promptBool 'Enable the Beads module=false' \
+  --promptBool 'Enable the OpenCode Beads integration=false' \
+  <"$source_dir/.chezmoi.toml.tmpl" >"$config_migration_dir/personal-second.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True' "$config_migration_dir/personal-second.toml"
+chezmoi execute-template --init \
+  --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/work.toml" \
+  --promptBool 'Enable the Beads module=false' \
+  --promptBool 'Enable the OpenCode Beads integration=false' \
+  <"$source_dir/.chezmoi.toml.tmpl" >"$config_migration_dir/work.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data"]; assert data["modules"]["beads"] is True; assert data["integrations"]["opencodeBeads"] is True; assert "selections" not in data' "$config_migration_dir/work.toml"
+
 personal_home="$root/personal/home"
 render_scripts personal
 assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
@@ -326,6 +350,7 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "herdr-zox
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
 assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" && ${HERDR_ENV:-} != 1 ]]'
 assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROMPT=''"
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
@@ -349,6 +374,34 @@ test ! -e "$personal_home/tests"
 jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2"))' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$personal_home/.config/herdr/config.toml"
 zsh -n "$personal_home"/.config/zsh/*.zsh
+
+personal_beads_home="$root/personal-with-beads/home"
+render_scripts personal-with-beads
+assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads"'
+assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "go"'
+assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "jq"'
+assert_not_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads_viewer"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="3b787d10ce39928527e21d18cf2f086324ce7829"'
+mkdir -p "$personal_beads_home/.config/opencode"
+printf '%s\n' 'Preserve personal Beads guidance.' >"$personal_beads_home/.config/opencode/AGENTS.md"
+apply_fixture personal-with-beads
+test -x "$personal_beads_home/.local/bin/wbd"
+test -x "$personal_beads_home/.local/bin/wbv"
+test -f "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
+assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
+test "$(grep -Fc '<!-- portable-work-beads:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"wbv": "ai board"}' "$personal_beads_home/.config/herdr-labels/config.toml"
+apply_fixture personal-with-beads
+personal_beads_diff=$(chezmoi diff \
+  --source "$source_dir" \
+  --destination "$personal_beads_home" \
+  --config "$source_dir/tests/fixtures/personal-with-beads.toml" \
+  --cache "$root/personal-with-beads/cache" \
+  --persistent-state "$root/personal-with-beads/chezmoistate.boltdb" \
+  --exclude scripts,externals)
+test -z "$personal_beads_diff"
 
 work_home="$root/work/home"
 render_scripts work

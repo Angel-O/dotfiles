@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-{{- if or (ne .role "work") (not .modules.beads) }}
+{{- if not .modules.beads }}
 exit 0
 {{- else }}
 source_repo={{ .pins.beadsViewer.source | quote }}
