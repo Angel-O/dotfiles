@@ -19,6 +19,12 @@ die() {
   exit 1
 }
 
+valid_prefix() {
+  local prefix=$1
+  case "$prefix" in *--*) return 1 ;; esac
+  [ "${#prefix}" -le 32 ] && [[ $prefix =~ ^[a-z]([a-z0-9-]{0,30}[a-z0-9])?$ ]]
+}
+
 command -v bd >/dev/null 2>&1 || die 'required command not found: bd'
 command -v jq >/dev/null 2>&1 || die 'required command not found: jq'
 [ -d "$old_store" ] && [ ! -L "$old_parent" ] || die "legacy store is missing or invalid: $old_store"
@@ -48,6 +54,22 @@ fi
 [ ! -e "$new_config" ] && [ ! -L "$new_config" ] || die "hub config already exists: $new_config"
 [ ! -e "$backup" ] || die "backup destination already exists: $backup"
 
+printf '%s\n' \
+  'Choose the store-wide prefix for every Beads ID in the Hub. Changing it later requires another migration.' >&2
+while true; do
+  printf 'Target Beads prefix [bead]: ' >&2
+  if ! IFS= read -r target_prefix; then
+    printf '\n' >&2
+    die 'end of input while reading target prefix'
+  fi
+  target_prefix=${target_prefix:-bead}
+  if valid_prefix "$target_prefix"; then
+    break
+  fi
+  printf '%s\n' \
+    'Invalid prefix: use 1-32 lowercase ASCII letters, digits, or hyphens; start with a letter, end with a letter or digit, and do not use consecutive hyphens.' >&2
+done
+
 umask 077
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/migrate-beads-work-to-hub.XXXXXX")
 config_tmp=$tmp_dir/hub.yaml
@@ -71,9 +93,9 @@ jq -e \
 ' "$old_config" >"$config_tmp" || die "cannot rewrite legacy config: $old_config"
 
 if $ledger_exists; then
-  jq -c '
+  jq -c --arg target_prefix "$target_prefix-" '
     if (.bead_id | type) == "string" and (.bead_id | startswith("work-")) then
-      .bead_id = ("bead-" + (.bead_id | ltrimstr("work-")))
+      .bead_id = ($target_prefix + (.bead_id | ltrimstr("work-")))
     else
       .
     end
@@ -82,9 +104,9 @@ if $ledger_exists; then
 fi
 
 if $interactions_exists; then
-  jq -c '
+  jq -c --arg target_prefix "$target_prefix-" '
     if (.issue_id | type) == "string" and (.issue_id | startswith("work-")) then
-      .issue_id = ("bead-" + (.issue_id | ltrimstr("work-")))
+      .issue_id = ($target_prefix + (.issue_id | ltrimstr("work-")))
     else
       .
     end
@@ -93,7 +115,7 @@ if $interactions_exists; then
 fi
 
 if $last_touched_rewrite; then
-  printf 'bead-%s\n' "${last_touched_value#work-}" >"$last_touched_tmp"
+  printf '%s-%s\n' "$target_prefix" "${last_touched_value#work-}" >"$last_touched_tmp"
   chmod 0600 "$last_touched_tmp"
 fi
 
@@ -115,7 +137,7 @@ env \
   -u BEADS_DOLT_SERVER_SOCKET \
   -u BEADS_DOLT_SHARED_SERVER \
   BEADS_DIR="$old_store" \
-  bd --db "$old_store" rename-prefix bead
+  bd --db "$old_store" rename-prefix "$target_prefix"
 env \
   -u BD_DB \
   -u BEADS_DB \
@@ -145,6 +167,6 @@ chmod 0600 "$config_tmp"
 mv "$config_tmp" "$new_config"
 rm "$old_config"
 
-printf 'Migrated work-* to bead-* in %s\n' "$new_store"
+printf 'Migrated work-* to %s-* in %s\n' "$target_prefix" "$new_store"
 printf 'Hub config: %s\n' "$new_config"
 printf 'Backup: %s\n' "$backup"

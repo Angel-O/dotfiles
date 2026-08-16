@@ -76,11 +76,14 @@ if [ "${1:-}" = rename-prefix ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
   [ -d "$old_parent/.beads" ] && [ ! -e "$FAKE_MIGRATION_HOME/.local/share/beads/hub" ] || exit 47
   printf '%s\n' MIGRATION_BACKUP_BEFORE_RENAME >>"${FAKE_LOG:?}"
   : >"$FAKE_MIGRATION_HOME/rename-complete"
+  printf '%s\n' "${2:?}" >"$FAKE_MIGRATION_HOME/rename-prefix"
 fi
 if [ "${1:-}" = export ] && [ -n "${FAKE_MIGRATION_HOME:-}" ]; then
   [ -f "$FAKE_MIGRATION_HOME/rename-complete" ] || exit 48
   [ "${2:-}" = -o ] && [ -n "${3:-}" ] || exit 49
-  printf '%s\n' '{"id":"bead-1gj","title":"Renamed export"}' '{"id":"bead-8au","title":"Second renamed export"}' >"$3"
+  IFS= read -r prefix <"$FAKE_MIGRATION_HOME/rename-prefix"
+  printf '{"id":"%s-1gj","title":"Renamed export"}\n' "$prefix" >"$3"
+  printf '{"id":"%s-8au","title":"Second renamed export"}\n' "$prefix" >>"$3"
 fi
 if [ "${1:-}" = init ]; then
   mkdir -p "${BEADS_DIR:?}"
@@ -169,6 +172,28 @@ for line in open(path, encoding="utf-8"):
         current.append(line[4:])
 assert blocks, f"no {command} invocation in {path}"
 assert blocks[-1] == expected, (blocks[-1], expected)
+PY
+}
+
+assert_migration_bd_calls() {
+  python3 - "$1" "$2" "$3" <<'PY'
+import sys
+
+path, store, prefix = sys.argv[1:]
+blocks, current = [], None
+for line in open(path, encoding="utf-8"):
+    line = line.rstrip("\n")
+    if line == "BEGIN_BD":
+        current = []
+    elif line == "END_BD" and current is not None:
+        blocks.append(current)
+        current = None
+    elif current is not None and line.startswith("arg="):
+        current.append(line[4:])
+assert blocks[-2:] == [
+    ["--db", store, "rename-prefix", prefix],
+    ["--db", store, "export", "-o", f"{store}/issues.jsonl"],
+], blocks[-2:]
 PY
 }
 
@@ -698,32 +723,17 @@ EOF
 cp "$migration_old_parent/correlations.jsonl" "$case_root/migration-ledger.before"
 cp "$migration_old_config" "$case_root/migration-config.before"
 : >"$migration_log"
-HOME=$migration_home FAKE_LOG=$migration_log FAKE_MIGRATION_HOME=$migration_home \
+printf '\n' | HOME=$migration_home FAKE_LOG=$migration_log FAKE_MIGRATION_HOME=$migration_home \
   BEADS_DB=x BD_DB=x BD_GLOBAL=x BEADS_DOLT_DATA_DIR=x BEADS_DOLT_PORT=x \
   BEADS_DOLT_PROXIED_SERVER=x BEADS_DOLT_SERVER_DATABASE=x BEADS_DOLT_SERVER_HOST=x \
   BEADS_DOLT_SERVER_MODE=x BEADS_DOLT_SERVER_PORT=x BEADS_DOLT_SERVER_SOCKET=x \
   BEADS_DOLT_SHARED_SERVER=x \
   PATH=$fake_bin:/usr/bin:/bin bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
-  >"$case_root/migration.out"
-python3 - "$migration_log" "$migration_old_store" <<'PY'
-import sys
-
-path, store = sys.argv[1:]
-blocks, current = [], None
-for line in open(path, encoding="utf-8"):
-    line = line.rstrip("\n")
-    if line == "BEGIN_BD":
-        current = []
-    elif line == "END_BD" and current is not None:
-        blocks.append(current)
-        current = None
-    elif current is not None and line.startswith("arg="):
-        current.append(line[4:])
-assert blocks[-2:] == [
-    ["--db", store, "rename-prefix", "bead"],
-    ["--db", store, "export", "-o", f"{store}/issues.jsonl"],
-], blocks[-2:]
-PY
+  >"$case_root/migration.out" 2>"$case_root/migration.err"
+assert_migration_bd_calls "$migration_log" "$migration_old_store" bead
+grep -Fq 'store-wide prefix for every Beads ID in the Hub' "$case_root/migration.err"
+grep -Fq 'Changing it later requires another migration' "$case_root/migration.err"
+grep -Fq "Migrated work-* to bead-* in $migration_new_store" "$case_root/migration.out"
 test "$(grep -Fc "BEADS_DIR=$migration_old_store" "$migration_log")" -eq 2
 grep -Fxq MIGRATION_BACKUP_BEFORE_RENAME "$migration_log"
 test -f "$migration_new_store/nested/payload"
@@ -780,9 +790,9 @@ cat >"$no_ledger_old_config" <<EOF
 {"version":1,"store":"$no_ledger_old_store","ledger":"$no_ledger_old_parent/correlations.jsonl","repositories":{"ctx:repo-1234567890":{"path":"$repo_a"}}}
 EOF
 : >"$case_root/migration-no-ledger.log"
-HOME=$no_ledger_home FAKE_LOG=$case_root/migration-no-ledger.log FAKE_MIGRATION_HOME=$no_ledger_home \
+printf '\n' | HOME=$no_ledger_home FAKE_LOG=$case_root/migration-no-ledger.log FAKE_MIGRATION_HOME=$no_ledger_home \
   PATH=$fake_bin:/usr/bin:/bin bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
-  >"$case_root/migration-no-ledger.out"
+  >"$case_root/migration-no-ledger.out" 2>"$case_root/migration-no-ledger.err"
 test -f "$no_ledger_new_parent/.beads/payload"
 grep -Fxq '{"id":"bead-1gj","title":"Renamed export"}' "$no_ledger_new_parent/.beads/issues.jsonl"
 test ! -e "$no_ledger_new_parent/correlations.jsonl"
@@ -795,6 +805,70 @@ jq -e --arg store "$no_ledger_new_parent/.beads" --arg ledger "$no_ledger_new_pa
 no_ledger_backups=("$no_ledger_home"/.local/share/beads/work-to-hub-backup-*)
 test "${#no_ledger_backups[@]}" -eq 1
 test ! -e "${no_ledger_backups[0]}/work/correlations.jsonl"
+
+# Invalid input retries, and a custom prefix reaches every migrated ID surface.
+custom_migration_home=$case_root/migration-custom-home
+custom_old_parent=$custom_migration_home/.local/share/beads/work
+custom_old_store=$custom_old_parent/.beads
+custom_old_config=$custom_migration_home/.config/bv/work-beads.yaml
+custom_new_parent=$custom_migration_home/.local/share/beads/hub
+custom_new_store=$custom_new_parent/.beads
+custom_log=$case_root/migration-custom.log
+mkdir -p "$custom_old_store" "${custom_old_config%/*}"
+printf '%s\n' '{"id":"work-1gj","title":"Stale export"}' >"$custom_old_store/issues.jsonl"
+cat >"$custom_old_store/interactions.jsonl" <<'EOF'
+{"issue_id":"work-1gj","nested":{"issue_id":"work-8au"},"text":"work-8au"}
+EOF
+printf '%s\n' work-1gj >"$custom_old_store/last-touched"
+cat >"$custom_old_parent/correlations.jsonl" <<'EOF'
+{"bead_id":"work-1gj","nested":{"bead_id":"work-8au"},"text":"work-8au"}
+EOF
+cat >"$custom_old_config" <<EOF
+{"version":1,"store":"$custom_old_store","ledger":"$custom_old_parent/correlations.jsonl","repositories":{"ctx:repo-1234567890":{"path":"$repo_a"}}}
+EOF
+: >"$custom_log"
+printf '%s\n' Work work_1 1work work- work--item 'work space' \
+  abcdefghijklmnopqrstuvwxyzabcdefg custom-prefix | \
+  HOME=$custom_migration_home FAKE_LOG=$custom_log FAKE_MIGRATION_HOME=$custom_migration_home \
+  PATH=$fake_bin:/usr/bin:/bin bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
+  >"$case_root/migration-custom.out" 2>"$case_root/migration-custom.err"
+test "$(grep -Fc 'Invalid prefix:' "$case_root/migration-custom.err")" -eq 7
+assert_migration_bd_calls "$custom_log" "$custom_old_store" custom-prefix
+grep -Fxq '{"id":"custom-prefix-1gj","title":"Renamed export"}' "$custom_new_store/issues.jsonl"
+grep -Fxq '{"id":"custom-prefix-8au","title":"Second renamed export"}' "$custom_new_store/issues.jsonl"
+grep -Fxq '{"issue_id":"custom-prefix-1gj","nested":{"issue_id":"work-8au"},"text":"work-8au"}' "$custom_new_store/interactions.jsonl"
+grep -Fxq '{"bead_id":"custom-prefix-1gj","nested":{"bead_id":"work-8au"},"text":"work-8au"}' "$custom_new_parent/correlations.jsonl"
+grep -Fxq custom-prefix-1gj "$custom_new_store/last-touched"
+grep -Fq "Migrated work-* to custom-prefix-* in $custom_new_store" "$case_root/migration-custom.out"
+custom_backups=("$custom_migration_home"/.local/share/beads/work-to-hub-backup-*)
+test "${#custom_backups[@]}" -eq 1
+grep -Fxq work-1gj "${custom_backups[0]}/work/.beads/last-touched"
+
+# EOF fails cleanly before backup, dispatch, destination creation, or source mutation.
+eof_home=$case_root/migration-eof-home
+eof_old_parent=$eof_home/.local/share/beads/work
+eof_old_store=$eof_old_parent/.beads
+eof_old_config=$eof_home/.config/bv/work-beads.yaml
+mkdir -p "$eof_old_store" "${eof_old_config%/*}"
+printf '%s\n' source >"$eof_old_store/payload"
+cat >"$eof_old_config" <<EOF
+{"version":1,"store":"$eof_old_store","ledger":"$eof_old_parent/correlations.jsonl","repositories":{}}
+EOF
+cp "$eof_old_config" "$case_root/migration-eof-config.before"
+: >"$case_root/migration-eof.log"
+if HOME=$eof_home FAKE_LOG=$case_root/migration-eof.log FAKE_MIGRATION_HOME=$eof_home \
+  PATH=$fake_bin:/usr/bin:/bin bash "$source_dir/scripts/migrate-beads-work-to-hub.sh" \
+  </dev/null >"$case_root/migration-eof.out" 2>"$case_root/migration-eof.err"; then
+  fail 'migration accepted EOF while reading the target prefix'
+fi
+grep -Fq 'end of input while reading target prefix' "$case_root/migration-eof.err"
+test ! -s "$case_root/migration-eof.log"
+grep -Fxq source "$eof_old_store/payload"
+cmp -s "$case_root/migration-eof-config.before" "$eof_old_config"
+test ! -e "$eof_home/.local/share/beads/hub"
+test ! -e "$eof_home/.config/bv/hub.yaml"
+eof_backups=("$eof_home"/.local/share/beads/work-to-hub-backup-*)
+test "${eof_backups[0]}" = "$eof_home/.local/share/beads/work-to-hub-backup-*"
 
 # Existing destination state rejects migration before backup, bd, or source mutation.
 precondition_home=$case_root/migration-precondition-home
