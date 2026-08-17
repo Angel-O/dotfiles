@@ -18,6 +18,21 @@ if grep -R -E \
   exit 1
 fi
 
+template_suffix_error=false
+while IFS= read -r source; do
+  test -f "$source_dir/$source" || continue
+  case "$source" in
+    *.tmpl) continue ;;
+  esac
+  if grep -Fq '{{' "$source_dir/$source"; then
+    printf 'managed source contains template directives without a .tmpl suffix: %s\n' "$source" >&2
+    template_suffix_error=true
+  fi
+done < <(git -C "$source_dir" ls-files --cached --others --exclude-standard -- 'dot_*' 'private_*' 'encrypted_*' 'executable_*' 'symlink_*' 'run_*')
+if $template_suffix_error; then
+  exit 1
+fi
+
 render_scripts() {
   local name=$1
   local config="$source_dir/tests/fixtures/$name.toml"
@@ -414,6 +429,7 @@ assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" "alias gwtl='git 
 assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'gwtco() {'
 assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'gwts() {'
 assert_contains "$personal_home/.config/zsh/git-worktrees.zsh" 'cdmain() {'
+assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code ~/.warp/launch_configurations'"
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
@@ -423,6 +439,7 @@ printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diag
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$personal_home/.config/herdr/config.toml"
 zsh -n "$personal_home"/.config/zsh/*.zsh
+HOME="$personal_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; alias warpconf >/dev/null'
 
 personal_beads_home="$root/personal-with-beads/home"
 render_scripts personal-with-beads
@@ -541,9 +558,12 @@ cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work
 assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
+assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
+assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
 jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title == null)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
+HOME="$work_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; ! alias warpconf >/dev/null 2>&1'
 HOME="$work_home" zsh -dfc 'alias zconfig="code ~/.zshrc"; alias reload="source ~/.zshrc"; source "$HOME/.config/zsh/helpers.zsh"'
 
 if command -v sha256sum >/dev/null 2>&1; then
