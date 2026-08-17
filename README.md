@@ -84,9 +84,9 @@ Pull requests and pushes to `main` run the same command on GitHub's standard hos
 
 ## Dependency Updates
 
-The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages Herdr plugin refs in `.chezmoidata.toml`. If the app is not enabled, install it for this GitHub account and grant it access to this repository; no self-hosted workflow is required.
+The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages Herdr plugin refs and the Beads Viewer fork pin in `.chezmoidata.toml`. If the app is not enabled, install it for this GitHub account and grant it access to this repository; no self-hosted workflow is required.
 
-Renovate opens one grouped `Herdr plugins` PR when updates are available. Release-tag pins follow newer GitHub tags, while commit pins follow each repository's default branch. These PRs are not automerged and should pass the Docker validation before review and merge. `INVENTORY.md` intentionally records pin policy rather than duplicating exact refs.
+Renovate opens one grouped `Herdr plugins` PR when plugin updates are available. Release-tag pins follow newer GitHub tags, while plugin commit pins follow their configured branches. The Beads Viewer pin separately follows `feature/repository-aware-correlations` in the maintained fork and remains an exact commit: after advancing that branch, review Renovate's old and new SHAs and merge its dotfiles PR only after Docker validation passes. Renovate PRs are not automerged. `INVENTORY.md` intentionally records pin policy rather than duplicating exact refs.
 
 ## Machine Workflows
 

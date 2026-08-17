@@ -106,6 +106,8 @@ assert_contains "$source_dir/README.md" 'atomically installs its `bv`, `wbd`, an
 assert_contains "$source_dir/README.md" '`~/.local/libexec/beads-viewer`'
 assert_contains "$source_dir/README.md" '~/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh'
 assert_contains "$source_dir/README.md" 'Disabling the module stops future installation and management without deleting'
+python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pin=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]["beadsViewer"]; managers=json.load(open(source+"/renovate.json"))["customManagers"]; assert pin["branch"] == "feature/repository-aware-correlations"; assert any(manager.get("depTypeTemplate") == "beads-viewer" and manager.get("datasourceTemplate") == "git-refs" for manager in managers)' "$source_dir"
+beads_viewer_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"])' "$source_dir/.chezmoidata.toml")
 
 assert_warp_policy() {
   local file=$1
@@ -450,7 +452,7 @@ assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="0638ded2fbdf3a808a3b501f7173050d9f169d56"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
 mkdir -p "$personal_beads_home/.config/opencode"
 printf '%s\n' 'Preserve personal Beads guidance.' >"$personal_beads_home/.config/opencode/AGENTS.md"
 apply_fixture personal-with-beads
@@ -485,7 +487,7 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="0638ded2fbdf3a808a3b501f7173050d9f169d56"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
@@ -611,7 +613,7 @@ assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="0638ded2fbdf3a808a3b501f7173050d9f169d56"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
 mkdir -p "$external_home/.config/opencode/skills/existing-skill"
 cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"external_opencode_setting": true}
