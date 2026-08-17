@@ -89,7 +89,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Zsh edit/reload helpers | Shared template |
 | Docker platform override | Exclude |
 | NVM and SDKMAN | Optional Node and JVM features respectively |
-| Herdr and Codex completions | Regenerate when their tools are enabled |
+| Herdr completions | Regenerate when Herdr and shell modules are enabled |
 
 ### Git, Packages, and Fonts
 

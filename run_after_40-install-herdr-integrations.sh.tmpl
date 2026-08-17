@@ -2,7 +2,7 @@
 set -eu
 
 {{- if and .modules.herdr .modules.opencode }}
-if ! herdr integration status | grep -q '^opencode: current '; then
+if ! herdr integration status | grep '^opencode: current ' >/dev/null; then
   herdr integration install opencode
 fi
 {{- end }}
@@ -16,19 +16,5 @@ if [ ! -f "$completion_dir/_herdr" ] || ! cmp -s "$tmp" "$completion_dir/_herdr"
   mv "$tmp" "$completion_dir/_herdr"
 else
   rm -f "$tmp"
-fi
-{{- end }}
-
-{{- if and .modules.opencode .modules.shell }}
-if command -v codex >/dev/null 2>&1; then
-  completion_dir="$HOME/.zsh/completions"
-  mkdir -p "$completion_dir"
-  codex_tmp=$(mktemp)
-  codex completion zsh >"$codex_tmp"
-  if [ ! -f "$completion_dir/_codex" ] || ! cmp -s "$codex_tmp" "$completion_dir/_codex"; then
-    mv "$codex_tmp" "$completion_dir/_codex"
-  else
-    rm -f "$codex_tmp"
-  fi
 fi
 {{- end }}
