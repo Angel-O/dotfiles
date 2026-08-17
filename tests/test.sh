@@ -450,7 +450,7 @@ assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="8aa6bb144aa506176bb534d2e150eefa620f1340"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="e7842561a47fc03d6187239bd5e4dd2ce769688a"'
 mkdir -p "$personal_beads_home/.config/opencode"
 printf '%s\n' 'Preserve personal Beads guidance.' >"$personal_beads_home/.config/opencode/AGENTS.md"
 apply_fixture personal-with-beads
@@ -485,7 +485,7 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="8aa6bb144aa506176bb534d2e150eefa620f1340"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="e7842561a47fc03d6187239bd5e4dd2ce769688a"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
@@ -611,7 +611,7 @@ assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="8aa6bb144aa506176bb534d2e150eefa620f1340"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'wanted_ref="e7842561a47fc03d6187239bd5e4dd2ce769688a"'
 mkdir -p "$external_home/.config/opencode/skills/existing-skill"
 cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"external_opencode_setting": true}
