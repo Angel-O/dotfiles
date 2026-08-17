@@ -6,7 +6,7 @@ root=$2
 case_root=$root/beads-installer
 enabled=$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl
 disabled=$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl
-expected_ref=b74d7d688e22c6108c07750b102ebb8451c81ded
+expected_ref=945052bbb12b77ddf3ab9381d8f5f150b4c5293e
 
 fail() {
   printf 'beads test: %s\n' "$*" >&2
