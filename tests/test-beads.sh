@@ -6,7 +6,7 @@ root=$2
 case_root=$root/beads-installer
 enabled=$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl
 disabled=$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl
-expected_ref=0638ded2fbdf3a808a3b501f7173050d9f169d56
+expected_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"])' "$source_dir/.chezmoidata.toml")
 
 fail() {
   printf 'beads test: %s\n' "$*" >&2

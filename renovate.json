@@ -9,16 +9,29 @@
       "matchStrings": [
         "\\[pins\\.herdrPlugins\\.[^\\]]+\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+ref = \"(?<currentValue>v[^\"]+)\""
       ],
+      "depTypeTemplate": "herdr-plugin",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver-coerced"
     },
     {
       "customType": "regex",
-      "description": "Update default-branch Herdr plugin commits",
+      "description": "Update configured-branch Herdr plugin commits",
       "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
       "matchStrings": [
         "\\[pins\\.herdrPlugins\\.[^\\]]+\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+branch = \"(?<currentValue>[^\"]+)\"\\s+ref = \"(?<currentDigest>[a-f0-9]{40})\""
       ],
+      "depTypeTemplate": "herdr-plugin",
+      "packageNameTemplate": "https://github.com/{{{depName}}}.git",
+      "datasourceTemplate": "git-refs"
+    },
+    {
+      "customType": "regex",
+      "description": "Update the Beads Viewer feature branch commit",
+      "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
+      "matchStrings": [
+        "\\[pins\\.beadsViewer\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+branch = \"(?<currentValue>[^\"]+)\"\\s+ref = \"(?<currentDigest>[a-f0-9]{40})\""
+      ],
+      "depTypeTemplate": "beads-viewer",
       "packageNameTemplate": "https://github.com/{{{depName}}}.git",
       "datasourceTemplate": "git-refs"
     }
@@ -27,9 +40,19 @@
     {
       "description": "Group Herdr plugin pin updates",
       "matchManagers": ["custom.regex"],
+      "matchDepTypes": ["herdr-plugin"],
       "groupName": "Herdr plugins",
       "groupSlug": "herdr-plugins",
       "groupSingleUpdates": true
+    },
+    {
+      "description": "Describe Beads Viewer branch pin updates",
+      "matchManagers": ["custom.regex"],
+      "matchDepTypes": ["beads-viewer"],
+      "commitMessageTopic": "Beads Viewer branch pin",
+      "prBodyNotes": [
+        "This pin follows `feature/repository-aware-correlations`; review the old and new commit SHAs and merge only after Docker validation passes."
+      ]
     }
   ]
 }
