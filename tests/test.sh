@@ -557,7 +557,7 @@ cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$work_ho
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
-assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
+assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
 jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title == null)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
