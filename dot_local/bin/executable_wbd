@@ -105,14 +105,71 @@ ensure_hub_config() {
   replace_if_changed "$tmp" "$hub_config"
 }
 
-register_repository() {
-  need git
-  registered_context=$(context)
-  registered_root=$(git rev-parse --show-toplevel 2>/dev/null) ||
+canonical_directory() {
+  (CDPATH= cd -P -- "$1" 2>/dev/null && pwd -P)
+}
+
+git_common_directory() {
+  local root=$1 common resolved
+  common=$(git -C "$root" rev-parse --git-common-dir 2>/dev/null) ||
+    die "cannot resolve Git common directory for worktree: $root"
+  [ -n "$common" ] || die "Git common directory is empty for worktree: $root"
+  case "$common" in
+    *$'\n'*|*$'\r'*|*$'\t'*) die 'Git common directory contains an unsupported control character' ;;
+    /*) resolved=$common ;;
+    *) resolved=$root/$common ;;
+  esac
+  canonical_directory "$resolved" ||
+    die "cannot canonicalize Git common directory for worktree: $root"
+}
+
+durable_repository_root() {
+  local current_root current_common worktrees first_line primary_root
+  local primary_inside primary_bare primary_common
+
+  current_root=$(git rev-parse --show-toplevel 2>/dev/null) ||
     die 'cannot resolve the current Git repository root'
-  case "$registered_root" in
+  [ -n "$current_root" ] || die 'current Git repository root is empty'
+  case "$current_root" in
     *$'\n'*|*$'\r'*|*$'\t'*) die 'repository path contains an unsupported control character' ;;
   esac
+  current_root=$(canonical_directory "$current_root") ||
+    die 'cannot canonicalize the current Git repository root'
+  current_common=$(git_common_directory "$current_root") || return $?
+
+  worktrees=$(git -C "$current_root" worktree list --porcelain 2>/dev/null) ||
+    die 'cannot list Git worktrees'
+  IFS= read -r first_line <<<"$worktrees"
+  case "$first_line" in
+    'worktree '*) primary_root=${first_line#worktree } ;;
+    *) die 'malformed Git worktree list output' ;;
+  esac
+  [ -n "$primary_root" ] || die 'malformed Git worktree list output'
+  case "$primary_root" in
+    *$'\n'*|*$'\r'*|*$'\t'*|[^/]*) die 'malformed Git worktree list path' ;;
+  esac
+
+  if [ -d "$primary_root" ] && [ -r "$primary_root" ]; then
+    primary_root=$(canonical_directory "$primary_root") ||
+      die 'cannot canonicalize the primary Git worktree path'
+    primary_inside=$(git -C "$primary_root" rev-parse --is-inside-work-tree 2>/dev/null || true)
+    primary_bare=$(git -C "$primary_root" rev-parse --is-bare-repository 2>/dev/null || true)
+    if [ "$primary_inside" = true ] && [ "$primary_bare" = false ]; then
+      primary_common=$(git_common_directory "$primary_root") || return $?
+      if [ "$primary_common" = "$current_common" ]; then
+        printf '%s\n' "$primary_root"
+        return 0
+      fi
+    fi
+  fi
+
+  printf '%s\n' "$current_root"
+}
+
+register_repository() {
+  need git
+  registered_context=$(context) || return $?
+  registered_root=$(durable_repository_root) || return $?
   ensure_hub_config
 
   local tmp
@@ -185,6 +242,12 @@ context() {
     die 'required SHA-256 command not found'
   fi
   printf 'ctx:%s-%s\n' "$slug" "${digest:0:10}"
+}
+
+current_repository_is_eligible() {
+  command -v git >/dev/null 2>&1 || return 1
+  [ "$(git rev-parse --is-inside-work-tree 2>/dev/null || true)" = true ] || return 1
+  (context >/dev/null 2>&1)
 }
 
 bootstrap() {
@@ -338,7 +401,11 @@ case "$command_name" in
     ;;
   configure)
     ! $json && [ "$#" -eq 0 ] || die 'usage: wbd configure'
-    ensure_hub_config
+    if current_repository_is_eligible; then
+      register_repository
+    else
+      ensure_hub_config
+    fi
     printf '%s\n' "$hub_config"
     ;;
   register)

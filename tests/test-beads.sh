@@ -11,7 +11,7 @@ hub_config=$home/.config/bv/hub.yaml
 ledger=$home/.local/share/beads/hub/correlations.jsonl
 repo_a=$case_root/repos/repo-a
 repo_b=$case_root/repos/repo-b
-mkdir -p "$fake_bin" "$store" "$repo_a" "$repo_b"
+mkdir -p "$fake_bin" "$store" "$repo_a/.git" "$repo_b/.git"
 
 fail() {
   printf 'beads test: %s\n' "$*" >&2
@@ -19,6 +19,7 @@ fail() {
 }
 
 jq_path=$(command -v jq) || fail 'jq is required to run wrapper tests'
+git_path=$(command -v git) || fail 'git is required to run wrapper tests'
 ln -s "$jq_path" "$fake_bin/jq"
 
 cat >"$fake_bin/git" <<'EOF'
@@ -28,6 +29,41 @@ if [ "${FAKE_GIT_FAIL:-0}" = 1 ]; then
 fi
 if [ "$#" -eq 4 ] && [ "$1" = -C ] && [ "$3" = rev-parse ] && [ "$4" = --git-dir ]; then
   exit 1
+fi
+if [ "$#" -eq 4 ] && [ "$1" = -C ] && [ "$3" = rev-parse ] && [ "$4" = --git-common-dir ]; then
+  root=$2
+  if [ -n "${FAKE_PRIMARY_ROOT:-}" ] && [ "$root" = "$FAKE_PRIMARY_ROOT" ] && [ -n "${FAKE_PRIMARY_COMMON:-}" ]; then
+    printf '%s\n' "$FAKE_PRIMARY_COMMON"
+  elif [ -n "${FAKE_COMMON_DIR+x}" ]; then
+    printf '%s\n' "$FAKE_COMMON_DIR"
+  else
+    printf '%s\n' .git
+  fi
+  exit 0
+fi
+if [ "$#" -eq 4 ] && [ "$1" = -C ] && [ "$3" = rev-parse ] && [ "$4" = --is-inside-work-tree ]; then
+  if [ "$2" = "${FAKE_PRIMARY_ROOT:-}" ] && [ "${FAKE_PRIMARY_INVALID:-0}" = 1 ]; then
+    exit 1
+  fi
+  printf '%s\n' true
+  exit 0
+fi
+if [ "$#" -eq 4 ] && [ "$1" = -C ] && [ "$3" = rev-parse ] && [ "$4" = --is-bare-repository ]; then
+  if [ "$2" = "${FAKE_PRIMARY_ROOT:-}" ] && [ "${FAKE_PRIMARY_BARE:-0}" = 1 ]; then
+    printf '%s\n' true
+  else
+    printf '%s\n' false
+  fi
+  exit 0
+fi
+if [ "$#" -eq 5 ] && [ "$1" = -C ] && [ "$3" = worktree ] && [ "$4" = list ] && [ "$5" = --porcelain ]; then
+  [ "${FAKE_WORKTREE_LIST_FAIL:-0}" != 1 ] || exit 1
+  if [ -n "${FAKE_WORKTREE_LIST+x}" ]; then
+    printf '%s\n' "$FAKE_WORKTREE_LIST"
+  else
+    printf 'worktree %s\n\n' "${FAKE_PRIMARY_ROOT:-${FAKE_GIT_ROOT:?}}"
+  fi
+  exit 0
 fi
 if [ "$#" -eq 2 ] && [ "$1" = rev-parse ] && [ "$2" = --is-inside-work-tree ]; then
   printf '%s\n' true
@@ -450,6 +486,28 @@ bash "$wbd" configure >/dev/null
 cmp -s "$case_root/config.before" "$hub_config"
 python3 -c 'import os,stat,sys; assert stat.S_IMODE(os.stat(sys.argv[1]).st_mode) == 0o600' "$hub_config"
 
+# Configure remains config-only outside Git, without a supported origin, or
+# when Git is not installed.
+for eligibility_state in outside-git no-origin; do
+  cp "$hub_config" "$case_root/config-before-$eligibility_state"
+  if [ "$eligibility_state" = outside-git ]; then
+    FAKE_GIT_FAIL=1 bash "$wbd" configure >/dev/null
+  else
+    FAKE_ORIGIN_MISSING=1 bash "$wbd" configure >/dev/null
+  fi
+  cmp -s "$case_root/config-before-$eligibility_state" "$hub_config"
+done
+no_git_bin=$case_root/no-git-bin
+mkdir -p "$no_git_bin"
+cp "$fake_bin/bd" "$fake_bin/jq" "$no_git_bin/"
+for utility in chmod cmp mkdir mktemp mv rm; do
+  utility_path=$(command -v "$utility")
+  ln -s "$utility_path" "$no_git_bin/$utility"
+done
+cp "$hub_config" "$case_root/config-before-no-git"
+PATH=$no_git_bin /bin/bash "$wbd" configure >/dev/null
+cmp -s "$case_root/config-before-no-git" "$hub_config"
+
 # Equivalent origins have one stable context.
 context_ssh=$(FAKE_ORIGIN=git@Example.COM:Group/Repo-A.git bash "$wbd" context)
 context_scp=$(FAKE_ORIGIN=Example.COM:Group/Repo-A.git bash "$wbd" context)
@@ -477,6 +535,116 @@ FAKE_ORIGIN=$origin_b FAKE_GIT_ROOT=$repo_b bash "$wbd" register >/dev/null
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" register >/dev/null
 cmp -s "$case_root/config-a-then-b" "$hub_config" || fail 'registration order changed serialized config'
 
+# Exercise Git's real porcelain and relative linked-worktree common-dir output.
+real_git_bin=$case_root/real-git-bin
+real_primary=$case_root/real-repos/primary\ checkout
+real_linked=$case_root/real-repos/feature\ checkout
+mkdir -p "$real_git_bin" "$real_primary"
+ln -s "$git_path" "$real_git_bin/git"
+"$git_path" -C "$real_primary" init -q
+"$git_path" -C "$real_primary" config remote.origin.url git@example.com:Group/Real-Repo.git
+"$git_path" -C "$real_primary" -c user.name=Test -c user.email=test@example.com \
+  commit --allow-empty -qm initial
+"$git_path" -C "$real_primary" worktree add -qb feature "$real_linked"
+(cd "$real_linked" && PATH=$real_git_bin:$fake_bin:/usr/bin:/bin bash "$wbd" register \
+  >"$case_root/register-real-linked.out")
+real_context=$(cut -f1 "$case_root/register-real-linked.out")
+test "$(cut -f2 "$case_root/register-real-linked.out")" = "$real_primary"
+jq -e --arg context "$real_context" --arg path "$real_primary" \
+  '.repositories[$context].path == $path' "$hub_config" >/dev/null
+
+# Linked worktrees register the physical primary checkout when both resolve to
+# the same common Git directory, including mixed relative and absolute forms.
+durable_root=$case_root/repos/primary\ checkout
+linked_root=$case_root/repos/feature\ checkout
+shared_common=$case_root/repos/shared.git
+mkdir -p "$durable_root/.git" "$linked_root" "$shared_common"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$linked_root FAKE_PRIMARY_ROOT=$durable_root \
+  FAKE_COMMON_DIR=$shared_common FAKE_PRIMARY_COMMON=../shared.git \
+  bash "$wbd" register >"$case_root/register-linked.out"
+test "$(cut -f2 "$case_root/register-linked.out")" = "$durable_root"
+jq -e --arg context "$context_a" --arg path "$durable_root" \
+  '.repositories[$context].path == $path' "$hub_config" >/dev/null
+
+# Registration from the primary remains the primary, and symlink spellings are
+# replaced by the physical path.
+linked_alias=$case_root/repos/linked-alias
+ln -s "$linked_root" "$linked_alias"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$linked_alias FAKE_PRIMARY_ROOT=$linked_alias \
+  FAKE_COMMON_DIR=$shared_common bash "$wbd" register >"$case_root/register-primary.out"
+test "$(cut -f2 "$case_root/register-primary.out")" = "$linked_root"
+
+# Missing, bare, non-worktree, and different-common-dir primaries safely retain
+# the current non-bare linked worktree.
+missing_primary=$case_root/repos/missing-primary
+for primary_state in missing bare invalid different; do
+  state_root=$durable_root
+  state_env=()
+  case "$primary_state" in
+    missing) state_root=$missing_primary ;;
+    bare) state_env+=(FAKE_PRIMARY_BARE=1) ;;
+    invalid) state_env+=(FAKE_PRIMARY_INVALID=1) ;;
+    different) state_env+=(FAKE_PRIMARY_COMMON="$durable_root/.git") ;;
+  esac
+  env "FAKE_ORIGIN=$origin_a" "FAKE_GIT_ROOT=$linked_root" "FAKE_PRIMARY_ROOT=$state_root" \
+    "FAKE_COMMON_DIR=$shared_common" "${state_env[@]}" bash "$wbd" register \
+    >"$case_root/register-fallback-$primary_state.out"
+  test "$(cut -f2 "$case_root/register-fallback-$primary_state.out")" = "$linked_root"
+done
+
+# Configure reconciles only the eligible current context and preserves other
+# registrations.
+jq --arg context "$context_a" \
+  '.repositories[$context].path = "/deleted/feature" |
+   .repositories["ctx:unrelated-0000000000"] = {path: "/unrelated/stale"}' \
+  "$hub_config" >"$case_root/stale-config"
+mv "$case_root/stale-config" "$hub_config"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$linked_root FAKE_PRIMARY_ROOT=$durable_root \
+  FAKE_COMMON_DIR=$shared_common bash "$wbd" configure >/dev/null
+jq -e --arg context "$context_a" --arg path "$durable_root" \
+  '.repositories[$context].path == $path and
+   .repositories["ctx:unrelated-0000000000"].path == "/unrelated/stale"' \
+  "$hub_config" >/dev/null
+
+# Worktree-list failures and malformed output fail before any config rewrite.
+for discovery_state in failed empty malformed relative control; do
+  cp "$hub_config" "$case_root/config-before-discovery-$discovery_state"
+  discovery_env=()
+  case "$discovery_state" in
+    failed) discovery_env+=(FAKE_WORKTREE_LIST_FAIL=1) ;;
+    empty) discovery_env+=(FAKE_WORKTREE_LIST=) ;;
+    malformed) discovery_env+=(FAKE_WORKTREE_LIST='bare') ;;
+    relative) discovery_env+=(FAKE_WORKTREE_LIST='worktree relative/path') ;;
+    control) discovery_env+=(FAKE_WORKTREE_LIST=$'worktree /bad\tpath') ;;
+  esac
+  if env "FAKE_ORIGIN=$origin_a" "FAKE_GIT_ROOT=$linked_root" \
+    "FAKE_COMMON_DIR=$shared_common" "${discovery_env[@]}" \
+    bash "$wbd" register >"$case_root/discovery-$discovery_state.out" 2>&1; then
+    fail "register accepted $discovery_state worktree discovery"
+  fi
+  cmp -s "$case_root/config-before-discovery-$discovery_state" "$hub_config"
+done
+
+# Malformed common-dir resolution and control-character repository paths also
+# fail without rewriting config.
+control_root=$case_root/repos/$'bad\troot'
+mkdir -p "$control_root"
+for malformed_common in '' $'bad\tcommon' missing-common; do
+  cp "$hub_config" "$case_root/config-before-common"
+  if FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$linked_root \
+    FAKE_COMMON_DIR="$malformed_common" bash "$wbd" register \
+    >"$case_root/malformed-common.out" 2>&1; then
+    fail "register accepted a malformed common Git directory: $malformed_common"
+  fi
+  cmp -s "$case_root/config-before-common" "$hub_config"
+done
+cp "$hub_config" "$case_root/config-before-control-root"
+if FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$control_root bash "$wbd" register \
+  >"$case_root/control-root.out" 2>&1; then
+  fail 'register accepted a control-character repository path'
+fi
+cmp -s "$case_root/config-before-control-root" "$hub_config"
+
 # Failed context discovery neither registers nor rewrites the config.
 cp "$hub_config" "$case_root/config-before-missing-origin"
 if FAKE_ORIGIN_MISSING=1 bash "$wbd" register >"$case_root/missing-origin.out" 2>&1; then
@@ -498,6 +666,19 @@ mv "$case_root/empty-config" "$hub_config"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" --json list --status open
 assert_last_args BD --db "$store" --json list --label "$context_a" --status open
 jq -e --arg context "$context_a" '.repositories | has($context)' "$hub_config" >/dev/null
+
+# Every implicit registration path uses the same durable root selection.
+for implicit_command in create list; do
+  if [ "$implicit_command" = create ]; then
+    implicit_args=(create 'Durable task')
+  else
+    implicit_args=(list --status open)
+  fi
+  FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$linked_root FAKE_PRIMARY_ROOT=$durable_root \
+    FAKE_COMMON_DIR=$shared_common bash "$wbd" "${implicit_args[@]}" >/dev/null
+  jq -e --arg context "$context_a" --arg path "$durable_root" \
+    '.repositories[$context].path == $path' "$hub_config" >/dev/null
+done
 
 # Global list does not require or register a repository.
 : >"$FAKE_LOG"
@@ -548,6 +729,10 @@ assert_last_args BD --db "$store" --json list --label "$context_a" --ready \
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123
 assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit HEAD --hub-config "$hub_config"
+FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$linked_root FAKE_PRIMARY_ROOT=$durable_root \
+  FAKE_COMMON_DIR=$shared_common bash "$wbd" link work-123 >/dev/null
+jq -e --arg context "$context_a" --arg path "$durable_root" \
+  '.repositories[$context].path == $path' "$hub_config" >/dev/null
 : >"$FAKE_LOG"
 FAKE_ORIGIN=$origin_a FAKE_GIT_ROOT=$repo_a bash "$wbd" link work-123 refs/tags/release-1
 assert_last_args BV correlate add --bead work-123 --repo "$context_a" --commit refs/tags/release-1 --hub-config "$hub_config"
@@ -784,6 +969,8 @@ PY
 assert_config
 assert_last_args BV --history-mode external --hub-config "$hub_config"
 assert_last_args WBD configure
+jq -e --arg context "$context_a" --arg path "$repo_a" \
+  '.repositories[$context].path == $path' "$hub_config" >/dev/null
 grep -Fxq "PWD=$viewer_cwd" "$FAKE_LOG"
 grep -Fxq 'BV_NO_GITIGNORE=1' "$FAKE_LOG"
 grep -Fxq 'BV_NO_CACHE=1' "$FAKE_LOG"
@@ -927,11 +1114,16 @@ assert_no_call WBD
 grep -Fxq "PWD=$repo_a" "$FAKE_LOG"
 
 # Forced Hub ignores a local marker and retains the fixed-Hub launch behavior.
+jq --arg context "$context_a" '.repositories[$context].path = "/deleted/feature"' \
+  "$hub_config" >"$case_root/viewer-stale-config"
+mv "$case_root/viewer-stale-config" "$hub_config"
 : >"$FAKE_LOG"
 bash "$wbv" --hub --robot-plan
 assert_last_args BV --history-mode external --hub-config "$hub_config" --robot-plan --format json
 assert_last_args WBD configure
 grep -Fxq "BEADS_DIR=$store" "$FAKE_LOG"
+jq -e --arg context "$context_a" --arg path "$repo_a" \
+  '.repositories[$context].path == $path' "$hub_config" >/dev/null
 
 # Viewer, not the wrapper, resolves supported worktree redirects.
 printf '%s\n' ../canonical/.beads >"$repo_a/.beads/redirect"
