@@ -138,7 +138,7 @@ Every managed plugin is a machine-local selection independent of role. `prefix+m
 | Oh My Zsh | Loaded from `~/.oh-my-zsh` | Install pinned source if missing | Shared | Built-in plugins include Git and macOS |
 | Homebrew path setup | Apple Silicon path | Template | macOS/architecture | Should not assume one architecture |
 | Herdr Labels hook | Loads the plugin's generated shell hook | Track conditionally | Machine-selected | Enabled only with the Labels plugin selection |
-| Custom completion path | `~/.zsh/completions` | Track loader; regenerate completions | Shared | Herdr and Codex completions currently present |
+| Custom completion path | `~/.zsh/completions` | Track loader; regenerate Herdr completions | Shared | Existing unmanaged completions remain untouched |
 | Zoxide initialization | Active | Install and track | Shared | Requires `zoxide` |
 | FZF integration | Active with path fallback | Install and track | Shared | Required by worktree selector |
 | Herdr/OpenCode aliases | Active | Track | Shared | Includes launcher-backed `opencode` alias |

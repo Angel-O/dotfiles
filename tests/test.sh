@@ -369,6 +369,9 @@ assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.t
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio "robert-flo/herdr-terminal-file-manager"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
+assert_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" "grep '^opencode: current ' >/dev/null"
+assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" "grep -q '^opencode: current '"
+assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'codex completion'
 mkdir -p "$personal_home/.config/opencode"
 cat >"$personal_home/.config/opencode/AGENTS.md" <<'EOF'
 Keep this personal instruction.
