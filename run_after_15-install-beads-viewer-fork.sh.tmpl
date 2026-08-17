@@ -8,9 +8,13 @@ source_repo={{ .pins.beadsViewer.source | quote }}
 wanted_ref={{ .pins.beadsViewer.ref | quote }}
 state_dir=$HOME/.local/share/beads-viewer-fork
 stamp=$state_dir/installed-ref
-target=$HOME/.local/bin/bv
+bin_dir=$HOME/.local/bin
+libexec_dir=$HOME/.local/libexec/beads-viewer
 
-if [ -x "$target" ] && [ -f "$stamp" ] &&
+if [ -x "$bin_dir/bv" ] && [ -x "$bin_dir/wbd" ] && [ -x "$bin_dir/wbv" ] &&
+  [ -x "$libexec_dir/migrate-beads-hub-prefix.sh" ] &&
+  [ -x "$libexec_dir/migrate-beads-work-to-hub.sh" ] &&
+  [ -f "$libexec_dir/beads-hub-prefix-internal.sh" ] && [ -f "$stamp" ] &&
   [ "$(cat "$stamp")" = "$source_repo@$wanted_ref" ]; then
   exit 0
 fi
@@ -38,13 +42,26 @@ if [ "$resolved_ref" != "$wanted_ref" ]; then
 fi
 git -C "$tmp/source" checkout --detach "$resolved_ref"
 
-mkdir -p "$HOME/.local/bin" "$state_dir"
-(cd "$tmp/source" && go build -trimpath -o "$tmp/bv" ./cmd/bv)
+mkdir -p "$bin_dir" "$libexec_dir" "$state_dir"
+for command in bv wbd wbv; do
+  (cd "$tmp/source" && go build -trimpath -o "$tmp/$command" "./cmd/$command")
+done
 
-target_tmp=$(mktemp "$HOME/.local/bin/.bv.tmp.XXXXXX")
-cp "$tmp/bv" "$target_tmp"
-chmod 0755 "$target_tmp"
-mv "$target_tmp" "$target"
+for command in bv wbd wbv; do
+  target_tmp=$(mktemp "$bin_dir/.$command.tmp.XXXXXX")
+  cp "$tmp/$command" "$target_tmp"
+  chmod 0755 "$target_tmp"
+  mv "$target_tmp" "$bin_dir/$command"
+  target_tmp=
+done
+
+for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
+  target_tmp=$(mktemp "$libexec_dir/.$script.tmp.XXXXXX")
+  cp "$tmp/source/scripts/$script" "$target_tmp"
+  chmod 0755 "$target_tmp"
+  mv "$target_tmp" "$libexec_dir/$script"
+  target_tmp=
+done
 
 stamp_tmp=$(mktemp "$state_dir/.installed-ref.tmp.XXXXXX")
 printf '%s\n' "$source_repo@$wanted_ref" >"$stamp_tmp"

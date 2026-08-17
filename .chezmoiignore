@@ -61,11 +61,6 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/skills/herdr-agent-name/**
 {{- end }}
 
-{{- if not .modules.beads }}
-.local/bin/wbd
-.local/bin/wbv
-{{- end }}
-
 .config/opencode/env.local
 
 {{- if not .modules.starship }}

@@ -42,26 +42,24 @@ The inventory uses these classifications:
 | `starship` | Starship, themes, selector, and `stheme` support |
 | `shell` | Zsh fragments, Oh My Zsh, FZF, Zoxide, and cross-tool hooks |
 | `git` | Non-destructive portable include, worktree aliases, and ignore rules |
-| `beads` | Optional private global task store and `wbd`/`wbv` wrappers on either role |
+| `beads` | Optional private global task store and Viewer-owned `wbd`/`wbv` commands on either role |
 
 The `opencode` module installs shared local plugins for environment protection and Plan-mode diagrams. The Plan plugin adds only a late trigger: immediately before drafting a plan, the built-in Plan agent lazily loads the globally hidden `plan-diagrams` skill, which then loads the unrestricted `terminal-mermaid` skill for reusable diagram selection, syntax, rendering, and viewport guidance. The pinned `opencode-mermaid-renderer` published plugin renders the resulting compact Mermaid source in terminal chat on both personal and work machines. OpenCode auto-discovers the local trigger plugin under `~/.config/opencode/plugins/`; the renderer is declared once in the managed portable configuration.
 
 When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather than tracked in full: left Option sends Alt/Meta for terminal keybindings, while right Option remains available for macOS character entry. The module does not install Warp. When disabled, chezmoi does not manage, alter, or delete existing Warp settings. Warp hot-reloads `settings.toml`; smoke-test the enabled policy by confirming `Alt+T` reaches the shell or application instead of producing `†`.
 
-The `beads` module is optional for both personal and work roles. It installs Beads, Go, and `jq`, builds the pinned external-history `Angel-O/beads_viewer` fork as `~/.local/bin/bv`, and manages `~/.local/bin/wbd` and `~/.local/bin/wbv`. Run `wbd bootstrap` explicitly once to create the private embedded-Dolt store at `~/.local/share/beads/hub/.beads` with the default `bead` issue prefix, or run `wbd bootstrap --prefix <prefix>` for a custom prefix. Bootstrap also creates the private Viewer config at `~/.config/bv/hub.yaml` and disables Beads anonymous command metrics. The hub store supports direct dependencies across projects by stable issue ID, while `wbd` derives credential-free `ctx:` labels from each real origin-backed repository. `wbd register` records the durable primary checkout in the private config when it shares the current worktree's Git common directory, falling back safely to the current non-bare worktree; create, scoped-list, and link operations use the same registration. Hub-mode `wbv` reconciles the eligible current repository automatically through `wbd configure`, so deleted feature-worktree paths self-heal without a manual registration command. Bare `wbv` prefers a `.beads` store at the current Git worktree root and otherwise launches the all-context Hub Viewer; `wbv --local` and `wbv --hub` force either mode. `wbd` is always Hub-only. Automatic and explicit local mode never call `wbd` or register Hub state. Local stores are never registered with or migrated into the Hub, and agents using the global `beads-hub` skill always force `wbv --hub`; bare `wbv` remains for humans. No `.beads`, hooks, team files, or project agent guidance are added to a source repository. Disabling the module stops management and fork installation but does not uninstall packages or delete the private store, config, or ledger.
+The `beads` module is optional for both personal and work roles. It installs Beads, Go, and `jq`, then builds the exact pinned `Angel-O/beads_viewer` fork commit and atomically installs its `bv`, `wbd`, and `wbv` binaries under `~/.local/bin`. The same checkout supplies migration scripts installed under `~/.local/libexec/beads-viewer`, so they remain available after the temporary clone is removed. Run `wbd bootstrap` explicitly once, optionally with `--prefix <prefix>`, to create the private Hub store and Viewer configuration. `wbd` is always Hub-only; bare `wbv` is for humans, while agents use the global `beads-hub` policy and explicitly select Hub mode. No `.beads`, hooks, team files, or project agent guidance are added to source repositories. Disabling the module stops future installation and management without deleting installed commands, the private store, configuration, ledger, or migration backups.
 
-Both migration commands are repository-only and are never run by chezmoi. On a machine that already has the Hub store at `~/.local/share/beads/hub/.beads`, use the repeatable naming-only migration. It detects the persisted prefix, defaults blank input to that current prefix as a no-op, and backs up the complete Hub parent plus `~/.config/bv/hub.yaml` before a change. Run the same command again for any future prefix change:
+Migrations are explicit operator actions and are never run by chezmoi. For an existing Hub store, run:
 
 ```sh
-source_dir="$(chezmoi source-path)"
-bash "$source_dir/scripts/migrate-beads-hub-prefix.sh"
+~/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh
 ```
 
-On a machine that still has the legacy `~/.local/share/beads/work` store and no Hub destination, use the one-time path migration instead. It prompts for the store-wide prefix applied to every Beads ID in the new Hub, defaults blank input to `bead`, preserves repository registrations, and creates its legacy-layout backup before mutation. After this path migration, use `migrate-beads-hub-prefix.sh` for later naming changes; do not rerun the one-time work-to-Hub script:
+For the one-time migration from the legacy `~/.local/share/beads/work` layout, run:
 
 ```sh
-source_dir="$(chezmoi source-path)"
-bash "$source_dir/scripts/migrate-beads-work-to-hub.sh"
+~/.local/libexec/beads-viewer/migrate-beads-work-to-hub.sh
 ```
 
 ## Integrations
@@ -80,7 +78,7 @@ The primary integration test runs entirely inside Docker:
 bash tests/run-docker.sh
 ```
 
-It renders synthetic personal, work, Ghostty-only, Warp-only, plugin-disabled Herdr, externally managed OpenCode with `opencodeBeads`, disabled-adapter, and legacy pre-integrations homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; tests Beads wrappers with fake Git/`bd`/`bv` commands and temporary state; and scans public source for known private identifiers. It does not test macOS GUI behavior or execute network package/plugin/fork installers, real Beads initialization, or the Viewer.
+It renders synthetic personal, work, Ghostty-only, Warp-only, plugin-disabled Herdr, externally managed OpenCode with `opencodeBeads`, disabled-adapter, and legacy pre-integrations homes; verifies work-owned superset files survive; validates templates and syntax; applies twice; checks the Beads installer and policy contracts; and scans public source for known private identifiers. It does not test macOS GUI behavior, execute network package/plugin/fork installers, initialize a real Beads store, or duplicate Viewer-owned product tests.
 
 Pull requests and pushes to `main` run the same command on GitHub's standard hosted `ubuntu-24.04` x64 runner. Docker supplies the matching `TARGETARCH` to the Alpine test image, so CI downloads chezmoi's amd64 musl build while local Apple Silicon runs continue to use arm64. Standard GitHub-hosted runners require no additional service and are free for public repositories; private repositories consume the owner's plan allowance and may be billed after its included Actions minutes are exhausted. See GitHub's [hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) and [Actions billing documentation](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions).
 
