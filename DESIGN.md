@@ -90,6 +90,8 @@ Chezmoi should manage only the approved shared Git subset: worktree aliases, glo
 
 The existing global `~/.config/opencode/opencode.jsonc` remains unmanaged. The launcher sets `OPENCODE_CONFIG=~/.config/opencode/portable.jsonc`, which OpenCode merges after the global layer. Work rendering omits provider/model and ordinary array-valued settings; plugin declarations are safe because OpenCode explicitly accumulates and de-duplicates plugins across config sources.
 
+Plan diagram guidance is loaded lazily rather than injected into every Plan message. The local Plan plugin adds a minimal instruction to load `plan-diagrams` only when drafting begins; portable permissions hide that skill globally and allow it for the built-in Plan agent on both roles. `plan-diagrams` delegates common renderer syntax, diagram selection, and terminal viewport constraints to the unrestricted `terminal-mermaid` skill so any agent can reuse that guidance when a diagram is requested.
+
 Private work launcher values live in ignored `~/.config/opencode/env.local` and are sourced before OpenCode starts.
 
 ## Plugin Restoration

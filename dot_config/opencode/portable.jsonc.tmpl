@@ -8,15 +8,27 @@
     "opencode-mermaid-renderer@{{ .pins.openCodePlugins.mermaidRenderer }}"{{ if eq .role "personal" }},
     "@warp-dot-dev/opencode-warp@{{ .pins.openCodePlugins.warp }}",
     "opencode-lmstudio@{{ .pins.openCodePlugins.lmStudio }}"{{ end }}
-  ]{{ if eq .role "personal" }},
+  ],
   "agent": {
+    "plan": {
+      "permission": {
+        "skill": {
+          "plan-diagrams": "allow"
+        }
+      }
+    }{{ if eq .role "personal" }},
     "title": {
       "model": "openai/gpt-5.4-mini",
       "options": {
         "reasoningEffort": "low"
       }
-    }
+    }{{ end }}
   },
+  "permission": {
+    "skill": {
+      "plan-diagrams": "deny"
+    }
+  }{{ if eq .role "personal" }},
   "disabled_providers": ["opencode"],
   "provider": {
     "openai": {
