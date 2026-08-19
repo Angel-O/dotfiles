@@ -24,7 +24,6 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Reviewr tab helper | `~/.config/herdr/reviewr-toggle-tab.sh` | Active executable | Track when selected | Machine-selected | Absolute home path in Herdr config becomes portable |
 | Reviewr configuration | Plugin config directory | Active | Shared template when selected | Machine-selected | Use `glow -s dracula -w {width} -` on every role |
 | Space usage configuration | Plugin config directory | Active | Track when selected | Machine-selected | Share sidebar mode, interval, window-title totals, and absolute RAM display |
-| Zoxide navigator configuration | Plugin config directory | Active | Track when selected | Machine-selected | Use `eza` for the directory preview |
 | Herdr Bar configuration | Plugin config directory | Active | Track when selected | Machine-selected | Share `preview = false` |
 | Plugin registry | `~/.config/herdr/plugins.json` | Generated | Regenerate and exclude | Runtime | Contains machine paths and installation timestamps |
 | Downloaded GitHub plugins | `~/.config/herdr/plugins/github/` | Generated checkouts/builds | Regenerate and exclude | Runtime | Reinstall from pinned declarations |
@@ -51,7 +50,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | `beyondlex.herdr-recent-navigator` | Default branch commit | On | Install pinned when selected |
 | `ez-corp.space-usage` | Default branch commit | On | Install pinned and manage config when selected |
 | `herdr-bar` | Default branch commit | On | Install pinned and manage config when selected |
-| `herdr-zoxide` | Default branch commit | On | Install pinned and manage config when selected |
+| `thomasschafer.herdr-kiosk` | Default branch commit | On | Install pinned when selected; plugin manages its own config |
 | `robert-flo.elio` | Default branch commit | Off | Install pinned when selected; distinct from the shared CLI |
 
 ## Herdr Machine-Specific Plugin Installation
@@ -193,7 +192,7 @@ This list intentionally includes only observed dependencies related to the envir
 | Monaspace font | Homebrew cask | Available unused font | Exclude |
 | FZF | Homebrew formula | Shell and worktree selector | Install shared |
 | Zoxide | Homebrew formula | Shell navigation | Install shared |
-| Eza | Homebrew formula | General-purpose directory listing and Herdr Zoxide previews | Install unconditionally |
+| Eza | Homebrew formula | General-purpose directory listing | Install unconditionally |
 | Helix | Homebrew formula | Terminal text editor | Install unconditionally as a shared dependency |
 | Direnv | Homebrew formula | Project-local environments | Exclude |
 | Glow | Homebrew formula | Reviewr Markdown renderer | Install when Reviewr is selected |

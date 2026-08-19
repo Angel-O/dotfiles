@@ -15,7 +15,7 @@
 {{- $recentNavigator := false -}}
 {{- $spaceUsage := false -}}
 {{- $bar := false -}}
-{{- $zoxide := false -}}
+{{- $kiosk := false -}}
 {{- $elio := false -}}
 {{- $reviewr := false -}}
 {{- $beads = promptBool "Enable the Beads module" (dig "modules" "beads" false .) -}}
@@ -32,7 +32,7 @@
 {{- $recentNavigator = promptBoolOnce . "herdrPlugins.recentNavigator" "Enable the Herdr Recent Navigator plugin" true -}}
 {{- $spaceUsage = promptBoolOnce . "herdrPlugins.spaceUsage" "Enable the Herdr Space Usage plugin" true -}}
 {{- $bar = promptBoolOnce . "herdrPlugins.bar" "Enable the Herdr Bar plugin" true -}}
-{{- $zoxide = promptBoolOnce . "herdrPlugins.zoxide" "Enable the Herdr Zoxide plugin" true -}}
+{{- $kiosk = promptBoolOnce . "herdrPlugins.kiosk" "Enable the Herdr Kiosk plugin" true -}}
 {{- $elio = promptBoolOnce . "herdrPlugins.elio" "Enable the Herdr Elio plugin" false -}}
 {{- $reviewr = promptBoolOnce . "herdrPlugins.reviewr" "Enable the Herdr Reviewr plugin" true -}}
 {{- end -}}
@@ -65,6 +65,6 @@ labels = {{ $labels }}
 recentNavigator = {{ $recentNavigator }}
 spaceUsage = {{ $spaceUsage }}
 bar = {{ $bar }}
-zoxide = {{ $zoxide }}
+kiosk = {{ $kiosk }}
 elio = {{ $elio }}
 reviewr = {{ $reviewr }}

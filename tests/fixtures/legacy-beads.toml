@@ -21,6 +21,6 @@ labels = false
 recentNavigator = false
 spaceUsage = false
 bar = false
-zoxide = false
+kiosk = false
 elio = false
 reviewr = false

@@ -34,9 +34,6 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- if or (not .modules.herdr) (not .herdrPlugins.bar) }}
 .config/herdr/plugins/config/herdr-bar/**
 {{- end }}
-{{- if or (not .modules.herdr) (not .herdrPlugins.zoxide) }}
-.config/herdr/plugins/config/herdr-zoxide/**
-{{- end }}
 {{- if or (not .modules.herdr) (not .herdrPlugins.reviewr) }}
 .config/herdr/plugins/config/persiyanov.reviewr/**
 .config/herdr/reviewr-toggle-tab.sh

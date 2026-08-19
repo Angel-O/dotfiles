@@ -24,6 +24,6 @@ labels = true
 recentNavigator = true
 spaceUsage = true
 bar = true
-zoxide = true
+kiosk = true
 elio = true
 reviewr = true

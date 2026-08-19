@@ -98,14 +98,14 @@ command = "beyondlex.herdr-recent-navigator.focus-workspaces"
 description = "open recent workspaces navigator"
 {{- end }}
 
-{{- if .herdrPlugins.zoxide }}
-######################### zoxide navigator keybinding
+{{- if .herdrPlugins.kiosk }}
+######################### kiosk repository picker keybinding
 
 [[keys.command]]
 key = "prefix+o"
 type = "plugin_action"
-command = "herdr-zoxide.browse"
-description = "browse zoxide directories"
+command = "thomasschafer.herdr-kiosk.open-picker"
+description = "open repo picker"
 {{- end }}
 
 {{- if .herdrPlugins.elio }}

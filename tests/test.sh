@@ -380,7 +380,8 @@ assert_contains "$root/personal/rendered/run_after_15-install-beads-viewer-fork.
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "bat"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "git-delta"'
 assert_contains "$source_dir/.chezmoi.toml.tmpl" 'sourceDir = {{ .chezmoi.sourceDir | quote }}'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
+assert_not_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'den-tanui/herdr-zoxide'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio "robert-flo/herdr-terminal-file-manager"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
@@ -404,9 +405,11 @@ test -f "$personal_home/.config/ghostty/config"
 test -f "$personal_home/.warp/settings.toml"
 assert_warp_policy "$personal_home/.warp/settings.toml"
 assert_contains "$personal_home/.config/ghostty/config" 'macos-option-as-alt = true'
-assert_contains "$personal_home/.config/herdr/plugins/config/herdr-zoxide/config.toml" 'preview = "eza -la --tree --level=2 --icons=always --color=always {}"'
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
-assert_contains "$personal_home/.config/herdr/config.toml" 'command = "herdr-zoxide.browse"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "thomasschafer.herdr-kiosk.open-picker"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+o"'
+assert_not_contains "$personal_home/.config/herdr/config.toml" 'herdr-zoxide.browse'
+test ! -e "$personal_home/.config/herdr/plugins/config/thomasschafer.herdr-kiosk/config.toml"
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
@@ -490,7 +493,7 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
-assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin herdr-zoxide "den-tanui/herdr-zoxide"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
 mkdir -p "$work_home/.config/opencode" "$work_home/.warp"
@@ -779,7 +782,7 @@ assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'beyondlex/herdr-recent-navigator'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'jeffarese/herdr-bar'
-assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'den-tanui/herdr-zoxide'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'thomasschafer/herdr-kiosk'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'robert-flo/herdr-terminal-file-manager'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'persiyanov/herdr-reviewr'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
@@ -793,7 +796,7 @@ assert_not_contains "$disabled_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 test ! -e "$disabled_home/.config/herdr/reviewr-toggle-tab.sh"
 test ! -e "$disabled_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-bar/config.json"
-test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-zoxide/config.toml"
+test ! -e "$disabled_home/.config/herdr/plugins/config/thomasschafer.herdr-kiosk/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
 test ! -e "$disabled_home/.config/herdr-labels/config.toml"
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disabled_home/.config/herdr/config.toml"

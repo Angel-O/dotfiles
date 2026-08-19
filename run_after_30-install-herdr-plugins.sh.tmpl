@@ -12,7 +12,7 @@ if ! command -v jq >/dev/null 2>&1; then
   printf 'jq is required before installing Herdr plugins.\n' >&2
   exit 1
 fi
-{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.zoxide .herdrPlugins.elio .herdrPlugins.reviewr }}
+{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.kiosk .herdrPlugins.elio .herdrPlugins.reviewr }}
 if ! command -v cargo >/dev/null 2>&1; then
   if ! command -v brew >/dev/null 2>&1; then
     printf 'Cargo is required to build selected Herdr plugins.\n' >&2
@@ -54,8 +54,8 @@ ensure_github_plugin ez-corp.space-usage {{ .pins.herdrPlugins.spaceUsage.source
 {{- if .herdrPlugins.bar }}
 ensure_github_plugin herdr-bar {{ .pins.herdrPlugins.bar.source | quote }} {{ .pins.herdrPlugins.bar.ref | quote }}
 {{- end }}
-{{- if .herdrPlugins.zoxide }}
-ensure_github_plugin herdr-zoxide {{ .pins.herdrPlugins.zoxide.source | quote }} {{ .pins.herdrPlugins.zoxide.ref | quote }}
+{{- if .herdrPlugins.kiosk }}
+ensure_github_plugin thomasschafer.herdr-kiosk {{ .pins.herdrPlugins.kiosk.source | quote }} {{ .pins.herdrPlugins.kiosk.ref | quote }}
 {{- end }}
 
 {{- if .herdrPlugins.reviewr }}
