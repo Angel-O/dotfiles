@@ -407,7 +407,7 @@ assert_warp_policy "$personal_home/.warp/settings.toml"
 assert_contains "$personal_home/.config/ghostty/config" 'macos-option-as-alt = true'
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "thomasschafer.herdr-kiosk.open-picker"'
-assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+f"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+o"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'herdr-zoxide.browse'
 test ! -e "$personal_home/.config/herdr/plugins/config/thomasschafer.herdr-kiosk/config.toml"
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
