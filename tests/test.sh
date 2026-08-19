@@ -369,6 +369,7 @@ python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data
 personal_home="$root/personal/home"
 render_scripts personal
 assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
+assert_contains "$root/personal/rendered/Brewfile" 'brew "helix"'
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "glow"'
@@ -479,6 +480,7 @@ test -z "$personal_beads_diff"
 work_home="$root/work/home"
 render_scripts work
 assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
+assert_contains "$root/work/rendered/Brewfile" 'brew "helix"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "glow"'
@@ -799,6 +801,7 @@ python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disable
 ghostty_home="$root/ghostty-only/home"
 render_scripts ghostty-only
 assert_contains "$root/ghostty-only/rendered/Brewfile" 'brew "eza"'
+assert_contains "$root/ghostty-only/rendered/Brewfile" 'brew "helix"'
 mkdir -p "$ghostty_home/.config/opencode"
 cat >"$ghostty_home/.config/opencode/AGENTS.md" <<'EOF'
 Preserve this guidance with OpenCode disabled.
