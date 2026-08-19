@@ -3,17 +3,17 @@ role = "work"
 
 [data.modules]
 ghostty = false
-helix = false
+helix = true
 warp = false
 herdr = false
 opencode = false
 starship = false
 shell = false
 git = false
-beads = true
+beads = false
 
 [data.integrations]
-opencodeBeads = true
+opencodeBeads = false
 
 [data.features]
 nodeDevelopment = false

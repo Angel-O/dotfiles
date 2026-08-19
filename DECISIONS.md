@@ -31,6 +31,14 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Old macOS Application Support config | Archive once after applying XDG so it cannot override XDG settings |
 | Historical config backups | Exclude from chezmoi |
 
+### Helix
+
+| Artifact | Decision |
+| --- | --- |
+| `~/.config/helix/config.toml` | Track the verified `dracula_at_night` theme as shared configuration in an opt-in `helix` module |
+| Other Helix files and state | Leave absent authored files, runtime, cache, history, language-server state, and generated files unmanaged |
+| Helix application | Keep the existing unconditional shared Homebrew installation |
+
 ### Herdr
 
 | Artifact | Decision |
@@ -135,7 +143,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Use Homebrew for applications, formulas, and redistributable fonts where possible | Avoids committing binaries |
 | Use notification-only automatic drift detection | Provides awareness without unattended mutation |
 | Make setup and later feature enablement idempotent and additive | Rerunning setup must install newly selected capabilities without breaking existing configuration or removing unselected software |
-| Allow modules to be selected independently | Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, and Git can be adopted one at a time |
+| Allow modules to be selected independently | Ghostty, Helix, Warp, Herdr, OpenCode, Starship, Zsh, and Git can be adopted one at a time |
 | Keep work plugin cleanup manual | Desired plugins are added idempotently, while private unwanted plugin names never enter public source |
 
 ## Explicitly Rejected Directions

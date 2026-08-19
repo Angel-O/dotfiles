@@ -199,6 +199,7 @@ assert_contains "$warp_dir/missing.after" 'copy_on_select = true'
 
 assert_contains "$source_dir/scripts/backup-paths.txt" '.config/ghostty'
 assert_contains "$source_dir/scripts/backup-paths.txt" 'Library/Application Support/com.mitchellh.ghostty/config'
+test "$(grep -Fxc '.config/helix' "$source_dir/scripts/backup-paths.txt")" -eq 1
 test "$(grep -Fxc '.warp/settings.toml' "$source_dir/scripts/backup-paths.txt")" -eq 1
 
 backup_home="$root/backup-home"
@@ -402,6 +403,8 @@ EOF
 apply_fixture personal
 
 test -f "$personal_home/.config/ghostty/config"
+test -f "$personal_home/.config/helix/config.toml"
+assert_contains "$personal_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
 test -f "$personal_home/.warp/settings.toml"
 assert_warp_policy "$personal_home/.warp/settings.toml"
 assert_contains "$personal_home/.config/ghostty/config" 'macos-option-as-alt = true'
@@ -550,6 +553,8 @@ assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
+test -f "$work_home/.config/helix/config.toml"
+assert_contains "$work_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$work_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'load the global `beads-hub` skill before acting'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'never raw `bd`, `bv`, or `br`'
@@ -822,6 +827,7 @@ assert_contains "$ghostty_archive" '# exploratory comments'
 HOME="$ghostty_home" sh "$root/ghostty-only/rendered/run_once_after_25-migrate-ghostty-config.sh.tmpl"
 apply_fixture ghostty-only
 test -f "$ghostty_home/.config/ghostty/config"
+test ! -e "$ghostty_home/.config/helix"
 test ! -e "$ghostty_home/.warp"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
@@ -830,6 +836,19 @@ assert_not_contains "$ghostty_home/.config/opencode/AGENTS.md" 'portable-work-be
 test ! -e "$ghostty_home/.config/starship/current.toml"
 test ! -e "$ghostty_home/.config/zsh/portable.zsh"
 test ! -e "$ghostty_home/.config/git/portable.inc"
+
+helix_home="$root/helix-only/home"
+render_scripts helix-only
+mkdir -p "$helix_home/.config/helix/runtime" "$helix_home/.cache/helix"
+printf '%s\n' 'preserve generated runtime data' >"$helix_home/.config/helix/runtime/generated"
+printf '%s\n' 'preserve runtime log' >"$helix_home/.cache/helix/helix.log"
+apply_fixture helix-only
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data == {"theme": "dracula_at_night"}' "$helix_home/.config/helix/config.toml"
+grep -Fxq 'preserve generated runtime data' "$helix_home/.config/helix/runtime/generated"
+grep -Fxq 'preserve runtime log' "$helix_home/.cache/helix/helix.log"
+test ! -e "$helix_home/.config/ghostty/config"
+helix_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/helix-only.toml" --include files | grep '^\.config/helix')
+test "$helix_managed" = '.config/helix/config.toml'
 
 warp_home="$root/warp-only/home"
 render_scripts warp-only

@@ -11,6 +11,7 @@ Each machine should have local chezmoi data describing intent rather than embedd
 role = "work"
 
 [data.modules]
+helix = true
 warp = false
 
 [data.features]
@@ -35,7 +36,7 @@ The data file generated on each machine remains local. Public source templates m
 | Layer | Responsibility | Examples |
 | --- | --- | --- |
 | Shared | Portable behavior used by selected modules | Themes, aliases, keybindings, Git worktree helpers |
-| Module | Independently selected tool configuration | Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, Git |
+| Module | Independently selected tool configuration | Ghostty, Helix, Warp, Herdr, OpenCode, Starship, Zsh, Git |
 | Role | Broad personal/work differences | Personal-only local AI; Reviewr source policy |
 | Feature | Independently enabled optional capabilities | Node development and JVM development |
 | Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Kiosk, Elio, Reviewr |
@@ -52,7 +53,7 @@ dotfiles/
 ├── .chezmoidata.toml
 ├── .chezmoiexternal.toml.tmpl
 ├── .chezmoitemplates/Brewfile.tmpl
-├── dot_config/{ghostty,git,herdr,opencode,starship,zsh}/
+├── dot_config/{ghostty,git,helix,herdr,opencode,starship,zsh}/
 ├── dot_warp/modify_settings.toml
 ├── dot_local/bin/
 ├── modify_dot_{gitconfig,zshrc}
