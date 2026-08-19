@@ -1,6 +1,6 @@
 # Configuration Inventory
 
-Inventory date: 2026-08-12.
+Inventory date: 2026-08-19.
 
 This is a snapshot of the currently verified personal-machine setup. The treatment and scope columns incorporate the completed inventory questionnaire.
 
@@ -194,6 +194,7 @@ This list intentionally includes only observed dependencies related to the envir
 | FZF | Homebrew formula | Shell and worktree selector | Install shared |
 | Zoxide | Homebrew formula | Shell navigation | Install shared |
 | Eza | Homebrew formula | General-purpose directory listing and Herdr Zoxide previews | Install unconditionally |
+| Helix | Homebrew formula | Terminal text editor | Install unconditionally as a shared dependency |
 | Direnv | Homebrew formula | Project-local environments | Exclude |
 | Glow | Homebrew formula | Reviewr Markdown renderer | Install when Reviewr is selected |
 | jq | Homebrew formula or transitive install | Herdr helper scripts | Install explicitly, shared |

@@ -108,6 +108,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Homebrew, Git, GitHub CLI, VS Code, and OpenCode | Assume preinstalled |
 | JetBrains Mono | Install shared |
 | Geist Mono and Monaspace | Exclude |
+| Helix | Install unconditionally as a shared Homebrew dependency |
 | Glow | Install when Reviewr is selected |
 | jq | Install explicitly as shared dependency |
 | Rust/Cargo | Install only when a selected plugin requires a local build |
