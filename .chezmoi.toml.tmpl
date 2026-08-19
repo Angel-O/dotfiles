@@ -1,5 +1,6 @@
 {{- $role := promptChoiceOnce . "role" "Machine role" (list "personal" "work") "personal" -}}
 {{- $ghostty := promptBoolOnce . "modules.ghostty" "Enable the Ghostty module" false -}}
+{{- $helix := promptBoolOnce . "modules.helix" "Enable the Helix module" false -}}
 {{- $warp := promptBoolOnce . "modules.warp" "Enable the Warp module" false -}}
 {{- $herdr := promptBoolOnce . "modules.herdr" "Enable the Herdr module" false -}}
 {{- $opencode := promptBoolOnce . "modules.opencode" "Enable the OpenCode module" false -}}
@@ -44,6 +45,7 @@ role = {{ $role | quote }}
 
 [data.modules]
 ghostty = {{ $ghostty }}
+helix = {{ $helix }}
 warp = {{ $warp }}
 herdr = {{ $herdr }}
 opencode = {{ $opencode }}

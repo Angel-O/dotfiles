@@ -16,6 +16,15 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Configuration backups | Local backup destination | Historical snapshots | Exclude (approved) | Runtime | Local retention or cleanup is outside chezmoi |
 | Ghostty application | Homebrew cask | Version 1.3.1 observed | Install Homebrew stable if missing | Shared/macOS | Do not commit or pin the application binary |
 
+## Helix
+
+| Artifact | Current location or source | Verified state | Approved treatment | Scope | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Authored configuration | `~/.config/helix/config.toml` | `dracula_at_night` theme | Track (approved) | Shared | Manage only this verified portable setting |
+| Additional authored configuration | `~/.config/helix/languages.toml` and custom runtime files | Not present | Leave unmanaged | Local/future | Add only after a concrete portable configuration is authored and reviewed |
+| Logs, caches, histories, language-server state, and generated files | Application-owned paths | Runtime or generated | Exclude | Runtime | Do not synchronize |
+| Helix application | Homebrew formula | Version 25.07.1 observed | Install unconditionally | Shared | Already declared as a shared dependency; do not commit the binary |
+
 ## Herdr Core
 
 | Artifact | Current location or source | Verified state | Approved treatment | Scope | Notes |

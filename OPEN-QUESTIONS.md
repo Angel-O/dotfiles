@@ -7,6 +7,7 @@ The source implementation is complete. These rollout and live-environment questi
 | Question | Current direction |
 | --- | --- |
 | Does Ghostty load the managed XDG path and render both themes/fonts correctly after the old Application Support config is retired? | Validate when adopting the Ghostty module |
+| Does Helix load the managed `dracula_at_night` theme on the target Mac? | Validate when adopting the Helix module |
 | Do the Homebrew cask identifiers remain valid on the target Mac? | Validate with the package installer dry run before the first apply |
 | Does the current OpenCode release accept the retained TUI plugin declaration? | Validate with `opencode debug config` before personal OpenCode adoption |
 | Do all selected Herdr plugins build cleanly from their pinned refs on a fresh Mac? | Validate first in the personal Herdr rollout; Cargo is installed only if absent |

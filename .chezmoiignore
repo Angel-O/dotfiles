@@ -17,6 +17,10 @@ scripts/**
 run_once_after_25-migrate-ghostty-config.sh
 {{- end }}
 
+{{- if not .modules.helix }}
+.config/helix/**
+{{- end }}
+
 {{- if not .modules.warp }}
 .warp/**
 {{- end }}

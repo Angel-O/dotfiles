@@ -25,6 +25,7 @@ chezmoi execute-template '{{ range $name, $enabled := .modules }}{{ if $enabled 
 | Module | Existing paths to back up |
 | --- | --- |
 | Ghostty | `~/.config/ghostty`, plus the old `~/Library/Application Support/com.mitchellh.ghostty/config` before retiring it manually |
+| Helix | `~/.config/helix` |
 | Warp | `~/.warp/settings.toml` |
 | Herdr | `~/.config/herdr` |
 | OpenCode | `~/.config/opencode`, `~/.local/bin/opencode-env` |
@@ -174,6 +175,7 @@ A future scheduled job may detect that managed destination files differ from tar
 | Area | Example validation |
 | --- | --- |
 | Ghostty | Confirm the XDG config, theme, font availability, startup behavior, and absence of a recognized overriding Application Support config |
+| Helix | Open Helix and confirm the `dracula_at_night` theme loads; verify logs, caches, histories, language-server state, and generated files remain unmanaged |
 | Warp | When enabled, confirm left `Option+T` reaches the shell/application instead of inserting `†`, right Option still enters macOS characters, and unrelated settings remain intact |
 | Herdr | Confirm version, keybindings, plugin list, plugin configs, and OpenCode integration |
 | OpenCode | Confirm version, launcher variables, global plugins, commands, and skills without copying auth |

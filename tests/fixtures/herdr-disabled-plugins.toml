@@ -3,6 +3,7 @@ role = "personal"
 
 [data.modules]
 ghostty = false
+helix = false
 warp = false
 herdr = true
 opencode = false
