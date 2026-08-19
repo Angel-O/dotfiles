@@ -37,7 +37,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | --- | --- |
 | Main config | Shared template with portable paths and conditional plugin bindings |
 | Reviewr tab helper and settings | Track when Reviewr is selected; use the shared Glow renderer |
-| Space Usage, Herdr Bar, Zoxide, and Reviewr settings | Track only when each plugin is selected |
+| Space Usage, Herdr Bar, and Reviewr settings | Track only when each plugin is selected |
 | Plugin registry, downloaded trees, sessions, histories, logs, backups, and release notes | Regenerate where needed and exclude from Git |
 | Herdr application | Use official stable installer when missing |
 | All managed Herdr plugins | Select independently per machine and install from pinned sources when selected |

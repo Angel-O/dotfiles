@@ -1,1 +1,0 @@
-preview = "eza -la --tree --level=2 --icons=always --color=always {}"

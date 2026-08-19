@@ -23,7 +23,7 @@ labels = true
 recentNavigator = true
 spaceUsage = true
 bar = true
-zoxide = true
+kiosk = true
 elio = false
 reviewr = true
 ```
@@ -38,7 +38,7 @@ The data file generated on each machine remains local. Public source templates m
 | Module | Independently selected tool configuration | Ghostty, Warp, Herdr, OpenCode, Starship, Zsh, Git |
 | Role | Broad personal/work differences | Personal-only local AI; Reviewr source policy |
 | Feature | Independently enabled optional capabilities | Node development and JVM development |
-| Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Zoxide, Elio, Reviewr |
+| Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Kiosk, Elio, Reviewr |
 | Machine | Device-specific paths or architecture | Workspace root, ARM64 package behavior |
 | Local secret | Values never stored in Git | Credentials, company endpoints, API keys |
 | Runtime | Application-owned mutable state | Sessions, logs, caches, databases |

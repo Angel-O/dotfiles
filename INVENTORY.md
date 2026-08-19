@@ -51,7 +51,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | `beyondlex.herdr-recent-navigator` | Default branch commit | On | Install pinned when selected |
 | `ez-corp.space-usage` | Default branch commit | On | Install pinned and manage config when selected |
 | `herdr-bar` | Default branch commit | On | Install pinned and manage config when selected |
-| `herdr-zoxide` | Default branch commit | On | Install pinned and manage config when selected |
+| `thomasschafer.herdr-kiosk` | Default branch commit | On | Install pinned when selected; plugin manages its own config |
 | `robert-flo.elio` | Default branch commit | Off | Install pinned when selected; distinct from the shared CLI |
 
 ## Herdr Machine-Specific Plugin Installation
@@ -193,7 +193,7 @@ This list intentionally includes only observed dependencies related to the envir
 | Monaspace font | Homebrew cask | Available unused font | Exclude |
 | FZF | Homebrew formula | Shell and worktree selector | Install shared |
 | Zoxide | Homebrew formula | Shell navigation | Install shared |
-| Eza | Homebrew formula | General-purpose directory listing and Herdr Zoxide previews | Install unconditionally |
+| Eza | Homebrew formula | General-purpose directory listing | Install unconditionally |
 | Direnv | Homebrew formula | Project-local environments | Exclude |
 | Glow | Homebrew formula | Reviewr Markdown renderer | Install when Reviewr is selected |
 | jq | Homebrew formula or transitive install | Herdr helper scripts | Install explicitly, shared |
