@@ -1,0 +1,5 @@
+{{- $opencodeBeads := dig "integrations" "opencodeBeads" false . -}}
+.config/opencode/skills/work-beads/SKILL.md
+{{ if not (and .modules.beads $opencodeBeads) }}
+.config/opencode/skills/beads-hub/SKILL.md
+{{ end }}
