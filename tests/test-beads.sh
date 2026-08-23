@@ -90,6 +90,10 @@ if [ -n "${BEADS_VIEWER_SOURCE:-}" ]; then
   test -d "$BEADS_VIEWER_SOURCE/cmd/bv"
   test -d "$BEADS_VIEWER_SOURCE/cmd/wbd"
   test -d "$BEADS_VIEWER_SOURCE/cmd/wbv"
+  for skill in beads-hub beads-hub-closeout; do
+    test -f "$BEADS_VIEWER_SOURCE/skills/$skill/SKILL.md"
+  done
+  test -x "$BEADS_VIEWER_SOURCE/skills/beads-hub-closeout/validate.sh"
   for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
     test -f "$BEADS_VIEWER_SOURCE/scripts/$script"
   done
