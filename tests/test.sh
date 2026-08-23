@@ -83,13 +83,13 @@ assert_not_contains() {
   fi
 }
 
-assert_beads_hub_external() {
+assert_beads_viewer_externals() {
   local file=$1
-  local expected_url="https://raw.githubusercontent.com/Angel-O/beads_viewer/$beads_viewer_ref/skills/beads-hub/SKILL.md"
-  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": sys.argv[2]}' "$file" "$expected_url"
+  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}' "$file" "$beads_viewer_ref"
 }
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
+assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
 assert_contains "$source_dir/README.md" 'atomically installs its `bv`, `wbd`, and `wbv` binaries'
 assert_contains "$source_dir/README.md" '`~/.local/libexec/beads-viewer`'
 assert_contains "$source_dir/README.md" '~/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh'
@@ -358,6 +358,8 @@ python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data
 personal_home="$root/personal/home"
 render_scripts personal
 assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub/SKILL.md'
+assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/SKILL.md'
+assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/validate.sh'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "helix"'
 assert_contains "$root/personal/rendered/Brewfile" 'cask "lm-studio"'
@@ -443,7 +445,7 @@ HOME="$personal_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias o
 
 personal_beads_home="$root/personal-with-beads/home"
 render_scripts personal-with-beads
-assert_beads_hub_external "$root/personal-with-beads/rendered/externals.toml"
+assert_beads_viewer_externals "$root/personal-with-beads/rendered/externals.toml"
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "jq"'
@@ -456,6 +458,8 @@ apply_fixture personal-with-beads
 test ! -e "$personal_beads_home/.local/bin/wbd"
 test ! -e "$personal_beads_home/.local/bin/wbv"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
@@ -474,7 +478,7 @@ test -z "$personal_beads_diff"
 
 work_home="$root/work/home"
 render_scripts work
-assert_beads_hub_external "$root/work/rendered/externals.toml"
+assert_beads_viewer_externals "$root/work/rendered/externals.toml"
 assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "helix"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
@@ -551,6 +555,8 @@ assert_contains "$work_home/.config/opencode/AGENTS.md" 'never raw `bd`, `bv`, o
 test ! -e "$work_home/.local/bin/wbd"
 test ! -e "$work_home/.local/bin/wbv"
 test ! -e "$work_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$work_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+test ! -e "$work_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$work_home/.config/opencode/skills/work-beads/SKILL.md"
 cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
@@ -607,7 +613,7 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-merm
 
 external_home="$root/external-opencode-beads/home"
 render_scripts external-opencode-beads
-assert_beads_hub_external "$root/external-opencode-beads/rendered/externals.toml"
+assert_beads_viewer_externals "$root/external-opencode-beads/rendered/externals.toml"
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "jq"'
@@ -647,6 +653,8 @@ apply_fixture external-opencode-beads
 test ! -e "$external_home/.local/bin/wbd"
 test ! -e "$external_home/.local/bin/wbv"
 test ! -e "$external_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$external_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+test ! -e "$external_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$external_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$external_home/.config/opencode/portable.jsonc"
 test ! -e "$external_home/.config/opencode/plugins/env-protection.js"
@@ -684,8 +692,12 @@ test -z "$external_diff"
 integration_disabled_home="$root/beads-integration-disabled/home"
 render_scripts beads-integration-disabled
 assert_not_contains "$root/beads-integration-disabled/rendered/externals.toml" '.config/opencode/skills/beads-hub/SKILL.md'
-mkdir -p "$integration_disabled_home/.config/opencode/skills/beads-hub"
+assert_not_contains "$root/beads-integration-disabled/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/SKILL.md'
+assert_not_contains "$root/beads-integration-disabled/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/validate.sh'
+mkdir -p "$integration_disabled_home/.config/opencode/skills/beads-hub" "$integration_disabled_home/.config/opencode/skills/beads-hub-closeout"
 printf '%s\n' 'previously installed external skill' >"$integration_disabled_home/.config/opencode/skills/beads-hub/SKILL.md"
+printf '%s\n' 'previously installed external closeout skill' >"$integration_disabled_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+printf '%s\n' 'previously installed external closeout validator' >"$integration_disabled_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 cat >"$integration_disabled_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"unmanaged_setting": "preserve"}
 EOF
@@ -700,6 +712,8 @@ test ! -e "$integration_disabled_home/.local/bin/wbd"
 test ! -e "$integration_disabled_home/.local/bin/wbv"
 test ! -e "$integration_disabled_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test -f "$integration_disabled_home/.config/opencode/portable.jsonc"
 assert_contains "$integration_disabled_home/.config/opencode/opencode.jsonc" '"unmanaged_setting": "preserve"'
 assert_contains "$integration_disabled_home/.config/opencode/AGENTS.md" 'Preserve disabled-integration guidance.'
@@ -726,6 +740,9 @@ assert_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-beads-hu
 assert_not_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 mkdir -p "$transition_home/.config/opencode/skills/beads-hub"
 printf '%s\n' 'simulated installed external skill' >"$transition_home/.config/opencode/skills/beads-hub/SKILL.md"
+mkdir -p "$transition_home/.config/opencode/skills/beads-hub-closeout"
+printf '%s\n' 'simulated installed external closeout skill' >"$transition_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+printf '%s\n' 'simulated installed external closeout validator' >"$transition_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 chezmoi apply \
   --source "$source_dir" \
   --destination "$transition_home" \
@@ -736,6 +753,8 @@ chezmoi apply \
   --force
 test ! -e "$transition_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$transition_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$transition_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+test ! -e "$transition_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$transition_home/.local/bin/wbd"
 test ! -e "$transition_home/.local/bin/wbv"
 assert_contains "$transition_home/.config/opencode/AGENTS.md" 'Preserve transition guidance.'
@@ -745,6 +764,8 @@ assert_not_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-bead
 legacy_home="$root/legacy-beads/home"
 render_scripts legacy-beads
 assert_not_contains "$root/legacy-beads/rendered/externals.toml" '.config/opencode/skills/beads-hub/SKILL.md'
+assert_not_contains "$root/legacy-beads/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/SKILL.md'
+assert_not_contains "$root/legacy-beads/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/validate.sh'
 mkdir -p "$legacy_home/.config/opencode"
 cat >"$legacy_home/.config/opencode/AGENTS.md" <<'EOF'
 Preserve legacy guidance.
@@ -757,6 +778,8 @@ test ! -e "$legacy_home/.local/bin/wbd"
 test ! -e "$legacy_home/.local/bin/wbv"
 test ! -e "$legacy_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$legacy_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$legacy_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
+test ! -e "$legacy_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 assert_contains "$legacy_home/.config/opencode/AGENTS.md" 'Preserve legacy guidance.'
 assert_not_contains "$legacy_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 

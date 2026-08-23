@@ -51,6 +51,8 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/skills/*
 !.config/opencode/skills/beads-hub
 !.config/opencode/skills/beads-hub/**
+!.config/opencode/skills/beads-hub-closeout
+!.config/opencode/skills/beads-hub-closeout/**
 {{- end }}
 
 {{- if eq .role "work" }}
