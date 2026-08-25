@@ -48,6 +48,16 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | --- | --- | --- | --- | --- | --- |
 | Option/Meta input policy | `~/.warp/settings.toml` | `[terminal.input.extra_meta_keys]` | Opt-in modifier managing only `left_alt = true` and `right_alt = false` | Machine-selected/macOS | Configuration only: do not install Warp; preserve all unrelated private and machine-specific settings; disabled machines leave the file completely unmanaged and untouched |
 
+## Beads Runtime
+
+`.chezmoidata.toml` is the authoritative source for the compatible Beads and Viewer fork refs; Renovate maintains them as one runtime group, so this inventory does not duplicate exact commits.
+
+| Artifact | Source | Approved treatment | Scope | Notes |
+| --- | --- | --- | --- | --- |
+| `bd` | `Angel-O/beads` feature branch | Build the exact pinned commit with CGO and `gms_pure_go`; install atomically under `~/.local/bin` | Machine-selected | Ad-hoc sign on macOS; do not use the Homebrew Beads formula |
+| `bv`, `wbd`, and `wbv` | `Angel-O/beads_viewer` feature branch | Build the exact compatible pinned commit and install atomically under `~/.local/bin` | Machine-selected | Viewer requires the paired `bd` grouped-history contract |
+| Hub migration scripts | Pinned Viewer checkout | Install under `~/.local/libexec/beads-viewer` | Machine-selected | Migrations remain explicit operator actions |
+
 ## Herdr GitHub Plugins
 
 `.chezmoidata.toml` is the authoritative source for plugin repositories and exact refs; Renovate maintains those values so this inventory does not duplicate them.

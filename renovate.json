@@ -26,12 +26,23 @@
     },
     {
       "customType": "regex",
+      "description": "Update the Beads feature branch commit",
+      "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
+      "matchStrings": [
+        "\\[pins\\.beads\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+branch = \"(?<currentValue>[^\"]+)\"\\s+ref = \"(?<currentDigest>[a-f0-9]{40})\""
+      ],
+      "depTypeTemplate": "beads-runtime",
+      "packageNameTemplate": "https://github.com/{{{depName}}}.git",
+      "datasourceTemplate": "git-refs"
+    },
+    {
+      "customType": "regex",
       "description": "Update the Beads Viewer feature branch commit",
       "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
       "matchStrings": [
         "\\[pins\\.beadsViewer\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+branch = \"(?<currentValue>[^\"]+)\"\\s+ref = \"(?<currentDigest>[a-f0-9]{40})\""
       ],
-      "depTypeTemplate": "beads-viewer",
+      "depTypeTemplate": "beads-runtime",
       "packageNameTemplate": "https://github.com/{{{depName}}}.git",
       "datasourceTemplate": "git-refs"
     }
@@ -46,12 +57,14 @@
       "groupSingleUpdates": true
     },
     {
-      "description": "Describe Beads Viewer branch pin updates",
+      "description": "Group compatible Beads runtime pin updates",
       "matchManagers": ["custom.regex"],
-      "matchDepTypes": ["beads-viewer"],
-      "commitMessageTopic": "Beads Viewer branch pin",
+      "matchDepTypes": ["beads-runtime"],
+      "groupName": "Beads runtime",
+      "groupSlug": "beads-runtime",
+      "groupSingleUpdates": true,
       "prBodyNotes": [
-        "This pin follows `feature/repository-aware-correlations`; review the old and new commit SHAs and merge only after Docker validation passes."
+        "The Viewer and Beads fork pins form a compatible runtime pair; review the resulting pair, including an unchanged companion pin, and merge only after Docker validation passes."
       ]
     }
   ]

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+trap 'status=$?; printf "test failure at line %s: %s (status %s)\n" "$LINENO" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
 
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 root=/tmp/dotfiles-test
@@ -90,11 +92,12 @@ assert_beads_viewer_externals() {
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
-assert_contains "$source_dir/README.md" 'atomically installs its `bv`, `wbd`, and `wbv` binaries'
+assert_contains "$source_dir/README.md" 'atomically installs `bd`, `bv`, `wbd`, and `wbv`'
 assert_contains "$source_dir/README.md" '`~/.local/libexec/beads-viewer`'
 assert_contains "$source_dir/README.md" '~/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh'
 assert_contains "$source_dir/README.md" 'Disabling the module stops future installation and management without deleting'
-python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pin=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]["beadsViewer"]; managers=json.load(open(source+"/renovate.json"))["customManagers"]; assert pin["branch"] == "feature/repository-aware-correlations"; assert any(manager.get("depTypeTemplate") == "beads-viewer" and manager.get("datasourceTemplate") == "git-refs" for manager in managers)' "$source_dir"
+python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pins=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]; config=json.load(open(source+"/renovate.json")); managers=config["customManagers"]; assert pins["beads"]["branch"] == "feat/bulk-history-read"; assert pins["beadsViewer"]["branch"] == "feature/repository-aware-correlations"; runtime=[manager for manager in managers if manager.get("depTypeTemplate") == "beads-runtime" and manager.get("datasourceTemplate") == "git-refs"]; assert len(runtime) == 2; assert any(rule.get("groupName") == "Beads runtime" for rule in config["packageRules"])' "$source_dir"
+beads_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beads"]["ref"])' "$source_dir/.chezmoidata.toml")
 beads_viewer_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"])' "$source_dir/.chezmoidata.toml")
 
 assert_warp_policy() {
@@ -367,6 +370,7 @@ assert_contains "$root/personal/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/personal/rendered/Brewfile" 'brew "glow"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "beads"'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "beads_viewer"'
+assert_not_contains "$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'Angel-O/beads'
 assert_not_contains "$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'Angel-O/beads_viewer'
 assert_contains "$root/personal/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'exit 0'
 assert_not_contains "$root/personal/rendered/Brewfile" 'brew "bat"'
@@ -446,12 +450,14 @@ HOME="$personal_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias o
 personal_beads_home="$root/personal-with-beads/home"
 render_scripts personal-with-beads
 assert_beads_viewer_externals "$root/personal-with-beads/rendered/externals.toml"
-assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads"'
+assert_not_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/personal-with-beads/rendered/Brewfile" 'brew "beads_viewer"'
-assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'beads_source_repo="Angel-O/beads"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "beads_wanted_ref=\"$beads_ref\""
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
+assert_contains "$root/personal-with-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 mkdir -p "$personal_beads_home/.config/opencode"
 printf '%s\n' 'Preserve personal Beads guidance.' >"$personal_beads_home/.config/opencode/AGENTS.md"
 apply_fixture personal-with-beads
@@ -484,12 +490,14 @@ assert_contains "$root/work/rendered/Brewfile" 'brew "helix"'
 assert_not_contains "$root/work/rendered/Brewfile" 'cask "lm-studio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "elio"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "glow"'
-assert_contains "$root/work/rendered/Brewfile" 'brew "beads"'
+assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/work/rendered/Brewfile" 'brew "beads_viewer"'
-assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'beads_source_repo="Angel-O/beads"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "beads_wanted_ref=\"$beads_ref\""
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
+assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
@@ -614,12 +622,14 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-merm
 external_home="$root/external-opencode-beads/home"
 render_scripts external-opencode-beads
 assert_beads_viewer_externals "$root/external-opencode-beads/rendered/externals.toml"
-assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads"'
+assert_not_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "go"'
 assert_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "jq"'
 assert_not_contains "$root/external-opencode-beads/rendered/Brewfile" 'brew "beads_viewer"'
-assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'source_repo="Angel-O/beads_viewer"'
-assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "wanted_ref=\"$beads_viewer_ref\""
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'beads_source_repo="Angel-O/beads"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "beads_wanted_ref=\"$beads_ref\""
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
+assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 mkdir -p "$external_home/.config/opencode/skills/existing-skill"
 cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"external_opencode_setting": true}
