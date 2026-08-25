@@ -4,18 +4,22 @@ set -eu
 {{- if not .modules.beads }}
 exit 0
 {{- else }}
-source_repo={{ .pins.beadsViewer.source | quote }}
-wanted_ref={{ .pins.beadsViewer.ref | quote }}
+beads_source_repo={{ .pins.beads.source | quote }}
+beads_wanted_ref={{ .pins.beads.ref | quote }}
+viewer_source_repo={{ .pins.beadsViewer.source | quote }}
+viewer_wanted_ref={{ .pins.beadsViewer.ref | quote }}
 state_dir=$HOME/.local/share/beads-viewer-fork
 stamp=$state_dir/installed-ref
 bin_dir=$HOME/.local/bin
 libexec_dir=$HOME/.local/libexec/beads-viewer
+installed_pair="$beads_source_repo@$beads_wanted_ref $viewer_source_repo@$viewer_wanted_ref"
 
-if [ -x "$bin_dir/bv" ] && [ -x "$bin_dir/wbd" ] && [ -x "$bin_dir/wbv" ] &&
+if [ -x "$bin_dir/bd" ] && [ -x "$bin_dir/bv" ] &&
+  [ -x "$bin_dir/wbd" ] && [ -x "$bin_dir/wbv" ] &&
   [ -x "$libexec_dir/migrate-beads-hub-prefix.sh" ] &&
   [ -x "$libexec_dir/migrate-beads-work-to-hub.sh" ] &&
   [ -f "$libexec_dir/beads-hub-prefix-internal.sh" ] && [ -f "$stamp" ] &&
-  [ "$(cat "$stamp")" = "$source_repo@$wanted_ref" ]; then
+  [ "$(cat "$stamp")" = "$installed_pair" ]; then
   exit 0
 fi
 
@@ -31,23 +35,39 @@ target_tmp=
 stamp_tmp=
 trap 'rm -rf "$tmp"; [ -z "$target_tmp" ] || rm -f "$target_tmp"; [ -z "$stamp_tmp" ] || rm -f "$stamp_tmp"' EXIT HUP INT TERM
 
-git clone --filter=blob:none --no-checkout \
-  "https://github.com/$source_repo.git" "$tmp/source"
-git -C "$tmp/source" fetch --depth 1 origin "$wanted_ref"
-resolved_ref=$(git -C "$tmp/source" rev-parse FETCH_HEAD)
-if [ "$resolved_ref" != "$wanted_ref" ]; then
-  printf 'Beads Viewer ref mismatch: expected %s, fetched %s.\n' \
-    "$wanted_ref" "$resolved_ref" >&2
-  exit 1
-fi
-git -C "$tmp/source" checkout --detach "$resolved_ref"
+fetch_source() (
+  source_repo=$1
+  wanted_ref=$2
+  destination=$3
+  label=$4
+
+  git clone --filter=blob:none --no-checkout \
+    "https://github.com/$source_repo.git" "$destination"
+  git -C "$destination" fetch --depth 1 origin "$wanted_ref"
+  resolved_ref=$(git -C "$destination" rev-parse FETCH_HEAD)
+  if [ "$resolved_ref" != "$wanted_ref" ]; then
+    printf '%s ref mismatch: expected %s, fetched %s.\n' \
+      "$label" "$wanted_ref" "$resolved_ref" >&2
+    exit 1
+  fi
+  git -C "$destination" checkout --detach "$resolved_ref"
+)
+
+fetch_source "$beads_source_repo" "$beads_wanted_ref" "$tmp/beads" Beads
+fetch_source "$viewer_source_repo" "$viewer_wanted_ref" "$tmp/viewer" 'Beads Viewer'
 
 mkdir -p "$bin_dir" "$libexec_dir" "$state_dir"
+beads_build=$(git -C "$tmp/beads" rev-parse --short HEAD)
+(cd "$tmp/beads" && CGO_ENABLED=1 go build -trimpath -tags gms_pure_go \
+  -ldflags "-X main.Build=$beads_build" -o "$tmp/bd" ./cmd/bd)
+if [ "$(uname -s)" = Darwin ] && command -v codesign >/dev/null 2>&1; then
+  codesign -s - -f "$tmp/bd" 2>/dev/null || true
+fi
 for command in bv wbd wbv; do
-  (cd "$tmp/source" && go build -trimpath -o "$tmp/$command" "./cmd/$command")
+  (cd "$tmp/viewer" && go build -trimpath -o "$tmp/$command" "./cmd/$command")
 done
 
-for command in bv wbd wbv; do
+for command in bd bv wbd wbv; do
   target_tmp=$(mktemp "$bin_dir/.$command.tmp.XXXXXX")
   cp "$tmp/$command" "$target_tmp"
   chmod 0755 "$target_tmp"
@@ -57,14 +77,14 @@ done
 
 for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
   target_tmp=$(mktemp "$libexec_dir/.$script.tmp.XXXXXX")
-  cp "$tmp/source/scripts/$script" "$target_tmp"
+  cp "$tmp/viewer/scripts/$script" "$target_tmp"
   chmod 0755 "$target_tmp"
   mv "$target_tmp" "$libexec_dir/$script"
   target_tmp=
 done
 
 stamp_tmp=$(mktemp "$state_dir/.installed-ref.tmp.XXXXXX")
-printf '%s\n' "$source_repo@$wanted_ref" >"$stamp_tmp"
+printf '%s\n' "$installed_pair" >"$stamp_tmp"
 chmod 0600 "$stamp_tmp"
 mv "$stamp_tmp" "$stamp"
 {{- end }}

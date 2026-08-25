@@ -3,10 +3,15 @@ ohMyZsh = "7ea697fd8138550ddf7262456d412f0dcd1cbf84"
 zshTransientPrompt = "bdd5917f38db4b4995134e8fb0251ce01cd9a068"
 grillingSkill = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
 
+[pins.beads]
+source = "Angel-O/beads"
+branch = "feat/bulk-history-read"
+ref = "df606ee50276ede5796df7f358e11253d7b3efb5"
+
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
-branch = "feature/repository-aware-correlations"
-ref = "c528523cc3f28fd15ebd7426aaa5c9c1a151e34d"
+branch = "perf/history-bulk-loading"
+ref = "8f7e018a88287adc0024cbed296124cf309f30c1"
 
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
