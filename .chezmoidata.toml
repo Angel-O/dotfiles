@@ -10,8 +10,8 @@ ref = "df606ee50276ede5796df7f358e11253d7b3efb5"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
-branch = "perf/history-bulk-loading"
-ref = "8f7e018a88287adc0024cbed296124cf309f30c1"
+branch = "feature/repository-aware-correlations"
+ref = "448e6d0084117da69b38a5409dba81b74a17c886"
 
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
