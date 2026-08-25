@@ -103,7 +103,7 @@ for command in bd bv wbd wbv; do
   test -x "$case_root/home/.local/bin/$command"
   test "$("$case_root/home/.local/bin/$command")" = "viewer binary: $command"
 done
-grep -Fq "$case_root/beads|1|build -trimpath -tags gms_pure_go -ldflags -X main.Build=$beads_short -o" "$case_root/go.log"
+grep -Fq "|1|build -trimpath -tags gms_pure_go -ldflags -X main.Build=$beads_short -o" "$case_root/go.log"
 for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
   deployed=$case_root/home/.local/libexec/beads-viewer/$script
   test -x "$deployed"

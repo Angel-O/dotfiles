@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+trap 'status=$?; printf "test failure at line %s: %s (status %s)\n" "$LINENO" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
 
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 root=/tmp/dotfiles-test
