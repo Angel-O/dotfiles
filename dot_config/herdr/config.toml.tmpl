@@ -27,6 +27,7 @@ next_workspace = "alt+j"
 sidebar_width = 33
 agent_panel_sort = "priority"
 show_agent_labels_on_pane_borders = true
+window_title = "{hostname}: {workspace}"
 
 [ui.sidebar.spaces]
 {{- if .herdrPlugins.spaceUsage }}
@@ -37,7 +38,7 @@ rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 row_gap = 1
 
 [ui.sidebar.agents]
-rows = [["workspace", "agent"], ["state_text", { token = "tab", dim = false }]]
+rows = [["state_icon", "workspace", "agent"], ["state_text", { token = "tab", dim = false }]]
 row_gap = 1
 
 [advanced]
