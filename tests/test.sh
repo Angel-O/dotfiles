@@ -403,7 +403,12 @@ assert_contains "$personal_home/.config/helix/config.toml" 'theme = "dracula_at_
 test -f "$personal_home/.warp/settings.toml"
 assert_warp_policy "$personal_home/.warp/settings.toml"
 assert_contains "$personal_home/.config/ghostty/config" 'macos-option-as-alt = true'
+assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'interval_seconds = 30'
+assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'window_title_totals = false'
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
+assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'icons = "nerdfont"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'window_title = "{hostname}: {workspace}"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'rows = [["state_icon", "workspace", "agent"], ["state_text", { token = "tab", dim = false }]]'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "thomasschafer.herdr-kiosk.open-picker"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+o"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'herdr-zoxide.browse'

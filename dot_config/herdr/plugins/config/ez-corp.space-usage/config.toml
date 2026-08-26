@@ -1,4 +1,5 @@
 mode = "sidebar"
-interval_seconds = 5
-window_title_totals = true
+interval_seconds = 30
+window_title_totals = false
 ram_display = "absolute"
+icons = "nerdfont"
