@@ -433,6 +433,7 @@ grep -Fxq preserved-wbv "$personal_home/.local/bin/wbv"
 grep -Fxq preserved-migration "$personal_home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh"
 test ! -e "$personal_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$personal_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$personal_home/.config/opencode/commands/orchestrate-bead.md"
 test -L "$personal_home/.config/starship/current.toml"
 test -f "$personal_home/.config/zsh/portable.zsh"
 test -f "$personal_home/.config/zsh/git-worktrees.zsh"
@@ -472,6 +473,7 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/commands/orchestrate-bead.md" "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
@@ -621,6 +623,7 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/plugins/plan-diagrams.js'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-bead.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/beads-hub/SKILL.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
 
@@ -635,7 +638,8 @@ assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-bea
 assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "beads_wanted_ref=\"$beads_ref\""
 assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
 assert_contains "$root/external-opencode-beads/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
-mkdir -p "$external_home/.config/opencode/skills/existing-skill"
+mkdir -p "$external_home/.config/opencode/command" "$external_home/.config/opencode/skills/existing-skill"
+printf '%s\n' 'Legacy orchestrate command.' >"$external_home/.config/opencode/command/orchestrate-bead.md"
 cat >"$external_home/.config/opencode/opencode.jsonc" <<'EOF'
 {"external_opencode_setting": true}
 EOF
@@ -661,6 +665,7 @@ chezmoi managed \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
+.config/opencode/commands/orchestrate-bead.md
 EOF
 cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
 
@@ -677,6 +682,8 @@ test ! -e "$external_home/.config/opencode/plugins/plan-diagrams.js"
 test ! -e "$external_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 test ! -e "$external_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
+test ! -e "$external_home/.config/opencode/command/orchestrate-bead.md"
+cmp -s "$source_dir/dot_config/opencode/commands/orchestrate-bead.md" "$external_home/.config/opencode/commands/orchestrate-bead.md"
 test ! -e "$external_home/.local/bin/opencode-env"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
 cmp -s "$root/external-opencode-beads/skill.before" "$external_home/.config/opencode/skills/existing-skill/SKILL.md"
