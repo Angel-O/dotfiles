@@ -116,6 +116,7 @@ Every managed plugin is a machine-local selection independent of role. `prefix+m
 | `plan-diagrams.js` | `~/.config/opencode/plugins/` | Tells the Plan agent to load diagram guidance only when it is ready to draft | Track | Shared |
 | `herdr-agent-state.js` | `~/.config/opencode/plugins/` | Reports OpenCode session state to Herdr | Regenerate through Herdr integration | Shared/generated |
 | `herdr-name.md` | `~/.config/opencode/command/` | Global command for naming the active Herdr agent | Track | Shared |
+| `orchestrate-bead.md` | `~/.config/opencode/commands/` | Starts a Herdr worker for a private Bead and pauses for model selection | Track when Herdr, Beads, and the OpenCode Beads integration are enabled | Shared/conditional |
 | `grilling` | `~/.config/opencode/skills/` | Structured requirements/design interview workflow | Install from pinned source | Shared |
 | `herdr-agent-name` | `~/.config/opencode/skills/` | Renames the current OpenCode agent in Herdr | Track | Shared |
 | `plan-diagrams` | `~/.config/opencode/skills/` | Adds a concise diagram to final implementation plans and delegates reusable rules | Track with global deny and Plan-agent allow | Shared/Plan-only |

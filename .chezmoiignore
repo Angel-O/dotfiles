@@ -47,6 +47,7 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/*
 !.config/opencode/AGENTS.md
 .local/bin/opencode-env
+!.config/opencode/commands
 !.config/opencode/skills
 .config/opencode/skills/*
 !.config/opencode/skills/beads-hub
@@ -62,6 +63,9 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- if or (not .modules.opencode) (not .modules.herdr) }}
 .config/opencode/commands/herdr-name.md
 .config/opencode/skills/herdr-agent-name/**
+{{- end }}
+{{- if or (not .modules.herdr) (not .modules.beads) (not .integrations.opencodeBeads) }}
+.config/opencode/commands/orchestrate-bead.md
 {{- end }}
 
 .config/opencode/env.local
