@@ -6,12 +6,12 @@ grillingSkill = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
 [pins.beads]
 source = "Angel-O/beads"
 branch = "feat/bulk-history-read"
-ref = "a948d2282573092a88c4ed892754e4d5d1e62485"
+ref = "05ffcf3bf3e3a6d11a898dc35928eb02ffd168d7"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
 branch = "feature/repository-aware-correlations"
-ref = "64367c938b9d8617bd28370bb36f571e63e61574"
+ref = "ebc5c9970965ba99557ac82d5a633383532176f9"
 
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
