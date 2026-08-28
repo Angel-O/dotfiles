@@ -39,7 +39,7 @@ ref = "79cd2feaa8e493da32c230950545ec4c5ce2743b"
 [pins.herdrPlugins.spaceUsage]
 source = "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"
 branch = "main"
-ref = "fcfb6f7fa0a159adfab4528496bf10dd62e3e7c1"
+ref = "94a2ea3bf21ec35c6da51b9657c97167e68034ce"
 
 [pins.herdrPlugins.kiosk]
 source = "thomasschafer/herdr-kiosk"
