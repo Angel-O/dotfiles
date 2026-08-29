@@ -90,6 +90,11 @@ assert_beads_viewer_externals() {
   python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}' "$file" "$beads_viewer_ref"
 }
 
+assert_ponytail_external() {
+  local file=$1
+  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; assert data[".config/opencode/skills/ponytail/SKILL.md"] == {"type": "file", "url": "https://raw.githubusercontent.com/dietrichgebert/ponytail/" + ref + "/skills/ponytail/SKILL.md"}' "$file" "$ponytail_ref"
+}
+
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
 assert_contains "$source_dir/README.md" 'atomically installs `bd`, `bv`, `wbd`, and `wbv`'
@@ -99,6 +104,7 @@ assert_contains "$source_dir/README.md" 'Disabling the module stops future insta
 python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pins=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]; config=json.load(open(source+"/renovate.json")); managers=config["customManagers"]; assert pins["beads"]["branch"] == "feat/bulk-history-read"; assert pins["beadsViewer"]["branch"] == "feature/repository-aware-correlations"; runtime=[manager for manager in managers if manager.get("depTypeTemplate") == "beads-runtime" and manager.get("datasourceTemplate") == "git-refs"]; assert len(runtime) == 2; assert any(rule.get("groupName") == "Beads runtime" for rule in config["packageRules"])' "$source_dir"
 beads_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beads"]["ref"])' "$source_dir/.chezmoidata.toml")
 beads_viewer_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"])' "$source_dir/.chezmoidata.toml")
+ponytail_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["ponytailSkill"])' "$source_dir/.chezmoidata.toml")
 
 assert_warp_policy() {
   local file=$1
@@ -360,6 +366,7 @@ python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data
 
 personal_home="$root/personal/home"
 render_scripts personal
+assert_ponytail_external "$root/personal/rendered/externals.toml"
 assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub/SKILL.md'
 assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/SKILL.md'
 assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/validate.sh'
@@ -491,6 +498,7 @@ test -z "$personal_beads_diff"
 
 work_home="$root/work/home"
 render_scripts work
+assert_ponytail_external "$root/work/rendered/externals.toml"
 assert_beads_viewer_externals "$root/work/rendered/externals.toml"
 assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
 assert_contains "$root/work/rendered/Brewfile" 'brew "helix"'
