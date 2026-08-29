@@ -6,7 +6,7 @@ ponytailSkill = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
 
 [pins.beads]
 source = "Angel-O/beads"
-branch = "feature/offline-store-copy"
+branch = "feat/bulk-history-read"
 ref = "e8a3e22ab0a6f9cc68bf0ca9c111e6bcd2d7005b"
 
 [pins.beadsViewer]
