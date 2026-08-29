@@ -7,7 +7,7 @@ ponytailSkill = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
 [pins.beads]
 source = "Angel-O/beads"
 branch = "feat/bulk-history-read"
-ref = "9a09eb63a8c980b45c2051f9e9abe66eb2c981f4"
+ref = "0db7cda39a03bcd3234a25f770a49a36d79ed51f"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
