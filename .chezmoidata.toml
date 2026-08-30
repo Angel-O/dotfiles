@@ -12,7 +12,7 @@ ref = "8570ab6b598950ed1db44b2c85b7ce1bd5c16b5d"
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
 branch = "feature/repository-aware-correlations"
-ref = "e2bf16554caff05c8744e2f42a2232ddb4e97bfc"
+ref = "f5abee86125a6913e6a770629d7a1a3e54d9d110"
 
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
