@@ -496,8 +496,18 @@ done
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '`--agent worker`'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '`--agent architect`'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start <worker-name> --kind opencode --pane <root-pane-id> -- --agent worker'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start <architect-name> --kind opencode --pane <root-pane-id> -- --agent architect'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode --agent'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode run'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode -m'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" ' --model'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" ' --variant'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning-effort'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning effort'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'openai/gpt-'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reuse it for every review and rereview'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
@@ -550,10 +560,18 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'with the custom `worker` agent'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-5.6-luna'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'high` reasoning effort'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '`--agent architect`'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start <worker-name> --kind opencode --pane <root-pane-id> -- --agent worker'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start <architect-name> --kind opencode --pane <root-pane-id> -- --agent architect'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode --agent'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode run'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode -m'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" ' --model'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" ' --variant'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reasoning-effort'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reasoning effort'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'one `reviewer` subagent session'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reuse that same session sequentially'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
@@ -768,8 +786,9 @@ test ! -e "$external_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
 test ! -e "$external_home/.config/opencode/command/orchestrate-bead.md"
 assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
-assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" '`--agent worker`'
-assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" '`--agent architect`'
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent worker'
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent architect'
 assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 test ! -e "$external_home/.local/bin/opencode-env"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
