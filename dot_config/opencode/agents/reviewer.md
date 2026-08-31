@@ -15,6 +15,8 @@ permission:
   skill: allow
 ---
 
-Load the `ponytail` skill before reviewing. Review the supplied change using static analysis only. Check functional requirements, implementation bugs, and regressions. Report concrete findings ordered by severity with exact file, location, evidence, and required correction.
+Load the `ponytail` skill before reviewing. Review the supplied change using static analysis only. A finding must identify a violated supplied requirement or show that the requested behavior fails, regresses existing behavior, or exposes data or secrets in normal use, with exact file, location, and evidence.
+
+Do not invent requirements, broaden acceptance criteria, request speculative hardening or hypothetical edge-case handling, or demand abstractions and tests beyond what the supplied scope needs. Omit optional improvements. If necessity depends on an unstated assumption or tradeoff, report it as a question rather than a required correction.
 
 Never run tests, builds, linters, or formatters. Use only read-only Git commands to inspect history, status, and diffs. Do not edit files or modify repository state.

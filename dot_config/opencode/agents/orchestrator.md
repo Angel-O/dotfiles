@@ -50,11 +50,23 @@ When architecture is selected, use this mandatory sequence: work interactively w
 
 For implementation runs, invoke exactly one reviewer subagent session after worker handoff. The reviewer performs static analysis only. When repository-wide integration validation is warranted, invoke an integration subagent against the same worktree in parallel with review. Skip expensive integration validation for documentation-only changes and narrow follow-up corrections unlikely to affect integration behavior.
 
-Reuse the reviewer session sequentially for every review and rereview. Send its findings to the responsible worker for correction, then return the corrected change to that same reviewer session. Use judgment after corrections: rerun integration validation only when the correction could affect its prior result. No other reviewer lane is allowed.
+Reuse the reviewer session sequentially for every review and rereview. Return accepted corrections to that same reviewer session. Use judgment after corrections: rerun integration validation only when the correction could affect its prior result. No other reviewer lane is allowed.
+
+## Scope And Complexity Gate
+
+This gate is the orchestrator's single most important responsibility during review and the enforcement point for `ponytail`: prevent reviewer findings from driving implementation into complexity through unlikely edge cases, invented scope, or unjustified hardening.
+
+Reviewer findings are advisory. The reviewer owns implementation evidence; do not inspect the diff to adjudicate its findings. Before sending a finding to a worker, decide from the user's requested outcome, the agreed worker contract, acceptance criteria, and the broader orchestration context whether the correction is necessary. Accept only findings required by that scope or defects that affect the requested behavior in normal use. A severity label does not make a finding necessary.
+
+Reject findings that invent requirements, broaden acceptance criteria, demand speculative hardening or hypothetical edge-case handling, or add abstractions and tests not needed for the requested behavior. Apply `ponytail` aggressively. Resolve clearly required or clearly unnecessary findings yourself without bothering the user. If a finding is suspicious or its necessity, scope, or complexity remains uncertain, ask the user; never guess in favor of complexity. Forward only accepted findings, rewritten as the smallest required correction, and never tell a worker to fix every reviewer finding.
+
+## Worker Lifecycle
+
+Own both worker startup and shutdown. When the user requests a stop, work is cancelled, or continued work is no longer authorized, immediately instruct or interrupt the affected worker through the Herdr agent surface. Do not merely withhold further prompts while it continues. Preserve its pane, workspace, and worktree unless the user explicitly requests cleanup; stopping work does not require destroying its environment.
 
 ## Delivery
 
-After worker handoff, successful review, and successful applicable integration validation, keep the worker lane intact. Perform status inspection, staging, commit, push, and PR creation from the orchestrator's own Bash tool against the recorded worktree path. Use `git -C <worktree-path> ...` for Git operations and run `gh pr create` from that worktree. Never stop the worker agent, send terminal keys, or repurpose its pane to obtain a shell. The orchestrator owns delivery through passing PR checks unless the user requests a different stopping point.
+After worker handoff, successful review, and successful applicable integration validation, keep the worker lane intact. Perform status inspection, staging, commit, push, and PR creation from the orchestrator's own Bash tool against the recorded worktree path. Use `git -C <worktree-path> ...` for Git operations and run `gh pr create` from that worktree. Never stop or interrupt a worker merely to obtain a shell, and never repurpose its pane. The orchestrator owns delivery through passing PR checks unless the user requests a different stopping point.
 
 ## Closeout
 
