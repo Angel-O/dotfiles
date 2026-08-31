@@ -106,6 +106,7 @@ directory = Path(sys.argv[1])
 contracts = {
     "orchestrator": ("primary", "openai/gpt-5.6-terra", "medium", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
     "integration": ("subagent", "openai/gpt-5.6-luna", "medium", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
+    "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
     "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "read", "glob", "grep", "webfetch", "lsp", "skill"}),
@@ -128,10 +129,12 @@ for name, (mode, model, effort, allowed) in contracts.items():
             keys.add(match.group(1) or match.group(2))
     assert keys == allowed | {"*"}, (name, keys)
     for tool in allowed - {"bash", "task"}:
-        assert re.search(rf'^  {re.escape(tool)}: allow$', permission, re.MULTILINE)
+        action = "ask" if name == "investigator" and tool == "external_directory" else "allow"
+        assert re.search(rf'^  {re.escape(tool)}: {action}$', permission, re.MULTILINE)
 
 for name, forbidden in {
     "integration": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
+    "investigator": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
     "reviewer": {"orchestrator", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
     "worker": {"orchestrator", "reviewer", "planner", "architect", "orchestration", "routing", "delegate"},
     "architect": {"orchestrator", "reviewer", "worker", "planner", "orchestration", "routing", "delegate"},
@@ -144,7 +147,7 @@ read_only_git = r'    "git diff": allow\n    "git diff \*": allow\n    "git stat
 worker = (directory / "worker.md").read_text()
 assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
-assert '  task:\n    "*": deny\n    explore: allow\n    integration: allow\n    planner: allow\n    reviewer: allow' in orchestrator
+assert '  task:\n    "*": deny\n    integration: allow\n    investigator: allow\n    planner: allow\n    reviewer: allow' in orchestrator
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):
@@ -494,7 +497,7 @@ test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
 assert_contains "$personal_home/.config/opencode/tui.jsonc" '"./herdr-tui-session.js"'
 assert_agent_contracts "$personal_home/.config/opencode/agents"
-for agent in orchestrator integration reviewer worker architect planner; do
+for agent in orchestrator integration investigator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
 done
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
