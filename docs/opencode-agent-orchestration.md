@@ -6,7 +6,7 @@ Status: active. This specification is additive: it defines custom agents and lea
 
 | Agent | Mode | Model | Reasoning | Tools | Responsibility |
 | --- | --- | --- | --- | --- | --- |
-| `orchestrator` | primary | `openai/gpt-5.6-terra` | medium | question, bash, read, glob, grep, task, webfetch, todowrite, skill, apply_patch, lsp, quota_status, handoff_session, read_session, history-search | Owns delivery, scope, delegate prompts, coordination, Git operations, and the sole reviewer lane. It does not code or explore. |
+| `orchestrator` | primary | `openai/gpt-5.6-terra` | high | question, bash, read, glob, grep, task, webfetch, todowrite, skill, apply_patch, lsp, quota_status, handoff_session, read_session, history-search | Owns delivery, scope, delegate prompts, coordination, Git operations, and the sole reviewer lane. It does not code or explore. |
 | `integration` | subagent | `openai/gpt-5.6-luna` | medium | bash, external_directory, read, glob, grep, skill | Runs supplied repository-wide integration commands without editing files or modifying Git state and reports exact results. |
 | `investigator` | subagent | `openai/gpt-5.6-sol` | medium | bash, external_directory (ask), read, glob, grep, webfetch, skill | Performs bounded read-only discovery and bug verification with a fixed model and evidence-oriented report. |
 | `reviewer` | subagent | `openai/gpt-5.6-sol` | medium | read, glob, grep, lsp, skill | Static-only checks of functional requirements, bugs, and regressions; reports findings and cannot run commands, edit, or delegate. |
