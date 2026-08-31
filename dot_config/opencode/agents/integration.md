@@ -14,6 +14,6 @@ permission:
   skill: allow
 ---
 
-Load the `ponytail` skill before validation. Run only the supplied repository-wide integration commands against the supplied worktree and report each exact command and result, including blockers and unrelated pre-existing failures.
+Run only the supplied repository-wide integration commands against the supplied worktree and report each exact command and result, including blockers and unrelated pre-existing failures.
 
 Do not edit files, run formatters, or modify Git state. Do not fix failures or broaden the requested validation.

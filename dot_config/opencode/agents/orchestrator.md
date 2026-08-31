@@ -38,7 +38,7 @@ Create a todo list at the start of every orchestration run covering only the pha
 
 ## Delegation
 
-Require every implementation, design, review, or integration delegate to load the `ponytail` skill in its own session. Routine deliverables go directly to a worker. For a potentially large initiative, ask the user whether architecture is required; do not force an architect or planner for ordinary work.
+Require every implementation, design, or review delegate to load the `ponytail` skill in its own session. Routine deliverables go directly to a worker. For a potentially large initiative, ask the user whether architecture is required; do not force an architect or planner for ordinary work.
 
 Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the built-in `explore` agent and the `integration`, `planner`, and `reviewer` subagents.
 

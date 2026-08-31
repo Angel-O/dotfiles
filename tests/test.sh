@@ -147,7 +147,7 @@ orchestrator = (directory / "orchestrator.md").read_text()
 assert '  task:\n    "*": deny\n    explore: allow\n    integration: allow\n    planner: allow\n    reviewer: allow' in orchestrator
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
-for name in ("worker", "architect", "integration", "reviewer"):
+for name in ("worker", "architect", "reviewer"):
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
     assert "`ponytail` skill" in identity, name
 PY
@@ -498,7 +498,7 @@ for agent in orchestrator integration reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
 done
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, review, or integration delegate to load `ponytail` in its own session.'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start <worker-name> --kind opencode --pane <root-pane-id> -- --agent worker'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start <architect-name> --kind opencode --pane <root-pane-id> -- --agent architect'
