@@ -95,6 +95,58 @@ assert_ponytail_external() {
   python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; assert data[".config/opencode/skills/ponytail/SKILL.md"] == {"type": "file", "url": "https://raw.githubusercontent.com/dietrichgebert/ponytail/" + ref + "/skills/ponytail/SKILL.md"}' "$file" "$ponytail_ref"
 }
 
+assert_agent_contracts() {
+  local directory=$1
+  python3 - "$directory" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+directory = Path(sys.argv[1])
+contracts = {
+    "orchestrator": ("primary", "openai/gpt-5.6-terra", "medium", {"question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "apply_patch", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
+    "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"read", "glob", "grep", "lsp", "skill"}),
+    "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "apply_patch", "lsp"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"read", "glob", "grep", "webfetch", "lsp", "skill"}),
+    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
+}
+
+for name, (mode, model, effort, allowed) in contracts.items():
+    text = (directory / f"{name}.md").read_text()
+    frontmatter = text.split("---", 2)[1]
+    assert f"mode: {mode}" in frontmatter
+    assert f"model: {model}" in frontmatter
+    assert f"reasoningEffort: {effort}" in frontmatter
+    assert '  "*": deny' in frontmatter
+    permission = frontmatter.split("permission:", 1)[1]
+    keys = set()
+    for line in permission.splitlines():
+        match = re.match(r'^  (?:"([^"]+)"|([A-Za-z_-]+)):', line)
+        if match:
+            keys.add(match.group(1) or match.group(2))
+    assert keys == allowed | {"*"}, (name, keys)
+    for tool in allowed - {"bash", "task"}:
+        assert re.search(rf'^  {re.escape(tool)}: allow$', permission, re.MULTILINE)
+
+for name, forbidden in {
+    "reviewer": {"orchestrator", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
+    "worker": {"orchestrator", "reviewer", "planner", "architect", "orchestration", "routing", "delegate"},
+    "architect": {"orchestrator", "reviewer", "worker", "planner", "orchestration", "routing", "delegate"},
+    "planner": {"orchestrator", "reviewer", "worker", "architect", "orchestration", "routing", "delegate"},
+}.items():
+    identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
+    assert not forbidden.intersection(identity), (name, forbidden.intersection(identity))
+
+worker = (directory / "worker.md").read_text()
+assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny$', worker, re.MULTILINE)
+orchestrator = (directory / "orchestrator.md").read_text()
+assert '  task:\n    "*": deny\n    architect: allow\n    planner: allow\n    worker: allow\n    reviewer: allow' in orchestrator
+PY
+  for built_in in build plan general explore scout; do
+    test ! -e "$directory/$built_in.md"
+  done
+}
+
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
 assert_contains "$source_dir/README.md" 'atomically installs `bd`, `bv`, `wbd`, and `wbv`'
@@ -246,6 +298,7 @@ assert_contains "$agents_modifier_dir/balanced.after" 'Preserve this trailing gu
 assert_contains "$agents_modifier_dir/balanced.after" 'load the global `beads-hub` skill before acting'
 assert_contains "$agents_modifier_dir/balanced.after" 'use only `wbd` and approved `wbv --robot-*` queries'
 assert_contains "$agents_modifier_dir/balanced.after" 'never raw `bd`, `bv`, or `br`'
+assert_contains "$agents_modifier_dir/balanced.after" 'Commit correlation and Bead closure must not occur during implementation, commit, push, or PR creation. Perform both only after the change is merged, through the `beads-hub-closeout` workflow.'
 assert_not_contains "$agents_modifier_dir/balanced.after" 'replace this managed text'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$agents_modifier_dir/balanced.after")" -eq 1
 assert_not_contains "$agents_modifier_dir/balanced.after" 'portable-work-beads:start'
@@ -430,6 +483,12 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROM
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
+assert_agent_contracts "$personal_home/.config/opencode/agents"
+for agent in orchestrator reviewer worker architect planner; do
+  test -f "$personal_home/.config/opencode/agents/$agent.md"
+done
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load `ponytail` before any implementation, design, or review delegate.'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
@@ -481,6 +540,11 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/commands/orchestrate-bead.md" "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'with the custom `worker` agent'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-5.6-luna'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'high` reasoning effort'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
@@ -878,6 +942,8 @@ test ! -e "$ghostty_home/.config/helix"
 test ! -e "$ghostty_home/.warp"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
+test ! -e "$ghostty_home/.config/opencode/agents"
+test ! -e "$ghostty_home/.config/opencode/commands/orchestrate.md"
 assert_contains "$ghostty_home/.config/opencode/AGENTS.md" 'Preserve this guidance with OpenCode disabled.'
 assert_not_contains "$ghostty_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 test ! -e "$ghostty_home/.config/starship/current.toml"
