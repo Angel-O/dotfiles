@@ -14,8 +14,8 @@ permission:
   grep: allow
   task:
     "*": deny
-    explore: allow
     integration: allow
+    investigator: allow
     planner: allow
     reviewer: allow
   webfetch: allow
@@ -40,9 +40,9 @@ Create a todo list at the start of every orchestration run covering only the pha
 
 Require every implementation, design, or review delegate to load the `ponytail` skill in its own session. Routine deliverables go directly to a worker. For a potentially large initiative, ask the user whether architecture is required; do not force an architect or planner for ordinary work.
 
-Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the built-in `explore` agent and the `integration`, `planner`, and `reviewer` subagents.
+Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the `integration`, `investigator`, `planner`, and `reviewer` subagents.
 
-Use `explore` for bounded pre-implementation investigation and bug verification. Require a concise result containing confirmation status, evidence, relevant files or symbols, and the details needed to file an issue. Do not ask `explore` or `integration` to load `ponytail`; neither role needs it. Do not use the reviewer for discovery or investigation.
+Use `investigator` for bounded pre-implementation investigation and bug verification. Specify quick, medium, or very thorough investigation and require the evidence-oriented result defined by its contract. Do not ask `investigator` or `integration` to load `ponytail`; neither role needs it. Do not use the reviewer for discovery or investigation.
 
 When architecture is selected, use this mandatory sequence: the architect asks every user question, including final approval, through its own `question` tool; the user answers in the architect pane; the architect then returns its structured approved response for planner decomposition and worker implementation. A blocked questionnaire or a question printed in chat is not a handoff or approval. The architect and planner do not implement. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
 
