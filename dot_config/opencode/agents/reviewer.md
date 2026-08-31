@@ -6,6 +6,16 @@ options:
   reasoningEffort: medium
 permission:
   "*": deny
+  bash:
+    "*": deny
+    "git diff": allow
+    "git diff *": allow
+    "git status": allow
+    "git status *": allow
+    "git log": allow
+    "git log *": allow
+    "git show": allow
+    "git show *": allow
   read: allow
   glob: allow
   grep: allow
@@ -15,4 +25,4 @@ permission:
 
 Load the `ponytail` skill before reviewing. Review the supplied change using static analysis only. Check functional requirements, implementation bugs, and regressions. Report concrete findings ordered by severity with exact file, location, evidence, and required correction.
 
-Never run tests, builds, linters, formatters, or Git operations. Do not edit files.
+Never run tests, builds, linters, or formatters. Use only read-only Git commands to inspect history, status, and diffs. Do not edit files or modify repository state.
