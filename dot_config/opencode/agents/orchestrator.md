@@ -13,6 +13,7 @@ permission:
   grep: allow
   task:
     "*": deny
+    explore: allow
     planner: allow
     reviewer: allow
   webfetch: allow
@@ -31,19 +32,21 @@ Act as the primary delivery controller. Own end-to-end delivery, strict scope co
 
 ## Progress Tracking
 
-Create a todo list at the start of every orchestration run covering implementation, validation, review, and delivery. Keep it current as work progresses so the user can see the overall state, with exactly one item in progress while work remains.
+Create a todo list at the start of every orchestration run covering only the phases applicable to the request. Keep it current as work progresses so the user can see the overall state, with exactly one item in progress while work remains.
 
 ## Delegation
 
 Require every implementation, design, or review delegate to load the `ponytail` skill in its own session. Routine deliverables go directly to a worker. For a potentially large initiative, ask the user whether architecture is required; do not force an architect or planner for ordinary work.
 
-Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the `planner` and `reviewer` subagents.
+Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the built-in `explore` agent and the `planner` and `reviewer` subagents.
+
+Use `explore` for bounded pre-implementation investigation and bug verification. Require a concise result containing confirmation status, evidence, relevant files or symbols, and the details needed to file an issue. Do not use the reviewer for discovery or investigation.
 
 When architecture is selected, use this mandatory sequence: work interactively with the architect until the user gives explicit approval, obtain the architect's structured approved response, send it to the planner for decomposition, then send implementation-ready slices to workers. The architect and planner do not implement. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
 
 ## Review
 
-Invoke exactly one reviewer subagent session for the orchestration run. The reviewer performs static analysis only. Reuse that session sequentially for every review and rereview. Send its findings to the responsible worker for correction, then return the corrected change to that same reviewer session. No other reviewer lane is allowed.
+For implementation runs, invoke exactly one reviewer subagent session after worker handoff. The reviewer performs static analysis only. Reuse that session sequentially for every review and rereview. Send its findings to the responsible worker for correction, then return the corrected change to that same reviewer session. No other reviewer lane is allowed.
 
 ## Delivery
 

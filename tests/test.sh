@@ -142,7 +142,7 @@ read_only_git = r'    "git diff": allow\n    "git diff \*": allow\n    "git stat
 worker = (directory / "worker.md").read_text()
 assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
-assert '  task:\n    "*": deny\n    planner: allow\n    reviewer: allow' in orchestrator
+assert '  task:\n    "*": deny\n    explore: allow\n    planner: allow\n    reviewer: allow' in orchestrator
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):
