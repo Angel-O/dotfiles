@@ -104,9 +104,9 @@ from pathlib import Path
 
 directory = Path(sys.argv[1])
 contracts = {
-    "orchestrator": ("primary", "openai/gpt-5.6-terra", "medium", {"question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "apply_patch", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
-    "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"read", "glob", "grep", "lsp", "skill"}),
-    "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "apply_patch", "lsp"}),
+    "orchestrator": ("primary", "openai/gpt-5.6-terra", "medium", {"question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
+    "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "read", "glob", "grep", "lsp", "skill"}),
+    "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
     "architect": ("primary", "openai/gpt-5.6-sol", "high", {"read", "glob", "grep", "webfetch", "lsp", "skill"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
 }
@@ -119,6 +119,7 @@ for name, (mode, model, effort, allowed) in contracts.items():
     assert f"reasoningEffort: {effort}" in frontmatter
     assert '  "*": deny' in frontmatter
     permission = frontmatter.split("permission:", 1)[1]
+    assert "apply_patch" not in permission
     keys = set()
     for line in permission.splitlines():
         match = re.match(r'^  (?:"([^"]+)"|([A-Za-z_-]+)):', line)
@@ -137,8 +138,14 @@ for name, forbidden in {
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
     assert not forbidden.intersection(identity), (name, forbidden.intersection(identity))
 
+read_only_git = r'    "git diff": allow\n    "git diff \*": allow\n    "git status": allow\n    "git status \*": allow\n    "git log": allow\n    "git log \*": allow\n    "git show": allow\n    "git show \*": allow'
 worker = (directory / "worker.md").read_text()
-assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny$', worker, re.MULTILINE)
+assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
+assert "run validation proportionate to the change" in worker
+assert "Use read-only Git commands" in worker
+assert "full test suite once at the end" not in worker
+reviewer = (directory / "reviewer.md").read_text()
+assert re.search(r'^  bash:\n    "\*": deny\n' + read_only_git, reviewer, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
 assert '  task:\n    "*": deny\n    planner: allow\n    reviewer: allow' in orchestrator
 assert 'architect: allow' not in orchestrator

@@ -18,7 +18,6 @@ permission:
   webfetch: allow
   todowrite: allow
   skill: allow
-  apply_patch: allow
   lsp: allow
   quota_status: allow
   handoff_session: allow
