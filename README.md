@@ -14,6 +14,7 @@ The source state is modular: Ghostty, Helix, Warp, Herdr, OpenCode, Starship, Zs
 | [DESIGN.md](DESIGN.md) | Implemented repository and machine-profile design |
 | [WORKFLOW.md](WORKFLOW.md) | Adoption, restoration, and synchronization workflow |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Remaining rollout and validation questions |
+| [docs/opencode-agent-orchestration.md](docs/opencode-agent-orchestration.md) | Custom OpenCode agent roles and lifecycle |
 
 ## Current Phase
 
@@ -45,7 +46,7 @@ The inventory uses these classifications:
 | `git` | Non-destructive portable include, worktree aliases, and ignore rules |
 | `beads` | Optional private global task store and Viewer-owned `wbd`/`wbv` commands on either role |
 
-The `opencode` module installs shared local plugins for environment protection and Plan-mode diagrams, plus the pinned `grilling` and `ponytail` skills. The Plan plugin adds only a late trigger: immediately before drafting a plan, the built-in Plan agent lazily loads the globally hidden `plan-diagrams` skill, which then loads the unrestricted `terminal-mermaid` skill for reusable diagram selection, syntax, rendering, and viewport guidance. The pinned `opencode-mermaid-renderer` published plugin renders the resulting compact Mermaid source in terminal chat on both personal and work machines. OpenCode auto-discovers the local trigger plugin under `~/.config/opencode/plugins/`; the renderer is declared once in the managed portable configuration.
+The `opencode` module installs shared local plugins for environment protection and Plan-mode diagrams, plus the pinned `grilling` and `ponytail` skills. It also installs the additive custom agent set described in [the orchestration specification](docs/opencode-agent-orchestration.md) and the thin manual orchestration command. These new agents do not alter built-in agent definitions. The Plan plugin adds only a late trigger: immediately before drafting a plan, the built-in Plan agent lazily loads the globally hidden `plan-diagrams` skill, which then loads the unrestricted `terminal-mermaid` skill for reusable diagram selection, syntax, rendering, and viewport guidance. The pinned `opencode-mermaid-renderer` published plugin renders the resulting compact Mermaid source in terminal chat on both personal and work machines. OpenCode auto-discovers the local trigger plugin under `~/.config/opencode/plugins/`; the renderer is declared once in the managed portable configuration.
 
 When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather than tracked in full: left Option sends Alt/Meta for terminal keybindings, while right Option remains available for macOS character entry. The module does not install Warp. When disabled, chezmoi does not manage, alter, or delete existing Warp settings. Warp hot-reloads `settings.toml`; smoke-test the enabled policy by confirming `Alt+T` reaches the shell or application instead of producing `†`.
 

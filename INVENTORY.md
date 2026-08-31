@@ -116,7 +116,9 @@ Every managed plugin is a machine-local selection independent of role. `prefix+m
 | `plan-diagrams.js` | `~/.config/opencode/plugins/` | Tells the Plan agent to load diagram guidance only when it is ready to draft | Track | Shared |
 | `herdr-agent-state.js` | `~/.config/opencode/plugins/` | Reports OpenCode session state to Herdr | Regenerate through Herdr integration | Shared/generated |
 | `herdr-name.md` | `~/.config/opencode/command/` | Global command for naming the active Herdr agent | Track | Shared |
-| `orchestrate-bead.md` | `~/.config/opencode/commands/` | Starts a Herdr worker for a private Bead and pauses for model selection | Track when Herdr, Beads, and the OpenCode Beads integration are enabled | Shared/conditional |
+| `orchestrate-bead.md` | `~/.config/opencode/commands/` | Starts fixed custom workers through Herdr for private Bead work | Track when Herdr, Beads, and the OpenCode Beads integration are enabled | Shared/conditional |
+| `orchestrate.md` | `~/.config/opencode/commands/` | Starts ordinary work under the custom orchestrator with Ponytail-aware delegates | Track when OpenCode is enabled | Shared/conditional |
+| `agents/*.md` | `~/.config/opencode/agents/` | Defines the additive orchestrator, reviewer, worker, architect, and planner roles | Track when OpenCode is enabled | Shared |
 | `grilling` | `~/.config/opencode/skills/` | Structured requirements/design interview workflow | Install from pinned source | Shared |
 | `ponytail` | `~/.config/opencode/skills/` | Minimal, YAGNI-first coding workflow | Install from pinned source | Shared |
 | `herdr-agent-name` | `~/.config/opencode/skills/` | Renames the current OpenCode agent in Herdr | Track | Shared |

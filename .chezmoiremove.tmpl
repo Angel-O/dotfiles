@@ -1,6 +1,14 @@
 {{- $opencodeBeads := dig "integrations" "opencodeBeads" false . -}}
 .config/opencode/command/orchestrate-bead.md
 .config/opencode/skills/work-beads/SKILL.md
+{{ if not .modules.opencode }}
+.config/opencode/agents/orchestrator.md
+.config/opencode/agents/reviewer.md
+.config/opencode/agents/worker.md
+.config/opencode/agents/architect.md
+.config/opencode/agents/planner.md
+.config/opencode/commands/orchestrate.md
+{{ end }}
 {{ if not (and .modules.beads $opencodeBeads) }}
 .config/opencode/skills/beads-hub/SKILL.md
 .config/opencode/skills/beads-hub-closeout/SKILL.md
