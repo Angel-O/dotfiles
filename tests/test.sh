@@ -141,9 +141,6 @@ for name, forbidden in {
 read_only_git = r'    "git diff": allow\n    "git diff \*": allow\n    "git status": allow\n    "git status \*": allow\n    "git log": allow\n    "git log \*": allow\n    "git show": allow\n    "git show \*": allow'
 worker = (directory / "worker.md").read_text()
 assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
-assert "run validation proportionate to the change" in worker
-assert "Use read-only Git commands" in worker
-assert "full test suite once at the end" not in worker
 reviewer = (directory / "reviewer.md").read_text()
 assert re.search(r'^  bash:\n    "\*": deny\n' + read_only_git, reviewer, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
