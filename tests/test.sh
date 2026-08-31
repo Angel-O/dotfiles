@@ -298,6 +298,7 @@ assert_contains "$agents_modifier_dir/balanced.after" 'Preserve this trailing gu
 assert_contains "$agents_modifier_dir/balanced.after" 'load the global `beads-hub` skill before acting'
 assert_contains "$agents_modifier_dir/balanced.after" 'use only `wbd` and approved `wbv --robot-*` queries'
 assert_contains "$agents_modifier_dir/balanced.after" 'never raw `bd`, `bv`, or `br`'
+assert_contains "$agents_modifier_dir/balanced.after" 'Commit correlation and Bead closure must not occur during implementation, commit, push, or PR creation. Perform both only after the change is merged, through the `beads-hub-closeout` workflow.'
 assert_not_contains "$agents_modifier_dir/balanced.after" 'replace this managed text'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$agents_modifier_dir/balanced.after")" -eq 1
 assert_not_contains "$agents_modifier_dir/balanced.after" 'portable-work-beads:start'

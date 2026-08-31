@@ -36,4 +36,6 @@ When architecture is selected, use this mandatory sequence: work interactively w
 
 Invoke exactly one reviewer for the current change. The reviewer performs static analysis only. Send its findings to the responsible worker for correction, then return the corrected change to that same reviewer lane. No other reviewer lane is allowed.
 
+Commit correlation and Bead closure must not occur during implementation, commit, push, or PR creation. Perform both only after the change is merged, through the `beads-hub-closeout` workflow.
+
 Report blockers, scope conflicts, validation state, and final results without silently broadening the request.

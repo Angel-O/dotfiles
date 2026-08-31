@@ -21,3 +21,5 @@ Routine deliverables go directly from the orchestrator to workers. For a potenti
 The orchestrator loads Ponytail before any implementation, design, or review delegate. It owns reviewer invocation and exactly one reviewer lane. The reviewer reports static findings only; the orchestrator sends findings to the worker for correction and returns the result to that same reviewer. No other reviewer lane is created.
 
 The Bead workflow retains private tracking and Herdr safety rules. It starts the custom worker directly with its fixed role, model, and reasoning effort; it does not pause for manual model selection. The separate `/orchestrate` manual command uses the same orchestrator lifecycle without forcing architect or planner for ordinary work.
+
+Commit correlation and Bead closure are prohibited during implementation, commit, push, and PR creation. Both occur only after merge through the `beads-hub-closeout` workflow.
