@@ -446,8 +446,8 @@ assert_not_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio "robert-flo/herdr-terminal-file-manager"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
-assert_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" "grep '^opencode: current ' >/dev/null"
-assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" "grep -q '^opencode: current '"
+assert_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'herdr integration install opencode'
+assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'herdr integration status'
 assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'codex completion'
 mkdir -p "$personal_home/.config/opencode" "$personal_home/.local/bin" \
   "$personal_home/.local/libexec/beads-viewer"
@@ -488,6 +488,7 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROM
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
+assert_contains "$personal_home/.config/opencode/tui.jsonc" '"./herdr-tui-session.js"'
 assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
