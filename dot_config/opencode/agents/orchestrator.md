@@ -42,7 +42,7 @@ Require every implementation, design, or review delegate to load the `ponytail` 
 
 Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the built-in `explore` agent and the `integration`, `planner`, and `reviewer` subagents.
 
-Use `explore` for bounded pre-implementation investigation and bug verification. Require a concise result containing confirmation status, evidence, relevant files or symbols, and the details needed to file an issue. Do not use the reviewer for discovery or investigation.
+Use `explore` for bounded pre-implementation investigation and bug verification. Require a concise result containing confirmation status, evidence, relevant files or symbols, and the details needed to file an issue. Do not ask `explore` or `integration` to load `ponytail`; neither role needs it. Do not use the reviewer for discovery or investigation.
 
 When architecture is selected, use this mandatory sequence: work interactively with the architect until the user gives explicit approval, obtain the architect's structured approved response, send it to the planner for decomposition, then send implementation-ready slices to workers. The architect and planner do not implement. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
 
