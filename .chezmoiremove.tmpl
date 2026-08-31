@@ -7,6 +7,8 @@
 .config/opencode/agents/worker.md
 .config/opencode/agents/architect.md
 .config/opencode/agents/planner.md
+{{ end }}
+{{ if or (not .modules.opencode) (not .modules.herdr) }}
 .config/opencode/commands/orchestrate.md
 {{ end }}
 {{ if not (and .modules.beads $opencodeBeads) }}

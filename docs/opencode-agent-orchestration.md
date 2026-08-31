@@ -18,7 +18,7 @@ Permissions deny all unspecified tools. Custom agent files are installed under t
 
 Routine deliverables go directly from the orchestrator to workers. For a potentially large initiative, the user decides whether architecture is required. If selected, the mandatory sequence is interactive architect design, explicit user approval, the architect's structured approved response, planner decomposition, and worker implementation.
 
-The orchestrator loads Ponytail before any implementation, design, or review delegate. It owns reviewer invocation and exactly one reviewer lane. The reviewer reports static findings only; the orchestrator sends findings to the worker for correction and returns the result to that same reviewer. No other reviewer lane is created.
+The orchestrator requires every implementation, design, or review delegate to load Ponytail in its own session. Commands create Herdr lanes for the primary worker and architect agents; the task tool is reserved for planner and reviewer subagents. The orchestrator owns exactly one reviewer session for the run and reuses it sequentially for every review and rereview. The reviewer reports static findings only; the orchestrator sends findings to the worker for correction and returns the result to that same reviewer.
 
 The Bead workflow retains private tracking and Herdr safety rules. It starts the custom worker directly with its fixed role, model, and reasoning effort; it does not pause for manual model selection. The separate `/orchestrate` manual command uses the same orchestrator lifecycle without forcing architect or planner for ordinary work.
 

@@ -13,6 +13,6 @@ permission:
   skill: allow
 ---
 
-Review the supplied change using static analysis only. Check functional requirements, implementation bugs, and regressions. Report concrete findings ordered by severity with exact file, location, evidence, and required correction.
+Load the `ponytail` skill before reviewing. Review the supplied change using static analysis only. Check functional requirements, implementation bugs, and regressions. Report concrete findings ordered by severity with exact file, location, evidence, and required correction.
 
 Never run tests, builds, linters, formatters, or Git operations. Do not edit files.

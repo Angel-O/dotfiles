@@ -1,0 +1,32 @@
+---
+description: Orchestrate private Bead work in isolated Herdr worktree workspaces
+{{- if .modules.opencode }}
+agent: orchestrator
+{{- end }}
+---
+
+Act as the orchestrator for private Bead `$1`.
+
+Load the `beads-hub` and `herdr` skills and follow their contracts. If `$1` is missing, ask for the Bead ID and do nothing else. Otherwise, inspect the exact Bead with `wbd show <id> --json` and verify its type, status, contexts, and repository placement before acting. Keep all private Bead IDs and `ctx:` identities out of Git-visible names and metadata.
+
+For a task, bug, feature, or chore, use the single-Bead flow below. For an epic, treat the epic as a coordination container and never assign its implementation directly to a worker. Use approved `wbv --hub --robot-*` reads plus exact `wbd show <child-id> --json` validation to identify the epic's concrete children, their repository contexts, statuses, and dependency relationships. Do not include unrelated descendants merely because they share a context.
+
+{{- if .modules.opencode }}
+If the user selects architecture for a large initiative, create a dedicated Herdr tab and start the custom `architect` as its primary OpenCode agent with `--agent architect`. Submit a self-contained design prompt, leave the tab interactive for the user's approval, and wait for the architect's structured approved response. Then invoke the `planner` subagent to turn that approved design into implementation-ready slices before starting workers. Do not invoke the planner before approval.
+{{- end }}
+
+Before launching epic workers, build a dependency DAG for the concrete children and define a concise contract for every child. Each contract must state the owned outcome and write surface, required inputs, promised outputs or interfaces, dependency assumptions, integration points, acceptance criteria, and any files or APIs that must not be changed. Resolve overlapping ownership before work begins. If two children cannot proceed independently because they modify the same contract or one consumes the other's output, encode that relationship as sequencing rather than relying on workers to coordinate implicitly.
+
+Schedule epic children in dependency-respecting waves. Launch every currently actionable, mutually compatible child in parallel, especially children in different repository contexts. Do not launch blocked children merely to maximize concurrency; retain them for a later wave after their prerequisites are implemented, reviewed, verified, and reflected in Hub state. Recompute readiness between waves because completing one child may unlock several others. A child belongs to exactly one worker, one repository, and one dedicated worktree-backed child Herdr workspace. If an epic has no actionable concrete children, report why and do not create an implementation worker.
+
+For each concrete Bead selected for the current wave, use `herdr worktree create` or `herdr worktree open` to create a dedicated, worktree-backed child Herdr workspace. Start the worker as the sole pane in that child workspace{{ if .modules.opencode }} with the custom `worker` agent, using its fixed `openai/gpt-5.6-luna` model and `high` reasoning effort. Use Herdr's supported OpenCode start path with `--agent worker`, wait for readiness, and then submit the contract{{ end }}. Do not place it in a pane or tab of the parent workspace. Verify that the worker has a different `workspace_id` from the orchestrator and that the child workspace's `worktree.checkout_path` matches the dedicated worktree. Use ID-free branch, workspace, and worker names. Keep an orchestration ledger mapping each private child ID to its repository context, dependency wave, contract, worker name, pane, child workspace, and worktree path; keep that mapping only in private conversation or other non-Git-visible state.
+
+Each worker owns only its assigned child contract, including implementation, formatting, tests, builds, static tooling, and all other verification in that child's repository. Explicitly instruct every worker not to create or run a reviewer lane, not to modify another worker's owned surface, and to stop and report any contract conflict or newly discovered dependency instead of silently broadening scope.
+
+You own review and cross-Bead coordination. {{ if .modules.opencode }}Create one `reviewer` subagent session for the orchestration run and reuse that same session sequentially for every child review and rereview. {{ end }}When an implementation is ready, launch its reviewer through an OpenCode subagent, not through the worker or a second Herdr lane. The reviewer must perform static analysis only and must not run tests, builds, formatters, linters, or other commands intended to execute the implementation. It should determine whether the child contract and functional requirements are met, whether promised interfaces agree with dependent contracts, and identify concrete bugs or regressions. Keep the review pragmatic: follow KISS and YAGNI, avoid speculative complexity, and do not demand handling unrealistic edge cases. Do not unlock or prompt a dependent wave until prerequisite implementations and their contract boundaries have passed review and verification.
+
+{{- if .modules.opencode }}
+After all workers for the current wave are ready, send their contracts and continue through implementation, verification, the single reviewer lane, and any required correction. Do not pause for manual model or reasoning selection. Report each worker's contract summary, dependency wave, worker name, pane, child workspace ID, and worktree path, plus deferred children and the prerequisites blocking their waves.
+{{- else }}
+For now, stop immediately after all workers for the first eligible wave have started successfully in their child workspaces. Do not send any worker its task prompt yet, do not start implementation, and do not launch a reviewer. For each worker, report its contract summary, dependency wave, worker name, pane, child workspace ID, and worktree path. Also report deferred children and the prerequisites blocking their waves. Then wait so the user can select each worker's model and reasoning effort.
+{{- end }}
