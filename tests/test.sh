@@ -128,9 +128,14 @@ for name, (mode, model, effort, allowed) in contracts.items():
         if match:
             keys.add(match.group(1) or match.group(2))
     assert keys == allowed | {"*"}, (name, keys)
-    for tool in allowed - {"bash", "task"}:
+    for tool in allowed - {"bash", "task", "skill"}:
         action = "ask" if name == "investigator" and tool == "external_directory" else "allow"
         assert re.search(rf'^  {re.escape(tool)}: {action}$', permission, re.MULTILINE)
+    if name in {"integration", "reviewer"}:
+        assert '  skill:\n    "*": allow\n    terminal-mermaid: deny' in permission
+        assert "create or include diagrams" in text
+    else:
+        assert re.search(r'^  skill: allow$', permission, re.MULTILINE)
 
 for name, forbidden in {
     "integration": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
