@@ -108,7 +108,7 @@ contracts = {
     "integration": ("subagent", "openai/gpt-5.6-luna", "medium", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
     "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"read", "glob", "grep", "webfetch", "lsp", "skill"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "read", "glob", "grep", "webfetch", "lsp", "skill"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
 }
 

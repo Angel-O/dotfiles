@@ -44,7 +44,7 @@ Primary `worker` and `architect` agents run in Herdr lanes created by the invoki
 
 Use `explore` for bounded pre-implementation investigation and bug verification. Require a concise result containing confirmation status, evidence, relevant files or symbols, and the details needed to file an issue. Do not ask `explore` or `integration` to load `ponytail`; neither role needs it. Do not use the reviewer for discovery or investigation.
 
-When architecture is selected, use this mandatory sequence: work interactively with the architect until the user gives explicit approval, obtain the architect's structured approved response, send it to the planner for decomposition, then send implementation-ready slices to workers. The architect and planner do not implement. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
+When architecture is selected, use this mandatory sequence: the architect asks every user question, including final approval, through its own `question` tool; the user answers in the architect pane; the architect then returns its structured approved response for planner decomposition and worker implementation. A blocked questionnaire or a question printed in chat is not a handoff or approval. The architect and planner do not implement. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
 
 ## Review And Validation
 
