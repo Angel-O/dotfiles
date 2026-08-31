@@ -489,11 +489,6 @@ for agent in orchestrator reviewer worker architect planner; do
 done
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load `ponytail` before any implementation, design, or review delegate.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate-bead.md" '--agent worker'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-5.6-luna'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate-bead.md" 'high` reasoning effort'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
@@ -545,6 +540,11 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/commands/orchestrate-bead.md" "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'with the custom `worker` agent'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-5.6-luna'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'high` reasoning effort'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
