@@ -6,6 +6,7 @@ options:
   reasoningEffort: medium
 permission:
   "*": deny
+  external_directory: allow
   question: allow
   bash: allow
   read: allow

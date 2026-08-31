@@ -104,7 +104,7 @@ from pathlib import Path
 
 directory = Path(sys.argv[1])
 contracts = {
-    "orchestrator": ("primary", "openai/gpt-5.6-terra", "medium", {"question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
+    "orchestrator": ("primary", "openai/gpt-5.6-terra", "medium", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
     "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
     "architect": ("primary", "openai/gpt-5.6-sol", "high", {"read", "glob", "grep", "webfetch", "lsp", "skill"}),
