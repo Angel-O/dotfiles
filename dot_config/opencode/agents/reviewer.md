@@ -6,16 +6,8 @@ options:
   reasoningEffort: medium
 permission:
   "*": deny
-  bash:
-    "*": deny
-    "git diff": allow
-    "git diff *": allow
-    "git status": allow
-    "git status *": allow
-    "git log": allow
-    "git log *": allow
-    "git show": allow
-    "git show *": allow
+  bash: allow
+  external_directory: allow
   read: allow
   glob: allow
   grep: allow
