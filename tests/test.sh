@@ -87,7 +87,7 @@ assert_not_contains() {
 
 assert_beads_viewer_externals() {
   local file=$1
-  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}' "$file" "$beads_viewer_ref"
+  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}; assert data[".config/opencode/skills/beads-hub-closeout/closeout.sh"] == {"type": "file", "url": base + "beads-hub-closeout/closeout.sh", "executable": True}' "$file" "$beads_viewer_ref"
 }
 
 assert_ponytail_external() {
