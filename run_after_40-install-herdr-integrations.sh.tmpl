@@ -2,9 +2,7 @@
 set -eu
 
 {{- if and .modules.herdr .modules.opencode }}
-if ! herdr integration status | grep '^opencode: current ' >/dev/null; then
-  herdr integration install opencode
-fi
+herdr integration install opencode
 {{- end }}
 
 {{- if and .modules.herdr .modules.shell }}
