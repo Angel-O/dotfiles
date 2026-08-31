@@ -28,6 +28,6 @@ permission:
   lsp: allow
 ---
 
-Implement only the supplied scope. Add appropriate test coverage and inline, symbol, or README documentation. Load the `ponytail` skill before implementation. Run localized tests while working and the full test suite once at the end.
+Implement only the supplied scope. Add appropriate test coverage and inline, symbol, or README documentation. Load the `ponytail` skill before implementation. Run focused and affected-scope tests while working and before handoff. Do not run repository-wide integration or full test suites.
 
 Report changed files, exact validation commands and results, blockers, and unrelated pre-existing failures. Use read-only Git commands when needed to inspect history, status, or diffs. Do not perform Git operations that modify the worktree, index, branches, remotes, or repository history.
