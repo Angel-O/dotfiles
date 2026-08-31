@@ -140,7 +140,12 @@ for name, forbidden in {
 worker = (directory / "worker.md").read_text()
 assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny$', worker, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
-assert '  task:\n    "*": deny\n    architect: allow\n    planner: allow\n    worker: allow\n    reviewer: allow' in orchestrator
+assert '  task:\n    "*": deny\n    planner: allow\n    reviewer: allow' in orchestrator
+assert 'architect: allow' not in orchestrator
+assert 'worker: allow' not in orchestrator
+for name in ("worker", "architect", "reviewer"):
+    identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
+    assert "`ponytail` skill" in identity, name
 PY
   for built_in in build plan general explore scout; do
     test ! -e "$directory/$built_in.md"
@@ -488,7 +493,11 @@ for agent in orchestrator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
 done
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load `ponytail` before any implementation, design, or review delegate.'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '`--agent worker`'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '`--agent architect`'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reuse it for every review and rereview'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
@@ -539,11 +548,13 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
-cmp -s "$source_dir/dot_config/opencode/commands/orchestrate-bead.md" "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'with the custom `worker` agent'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-5.6-luna'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'high` reasoning effort'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '`--agent architect`'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'one `reviewer` subagent session'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reuse that same session sequentially'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
@@ -755,7 +766,10 @@ test ! -e "$external_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 test ! -e "$external_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
 test ! -e "$external_home/.config/opencode/command/orchestrate-bead.md"
-cmp -s "$source_dir/dot_config/opencode/commands/orchestrate-bead.md" "$external_home/.config/opencode/commands/orchestrate-bead.md"
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" '`--agent worker`'
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" '`--agent architect`'
+assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 test ! -e "$external_home/.local/bin/opencode-env"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
 cmp -s "$root/external-opencode-beads/skill.before" "$external_home/.config/opencode/skills/existing-skill/SKILL.md"
@@ -808,6 +822,7 @@ test ! -e "$integration_disabled_home/.config/opencode/skills/work-beads/SKILL.m
 test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$integration_disabled_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
+test ! -e "$integration_disabled_home/.config/opencode/commands/orchestrate.md"
 test -f "$integration_disabled_home/.config/opencode/portable.jsonc"
 assert_contains "$integration_disabled_home/.config/opencode/opencode.jsonc" '"unmanaged_setting": "preserve"'
 assert_contains "$integration_disabled_home/.config/opencode/AGENTS.md" 'Preserve disabled-integration guidance.'
