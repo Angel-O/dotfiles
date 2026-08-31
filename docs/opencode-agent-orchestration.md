@@ -28,3 +28,5 @@ Commit correlation and Bead closure are prohibited during implementation, commit
 ## Contract-First Parallelism
 
 Epic children receive explicit contracts covering ownership, inputs, promised interfaces, dependencies, integration points, and acceptance criteria. Children that can implement against an agreed interface run in parallel, especially across repositories. A final commit, pin, release, integration, or delivery dependency belongs in the contract's finalization conditions rather than as a whole-child blocker. Implementation is sequenced only when a child cannot implement or validate without concrete output from another child. Children that mix parallelizable preparation with blocked finalization contract those phases explicitly or split them into separate children.
+
+The orchestrator owns propagation of shared-interface changes. It does not notify or interrupt workers for speculative or proposed changes. Once review or implementation confirms a contract change, it updates the affected contracts and promptly notifies only the affected workers before they continue against a stale interface.
