@@ -50,7 +50,7 @@ ref = "a92e41f8bbc4ab2459d4217664709bdf318471f2"
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "01cc0620ec743ee7a62a561551b59d9be81bd563"
+ref = "b57aa342f88f9db78f3deb20629ccebf162a6f57"
 
 [pins.herdrPlugins.elio]
 source = "robert-flo/herdr-terminal-file-manager"
