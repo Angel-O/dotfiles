@@ -678,6 +678,11 @@ assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator integration investigator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
 done
+assert_contains "$personal_home/.config/opencode/agents/integration.md" 'only supplied commands that are clearly repository-wide integration validation'
+assert_contains "$personal_home/.config/opencode/agents/integration.md" 'Refuse and report a blocker for any supplied command that is outside or ambiguous'
+assert_contains "$personal_home/.config/opencode/agents/integration.md" 'may perform its own internal setup or build steps'
+assert_contains "$personal_home/.config/opencode/agents/integration.md" 'Report each exact command and result, including blockers and unrelated pre-existing failures.'
+assert_not_contains "$personal_home/.config/opencode/agents/integration.md" 'full test suites'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
@@ -694,6 +699,9 @@ assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'r
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning effort'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'openai/gpt-'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reuse it for every review and rereview'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'only supplied repository-wide integration-validation commands'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'repository-wide test commands'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'assign it generic formatting, linting, static tooling, build, unit-test, focused-test, or affected-scope checks'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
@@ -762,6 +770,10 @@ assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'one `reviewer` subagent session'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reuse that same session sequentially'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'including implementation, formatting, focused tests, builds, and static tooling'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Repository-wide integration validation belongs to the integration subagent after worker handoff.'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'full test suites belong to the integration subagent'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'the `integration` subagent against the same child worktree in parallel with review'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
