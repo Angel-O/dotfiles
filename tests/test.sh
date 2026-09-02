@@ -196,6 +196,9 @@ EOF
   cat >"$canned/split.json" <<'EOF'
 {"result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term2","workspace_id":"w1","tab_id":"w1:t1","focused":false,"cwd":"/repo","agent_status":"idle","revision":2}}}
 EOF
+  cat >"$canned/rename.json" <<'EOF'
+{"result":{"type":"pane_info"}}
+EOF
   cat >"$canned/tab.json" <<'EOF'
 {"result":{"type":"tab_created","tab":{"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w1:p3","terminal_id":"term3","workspace_id":"w1","tab_id":"w1:t2","focused":false,"cwd":"/repo","agent_status":"idle","revision":3}}}
 EOF
@@ -215,6 +218,7 @@ printf '%s\n' "$*" >>"$FAKE_HERDR_LOG"
 case "$1 $2" in
   "pane current") file=caller.json ;;
   "pane split") file=split.json ;;
+  "pane rename") file=rename.json ;;
   "tab create") file=tab.json ;;
   "worktree create"|"worktree open") file=worktree.json ;;
   "agent start") file=start.json ;;
@@ -270,6 +274,9 @@ EOF
   metadata=$(run_launcher architect sibling architect-agent)
   jq -e ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:"/repo"}' <<<"$metadata" >/dev/null
   assert_contains "$log" 'pane split --current --direction right --cwd /repo --no-focus'
+  test "$(grep -Fc 'pane rename ' "$log")" -eq 2
+  grep -Fxq 'pane rename w1:p1 orchestrator' "$log"
+  grep -Fxq 'pane rename w1:p2 architect' "$log"
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --agent architect'
 
   metadata=$(run_launcher worker tab worker-agent)
