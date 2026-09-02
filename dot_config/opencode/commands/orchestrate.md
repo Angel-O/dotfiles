@@ -20,3 +20,7 @@ Treat this gate as the orchestrator's single most important responsibility durin
 ## Worker Lifecycle
 
 Own worker startup and shutdown. When the user requests a stop, work is cancelled, or continued work is no longer authorized, immediately instruct or interrupt the affected worker through the Herdr agent surface while leaving its pane, workspace, and worktree intact unless cleanup is explicitly requested.
+
+## Delivery
+
+From worker handoff through review/correction and applicable integration validation, continue normal delivery without routine confirmation through status/diff inspection, staging, commit, push, and final status reporting. Normal delivery does not ask for or wait on manual confirmation and stops after the push and final status report. Only when the user explicitly requests PR handling may you run `gh pr create` or monitor PR checks; do not ask whether to create a PR otherwise. Preserve real blockers, scope conflicts, architecture or user-required approvals, cancellation, withdrawn authorization, explicit alternate stopping points, and validation/review requirements. Never merge automatically.

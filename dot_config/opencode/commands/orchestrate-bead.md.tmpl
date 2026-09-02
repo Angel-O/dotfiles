@@ -44,3 +44,7 @@ After all workers for the current wave are ready, send their contracts and conti
 {{- else }}
 For now, stop immediately after all workers for the first eligible wave have started successfully in their child workspaces. Do not send any worker its task prompt yet, do not start implementation, and do not launch a reviewer. For each worker, report its contract summary, dependency wave, worker name, pane, child workspace ID, and worktree path. Also report deferred children and the prerequisites blocking their waves. Then wait so the user can select each worker's model and reasoning effort.
 {{- end }}
+
+## Delivery
+
+From worker handoff through review/correction and applicable integration validation, continue normal delivery without routine confirmation through status/diff inspection, staging, commit, push, and final status reporting. Normal delivery does not ask for or wait on manual confirmation and stops after the push and final status report; do not ask whether to create a PR. Run `gh pr create` and monitor PR checks only when the user explicitly requests PR handling; run it from the recorded worker worktree, not the orchestrator parent checkout, so the PR targets the delivered branch. Preserve real blockers, scope conflicts, architecture or user-required approvals, cancellation, withdrawn authorization, explicit alternate stopping points, and validation/review requirements. Never merge automatically.

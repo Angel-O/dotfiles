@@ -100,6 +100,19 @@ assert_not_contains() {
   fi
 }
 
+assert_delivery_contract() {
+  local file=$1
+  assert_contains "$file" 'without routine confirmation'
+  assert_contains "$file" 'status/diff inspection, staging, commit, push, and final status reporting'
+  assert_contains "$file" 'does not ask for or wait on manual confirmation'
+  assert_contains "$file" 'gh pr create'
+  assert_contains "$file" 'monitor PR checks'
+  assert_contains "$file" 'user explicitly requests PR handling'
+  assert_contains "$file" 'do not ask whether to create a PR'
+  assert_not_contains "$file" 'PR creation from the orchestrator'
+  assert_not_contains "$file" 'owns delivery through passing PR checks'
+}
+
 assert_beads_viewer_externals() {
   local file=$1
   python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}; assert data[".config/opencode/skills/beads-hub-closeout/closeout.sh"] == {"type": "file", "url": base + "beads-hub-closeout/closeout.sh", "executable": True}' "$file" "$beads_viewer_ref"
@@ -724,6 +737,9 @@ assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'only 
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'repository-wide test commands'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'assign it generic formatting, linting, static tooling, build, unit-test, focused-test, or affected-scope checks'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start'
+assert_delivery_contract "$personal_home/.config/opencode/agents/orchestrator.md"
+assert_delivery_contract "$personal_home/.config/opencode/commands/orchestrate.md"
+assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
@@ -800,6 +816,8 @@ assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'the `integration` subagent against the same child worktree in parallel with review'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
+assert_delivery_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'

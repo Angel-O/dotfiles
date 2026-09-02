@@ -26,6 +26,10 @@ The Bead workflow retains private tracking and Herdr safety rules. Its active or
 
 Commit correlation and Bead closure are prohibited during implementation, commit, push, and PR creation. Both occur only after merge through the `beads-hub-closeout` workflow.
 
+## Delivery
+
+Normal delivery continues without routine confirmation from worker handoff through review/correction and applicable integration validation, then through status/diff inspection, staging, commit, push, and final status reporting; it stops after the push and report. PR creation with `gh pr create` and PR-check monitoring are conditional on an explicit user request; for Bead worker delivery, run `gh pr create` from the recorded worker worktree, not the orchestrator parent checkout, so the PR targets the delivered branch. The orchestrator does not ask whether to create a PR when none was requested. Real blockers, scope conflicts, architecture or user-required approvals, cancellation, withdrawn authorization, explicit alternate stopping points, and unmet validation/review requirements may interrupt the flow. Normal delivery never merges automatically.
+
 ## Contract-First Parallelism
 
 Epic children receive explicit contracts covering ownership, inputs, promised interfaces, dependencies, integration points, and acceptance criteria. Children that can implement against an agreed interface run in parallel, especially across repositories. A final commit, pin, release, integration, or delivery dependency belongs in the contract's finalization conditions rather than as a whole-child blocker. Implementation is sequenced only when a child cannot implement or validate without concrete output from another child. Children that mix parallelizable preparation with blocked finalization contract those phases explicitly or split them into separate children.
