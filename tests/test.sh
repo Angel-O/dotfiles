@@ -20,6 +20,21 @@ if grep -R -E \
   exit 1
 fi
 
+source_files() {
+  if git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "$source_dir" ls-files --cached --others --exclude-standard -- \
+      'dot_*' 'private_*' 'encrypted_*' 'executable_*' 'symlink_*' 'run_*'
+  else
+    while IFS= read -r -d '' source; do
+      printf '%s\n' "${source#"$source_dir"/}"
+    done < <(find "$source_dir" -type f \( \
+      -path "$source_dir/dot_*" -o -path "$source_dir/private_*" -o \
+      -path "$source_dir/encrypted_*" -o -path "$source_dir/executable_*" -o \
+      -path "$source_dir/symlink_*" -o -path "$source_dir/run_*" \
+    \) -print0)
+  fi
+}
+
 template_suffix_error=false
 while IFS= read -r source; do
   test -f "$source_dir/$source" || continue
@@ -30,7 +45,7 @@ while IFS= read -r source; do
     printf 'managed source contains template directives without a .tmpl suffix: %s\n' "$source" >&2
     template_suffix_error=true
   fi
-done < <(git -C "$source_dir" ls-files --cached --others --exclude-standard -- 'dot_*' 'private_*' 'encrypted_*' 'executable_*' 'symlink_*' 'run_*')
+done < <(source_files)
 if $template_suffix_error; then
   exit 1
 fi
@@ -109,7 +124,7 @@ contracts = {
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "read", "glob", "grep", "webfetch", "lsp", "skill"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
 }
 
@@ -142,7 +157,7 @@ for name, forbidden in {
     "investigator": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
     "reviewer": {"orchestrator", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
     "worker": {"orchestrator", "reviewer", "planner", "architect", "orchestration", "routing", "delegate"},
-    "architect": {"orchestrator", "reviewer", "worker", "planner", "orchestration", "routing", "delegate"},
+    "architect": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
     "planner": {"orchestrator", "reviewer", "worker", "architect", "orchestration", "routing", "delegate"},
 }.items():
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
@@ -152,7 +167,9 @@ read_only_git = r'    "git diff": allow\n    "git diff \*": allow\n    "git stat
 worker = (directory / "worker.md").read_text()
 assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
-assert '  task:\n    "*": deny\n    integration: allow\n    investigator: allow\n    planner: allow\n    reviewer: allow' in orchestrator
+assert '  task:\n    "*": deny\n    integration: allow\n    investigator: allow\n    reviewer: allow' in orchestrator
+architect = (directory / "architect.md").read_text()
+assert '  task:\n    "*": deny\n    planner: allow' in architect
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):
@@ -163,6 +180,151 @@ PY
     test ! -e "$directory/$built_in.md"
   done
 }
+
+assert_herdr_agent_launcher() {
+  local launcher="$source_dir/dot_local/bin/executable_herdr-agent-launch"
+  local test_dir="$root/herdr-agent-launch"
+  local fake_bin="$test_dir/bin"
+  local canned="$test_dir/canned"
+  local log="$test_dir/herdr.log"
+  local worktree="$test_dir/worktree"
+  mkdir -p "$fake_bin" "$canned"
+
+  cat >"$canned/caller.json" <<'EOF'
+{"result":{"type":"pane_current","pane":{"pane_id":"w1:p1","terminal_id":"term1","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"/repo","agent_status":"working","revision":1}}}
+EOF
+  cat >"$canned/split.json" <<'EOF'
+{"result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term2","workspace_id":"w1","tab_id":"w1:t1","focused":false,"cwd":"/repo","agent_status":"idle","revision":2}}}
+EOF
+  cat >"$canned/tab.json" <<'EOF'
+{"result":{"type":"tab_created","tab":{"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w1:p3","terminal_id":"term3","workspace_id":"w1","tab_id":"w1:t2","focused":false,"cwd":"/repo","agent_status":"idle","revision":3}}}
+EOF
+  cat >"$canned/worktree.json" <<EOF
+{"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"repo","repo_name":"repo","repo_root":"/repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
+EOF
+  cat >"$canned/start.json" <<'EOF'
+{"result":{"type":"agent_started","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"launch_pending":false,"interactive_ready":true,"cwd":"/repo","revision":5},"argv":["opencode","--agent","ROLE"]}}
+EOF
+  cat >"$canned/get.json" <<'EOF'
+{"result":{"type":"agent_info","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"/repo","revision":6}}}
+EOF
+  cat >"$fake_bin/herdr" <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+printf '%s\n' "$*" >>"$FAKE_HERDR_LOG"
+case "$1 $2" in
+  "pane current") file=caller.json ;;
+  "pane split") file=split.json ;;
+  "tab create") file=tab.json ;;
+  "worktree create"|"worktree open") file=worktree.json ;;
+  "agent start") file=start.json ;;
+  "agent get") file=get.json ;;
+  *) printf '{"error":{"code":"unexpected","message":"unexpected command"}}\n'; exit 1 ;;
+esac
+case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
+  malformed:"pane current") printf 'not json\n'; exit 0 ;;
+  wrong-type:"pane current") jq '.result.type = "wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  missing:"pane split") jq 'del(.result.pane.cwd)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-placement:"pane split") jq '.result.pane.workspace_id = "w9"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-focus:"tab create") jq '.result.root_pane.focused = true' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-worktree:"worktree create"|wrong-worktree:"worktree open") jq '.result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-argv:"agent start") jq '.result.argv = ["opencode", "--agent", "investigator"]' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+esac
+if [[ "$1 $2" == "worktree open" ]]; then
+  output=$(jq '.result.type = "worktree_opened"' "$FAKE_HERDR_CANNED/$file")
+else
+  output=$(<"$FAKE_HERDR_CANNED/$file")
+fi
+if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
+  output=$(printf '%s\n' "$output" | jq \
+    --arg name "$FAKE_HERDR_NAME" --arg workspace "$FAKE_HERDR_WORKSPACE" \
+    --arg tab "$FAKE_HERDR_TAB" --arg pane "$FAKE_HERDR_PANE" --arg cwd "$FAKE_HERDR_CWD" \
+    '.result.agent.name = $name | .result.agent.workspace_id = $workspace |
+     .result.agent.tab_id = $tab | .result.agent.pane_id = $pane |
+     .result.agent.cwd = $cwd')
+fi
+printf '%s\n' "$output" | sed "s/ROLE/$FAKE_HERDR_ROLE/g"
+EOF
+  chmod +x "$fake_bin/herdr"
+
+  run_launcher() {
+    local role=$1 topology=$2 name=$3
+    shift 3
+    local launcher_path=${1:-}
+    local -a launcher_args=("$role" "$topology" "$name")
+    [[ -n "$launcher_path" ]] && launcher_args+=("$launcher_path")
+    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=/repo
+    case "$topology" in
+      sibling) fake_tab=w1:t1; fake_pane=w1:p2 ;;
+      worktree) fake_workspace=w2; fake_tab=w2:t1; fake_pane=w2:p1; fake_cwd=$worktree ;;
+    esac
+    : >"$log"
+    PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE="$role" \
+      FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
+      FAKE_HERDR_TAB="$fake_tab" FAKE_HERDR_PANE="$fake_pane" FAKE_HERDR_CWD="$fake_cwd" \
+      bash "$launcher" "${launcher_args[@]}"
+  }
+
+  metadata=$(run_launcher architect sibling architect-agent)
+  jq -e ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:"/repo"}' <<<"$metadata" >/dev/null
+  assert_contains "$log" 'pane split --current --direction right --cwd /repo --no-focus'
+  assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --agent architect'
+
+  metadata=$(run_launcher worker tab worker-agent)
+  jq -e ' . == {role:"worker",topology:"tab",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:"/repo"}' <<<"$metadata" >/dev/null
+  assert_contains "$log" 'tab create --workspace w1 --cwd /repo --no-focus'
+  assert_contains "$log" 'agent start worker-agent --kind opencode --pane w1:p3 -- --agent worker'
+
+  metadata=$(run_launcher worker worktree worker-agent "$worktree")
+  jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
+  assert_contains "$log" "worktree create --workspace w1 --path $worktree --no-focus"
+  assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --agent worker'
+
+  mkdir -p "$worktree"
+  metadata=$(run_launcher worker worktree worker-agent "$worktree")
+  jq -e --arg path "$worktree" '.worktree_path == $path' <<<"$metadata" >/dev/null
+  assert_contains "$log" "worktree open --workspace w1 --path $worktree --no-focus"
+
+  : >"$log"
+  if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker sibling bad-name 2>/dev/null; then exit 1; fi
+  test ! -s "$log"
+  if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" reviewer tab reviewer-agent 2>/dev/null; then exit 1; fi
+  test ! -s "$log"
+  if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker worktree worker-agent relative 2>/dev/null; then exit 1; fi
+  test ! -s "$log"
+  if PATH="$fake_bin:$PATH" HERDR_ENV=0 bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+  test ! -s "$log"
+
+  for failure in malformed wrong-type; do
+    : >"$log"
+    if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD=/repo \
+      bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+  done
+  for failure in missing wrong-placement; do
+    : >"$log"
+    if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=architect \
+      bash "$launcher" architect sibling architect-agent 2>/dev/null; then exit 1; fi
+  done
+  for failure in wrong-focus wrong-argv wrong-identity; do
+    : >"$log"
+    if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD=/repo \
+      bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+  done
+  : >"$log"
+  if FAKE_HERDR_FAILURE=wrong-worktree PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+    FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
+    FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w2 FAKE_HERDR_TAB=w2:t1 FAKE_HERDR_PANE=w2:p1 \
+    FAKE_HERDR_CWD="$worktree" bash "$launcher" worker worktree worker-agent "$worktree" 2>/dev/null; then exit 1; fi
+}
+
+assert_herdr_agent_launcher
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
@@ -475,6 +637,16 @@ EOF
 apply_fixture personal
 
 test -f "$personal_home/.config/ghostty/config"
+launcher_transition_home="$root/launcher-transition/home"
+mkdir -p "$launcher_transition_home"
+chezmoi apply --source "$source_dir" --destination "$launcher_transition_home" \
+  --config "$source_dir/tests/fixtures/personal.toml" --cache "$root/launcher-transition/cache" \
+  --persistent-state "$root/launcher-transition/state.boltdb" --exclude scripts,externals --force
+test -x "$launcher_transition_home/.local/bin/herdr-agent-launch"
+chezmoi execute-template --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
+  <"$source_dir/.chezmoiremove.tmpl" >"$root/launcher-transition/remove-list"
+grep -Fxq '.local/bin/herdr-agent-launch' "$root/launcher-transition/remove-list"
 test -f "$personal_home/.config/helix/config.toml"
 assert_contains "$personal_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
 test -f "$personal_home/.warp/settings.toml"
@@ -500,6 +672,7 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROM
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/tui.jsonc"
+test -x "$personal_home/.local/bin/herdr-agent-launch"
 assert_contains "$personal_home/.config/opencode/tui.jsonc" '"./herdr-tui-session.js"'
 assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator integration investigator reviewer worker architect planner; do
@@ -508,8 +681,8 @@ done
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start <worker-name> --kind opencode --pane <root-pane-id> -- --agent worker'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start <architect-name> --kind opencode --pane <root-pane-id> -- --agent architect'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab <worker-name>'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name>'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode --agent'
@@ -521,6 +694,7 @@ assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'r
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning effort'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'openai/gpt-'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reuse it for every review and rereview'
+assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
@@ -547,6 +721,7 @@ jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) an
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
+printf '%s\n' "$personal_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$personal_home/.config/herdr/config.toml"
 zsh -n "$personal_home"/.config/zsh/*.zsh
 HOME="$personal_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; alias warpconf >/dev/null'
@@ -567,13 +742,14 @@ printf '%s\n' 'Preserve personal Beads guidance.' >"$personal_beads_home/.config
 apply_fixture personal-with-beads
 test ! -e "$personal_beads_home/.local/bin/wbd"
 test ! -e "$personal_beads_home/.local/bin/wbv"
+test -x "$personal_beads_home/.local/bin/herdr-agent-launch"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start <worker-name> --kind opencode --pane <root-pane-id> -- --agent worker'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start <architect-name> --kind opencode --pane <root-pane-id> -- --agent architect'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch worker worktree <worker-name> <dedicated-worktree-path>'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name>'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode --agent'
@@ -586,6 +762,7 @@ assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'one `reviewer` subagent session'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reuse that same session sequentially'
+assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
@@ -737,6 +914,7 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/plugins/plan-diagrams.js'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
+printf '%s\n' "$work_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-bead.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/beads-hub/SKILL.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
@@ -803,6 +981,7 @@ assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.m
 assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent architect'
 assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 test ! -e "$external_home/.local/bin/opencode-env"
+test ! -e "$external_home/.local/bin/herdr-agent-launch"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"
 cmp -s "$root/external-opencode-beads/skill.before" "$external_home/.config/opencode/skills/existing-skill/SKILL.md"
 assert_contains "$external_home/.config/opencode/AGENTS.md" 'Preserve this external instruction.'
@@ -989,6 +1168,7 @@ test ! -e "$ghostty_home/.config/helix"
 test ! -e "$ghostty_home/.warp"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
+test ! -e "$ghostty_home/.local/bin/herdr-agent-launch"
 test ! -e "$ghostty_home/.config/opencode/agents"
 test ! -e "$ghostty_home/.config/opencode/commands/orchestrate.md"
 assert_contains "$ghostty_home/.config/opencode/AGENTS.md" 'Preserve this guidance with OpenCode disabled.'

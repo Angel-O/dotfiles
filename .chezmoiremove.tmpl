@@ -9,6 +9,9 @@
 .config/opencode/agents/planner.md
 {{ end }}
 {{ if or (not .modules.opencode) (not .modules.herdr) }}
+.local/bin/herdr-agent-launch
+{{ end }}
+{{ if or (not .modules.opencode) (not .modules.herdr) }}
 .config/opencode/commands/orchestrate.md
 {{ end }}
 {{ if not (and .modules.beads $opencodeBeads) }}

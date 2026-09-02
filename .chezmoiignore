@@ -58,6 +58,10 @@ run_once_after_25-migrate-ghostty-config.sh
 !.config/opencode/skills/beads-hub-closeout/**
 {{- end }}
 
+{{- if or (not .modules.opencode) (not .modules.herdr) }}
+.local/bin/herdr-agent-launch
+{{- end }}
+
 {{- if eq .role "work" }}
 .config/opencode/tui.jsonc
 {{- end }}

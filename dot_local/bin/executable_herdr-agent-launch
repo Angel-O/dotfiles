@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# One deliberately small adapter owns the allowed primary-agent layouts.
+usage() {
+  printf 'usage: %s architect sibling NAME\n       %s worker tab NAME\n       %s worker worktree NAME ABSOLUTE_PATH\n' "$0" "$0" "$0" >&2
+  exit 2
+}
+
+fail() {
+  printf 'herdr-agent-launch: %s\n' "$*" >&2
+  exit 1
+}
+
+[[ $# -ge 2 ]] || usage
+role=$1
+topology=$2
+case "$role/$topology" in
+  architect/sibling|worker/tab) [[ $# -eq 3 ]] || usage ;;
+  worker/worktree) [[ $# -eq 4 ]] || usage ;;
+  *) usage ;;
+esac
+
+agent_name=$3
+[[ "$agent_name" =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || fail "invalid agent name: $agent_name"
+
+worktree_path=
+if [[ "$role/$topology" == worker/worktree ]]; then
+  worktree_path=$4
+  [[ "$worktree_path" == /* ]] || fail 'worktree path must be absolute'
+fi
+
+[[ "${HERDR_ENV:-}" == 1 ]] || fail 'must run inside a Herdr-managed pane'
+[[ -n "${HERDR_WORKSPACE_ID:-}" && -n "${HERDR_TAB_ID:-}" && -n "${HERDR_PANE_ID:-}" ]] ||
+  fail 'Herdr caller context is incomplete'
+command -v herdr >/dev/null 2>&1 || fail 'herdr is not installed'
+command -v jq >/dev/null 2>&1 || fail 'jq is not installed'
+
+response=
+herdr_call() {
+  local expected_type=$1
+  local required=$2
+  shift 2
+  if ! response=$(herdr "$@" 2>&1); then
+    fail "$* failed: $response"
+  fi
+  printf '%s\n' "$response" | jq -e --arg expected "$expected_type" \
+    'type == "object" and (.result | type == "object") and .result.type == $expected and ('"$required"')' \
+    >/dev/null || fail "$* returned malformed or unexpected JSON: $response"
+}
+
+jq_value() {
+  printf '%s\n' "$response" | jq -r "$1"
+}
+
+check_pane() {
+  local pane_expression=$1 expected_workspace=$2 expected_tab=$3 expected_cwd=$4 expected_focus=$5
+  local pane_workspace pane_tab pane_cwd pane_focus
+  pane_workspace=$(jq_value "$pane_expression.workspace_id")
+  pane_tab=$(jq_value "$pane_expression.tab_id")
+  pane_cwd=$(jq_value "$pane_expression.cwd")
+  pane_focus=$(jq_value "$pane_expression.focused")
+  [[ "$pane_workspace" == "$expected_workspace" && "$pane_tab" == "$expected_tab" &&
+    "$pane_cwd" == "$expected_cwd" && "$pane_focus" == "$expected_focus" ]] ||
+    fail "pane placement mismatch: $response"
+}
+
+check_agent() {
+  local expected_workspace=$1 expected_tab=$2 expected_pane=$3 expected_cwd=$4
+  jq -e --arg name "$agent_name" --arg workspace "$expected_workspace" \
+    --arg tab "$expected_tab" --arg pane "$expected_pane" --arg cwd "$expected_cwd" \
+    '.result.agent.name == $name and .result.agent.agent == "opencode" and
+     .result.agent.workspace_id == $workspace and .result.agent.tab_id == $tab and
+     .result.agent.pane_id == $pane and .result.agent.cwd == $cwd and
+     .result.agent.focused == false' <<<"$response" >/dev/null ||
+    fail "agent identity or placement mismatch: $response"
+}
+
+herdr_call pane_current \
+  '.result.pane | type == "object" and (.pane_id | type == "string") and
+   (.workspace_id | type == "string") and (.tab_id | type == "string") and
+   (.cwd | type == "string") and (.focused | type == "boolean")' \
+  pane current --current
+caller_pane=$(jq_value '.result.pane.pane_id')
+caller_workspace=$(jq_value '.result.pane.workspace_id')
+caller_tab=$(jq_value '.result.pane.tab_id')
+caller_cwd=$(jq_value '.result.pane.cwd')
+[[ "$caller_pane" == "$HERDR_PANE_ID" && "$caller_workspace" == "$HERDR_WORKSPACE_ID" &&
+  "$caller_tab" == "$HERDR_TAB_ID" ]] || fail "caller context mismatch: $response"
+
+case "$role/$topology" in
+  architect/sibling)
+    herdr_call pane_info \
+      '.result.pane | type == "object" and (.pane_id | type == "string") and
+       (.workspace_id | type == "string") and (.tab_id | type == "string") and
+       (.cwd | type == "string") and (.focused | type == "boolean")' \
+      pane split --current --direction right --cwd "$caller_cwd" --no-focus
+    pane_id=$(jq_value '.result.pane.pane_id')
+    [[ "$pane_id" != "$caller_pane" ]] || fail 'split returned the caller pane'
+    check_pane .result.pane "$caller_workspace" "$caller_tab" "$caller_cwd" false
+    workspace_id=$caller_workspace
+    tab_id=$caller_tab
+    ;;
+  worker/tab)
+    herdr_call tab_created \
+      '.result | (.tab | type == "object") and (.root_pane | type == "object") and
+       (.tab.tab_id | type == "string") and (.tab.workspace_id | type == "string") and
+       (.tab.focused == false) and (.root_pane.focused == false)' \
+      tab create --workspace "$caller_workspace" --cwd "$caller_cwd" --no-focus
+    tab_id=$(jq_value '.result.tab.tab_id')
+    workspace_id=$(jq_value '.result.tab.workspace_id')
+    pane_id=$(jq_value '.result.root_pane.pane_id')
+    [[ "$workspace_id" == "$caller_workspace" && "$tab_id" != "$caller_tab" ]] ||
+      fail "tab placement mismatch: $response"
+    check_pane .result.root_pane "$caller_workspace" "$tab_id" "$caller_cwd" false
+    ;;
+  worker/worktree)
+    if [[ -e "$worktree_path" ]]; then
+      worktree_command=(worktree open --workspace "$caller_workspace" --path "$worktree_path" --no-focus)
+      expected_type=worktree_opened
+    else
+      worktree_command=(worktree create --workspace "$caller_workspace" --path "$worktree_path" --no-focus)
+      expected_type=worktree_created
+    fi
+    herdr_call "$expected_type" \
+      '.result | (.workspace | type == "object") and (.tab | type == "object") and
+       (.root_pane | type == "object") and (.worktree | type == "object") and
+       (.workspace.workspace_id | type == "string") and (.workspace.focused == false) and
+       (.workspace.worktree | type == "object") and
+       (.workspace.worktree.checkout_path | type == "string") and
+       (.workspace.worktree.is_linked_worktree == true) and
+       (.worktree.path | type == "string") and (.worktree.is_linked_worktree == true) and
+       (.tab.focused == false) and (.root_pane.focused == false)' \
+      "${worktree_command[@]}"
+    workspace_id=$(jq_value '.result.workspace.workspace_id')
+    tab_id=$(jq_value '.result.tab.tab_id')
+    pane_id=$(jq_value '.result.root_pane.pane_id')
+    [[ "$workspace_id" != "$caller_workspace" &&
+      "$(jq_value '.result.workspace.worktree.checkout_path')" == "$worktree_path" &&
+      "$(jq_value '.result.worktree.path')" == "$worktree_path" &&
+      "$(jq_value '.result.tab.workspace_id')" == "$workspace_id" ]] ||
+      fail "worktree placement mismatch: $response"
+    check_pane .result.root_pane "$workspace_id" "$tab_id" "$worktree_path" false
+    ;;
+esac
+
+agent_cwd=$caller_cwd
+[[ "$role/$topology" == worker/worktree ]] && agent_cwd=$worktree_path
+herdr_call agent_started \
+  '.result | (.agent | type == "object") and (.argv | type == "array") and
+   (.agent.name | type == "string") and (.agent.agent | type == "string") and
+   (.agent.workspace_id | type == "string") and (.agent.tab_id | type == "string") and
+   (.agent.pane_id | type == "string") and (.agent.cwd | type == "string") and
+   (.agent.focused | type == "boolean")' \
+  agent start "$agent_name" --kind opencode --pane "$pane_id" -- --agent "$role"
+jq -e --arg name "$agent_name" --arg role "$role" \
+  '.result.argv == ["opencode", "--agent", $role] and
+   .result.agent.name == $name and .result.agent.agent == "opencode"' \
+  <<<"$response" >/dev/null || fail "agent argv mismatch: $response"
+check_agent "$workspace_id" "$tab_id" "$pane_id" "$agent_cwd"
+
+herdr_call agent_info \
+  '.result.agent | type == "object" and (.name | type == "string") and
+   (.agent | type == "string") and (.workspace_id | type == "string") and
+   (.tab_id | type == "string") and (.pane_id | type == "string") and
+   (.cwd | type == "string") and (.focused | type == "boolean")' \
+  agent get "$agent_name"
+check_agent "$workspace_id" "$tab_id" "$pane_id" "$agent_cwd"
+
+if [[ "$role/$topology" == worker/worktree ]]; then
+  jq -cn --arg role "$role" --arg topology "$topology" --arg name "$agent_name" \
+    --arg kind opencode --arg workspace "$workspace_id" --arg tab "$tab_id" \
+    --arg pane "$pane_id" --arg cwd "$agent_cwd" --arg path "$worktree_path" \
+    '{role:$role, topology:$topology, agent_name:$name, agent_kind:$kind,
+      workspace_id:$workspace, tab_id:$tab, pane_id:$pane, cwd:$cwd,
+      worktree_path:$path}'
+else
+  jq -cn --arg role "$role" --arg topology "$topology" --arg name "$agent_name" \
+    --arg kind opencode --arg workspace "$workspace_id" --arg tab "$tab_id" \
+    --arg pane "$pane_id" --arg cwd "$agent_cwd" \
+    '{role:$role, topology:$topology, agent_name:$name, agent_kind:$kind,
+      workspace_id:$workspace, tab_id:$tab, pane_id:$pane, cwd:$cwd}'
+fi
