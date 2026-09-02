@@ -203,7 +203,7 @@ EOF
 {"result":{"type":"tab_created","tab":{"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w1:p3","terminal_id":"term3","workspace_id":"w1","tab_id":"w1:t2","focused":false,"cwd":"/repo","agent_status":"idle","revision":3}}}
 EOF
   cat >"$canned/worktree.json" <<EOF
-{"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"repo","repo_name":"repo","repo_root":"/repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
+{"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker-agent","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"repo","repo_name":"repo","repo_root":"/repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
 EOF
   cat >"$canned/start.json" <<'EOF'
 {"result":{"type":"agent_started","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"launch_pending":false,"interactive_ready":true,"cwd":"/repo","revision":5},"argv":["opencode","--agent","ROLE"]}}
@@ -232,6 +232,8 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   wrong-placement:"pane split") jq '.result.pane.workspace_id = "w9"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-focus:"tab create") jq '.result.root_pane.focused = true' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-worktree:"worktree create"|wrong-worktree:"worktree open") jq '.result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-label:"worktree create") jq '.result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-label:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-argv:"agent start") jq '.result.argv = ["opencode", "--agent", "investigator"]' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
 esac
@@ -239,6 +241,9 @@ if [[ "$1 $2" == "worktree open" ]]; then
   output=$(jq '.result.type = "worktree_opened"' "$FAKE_HERDR_CANNED/$file")
 else
   output=$(<"$FAKE_HERDR_CANNED/$file")
+fi
+if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
+  test "$7 $8" = "--label worker-agent" || { printf 'worktree label argument mismatch\n' >&2; exit 1; }
 fi
 if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
   output=$(printf '%s\n' "$output" | jq \
@@ -265,6 +270,7 @@ EOF
     esac
     : >"$log"
     PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_FAILURE="${FAKE_HERDR_FAILURE:-}" \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE="$role" \
       FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
       FAKE_HERDR_TAB="$fake_tab" FAKE_HERDR_PANE="$fake_pane" FAKE_HERDR_CWD="$fake_cwd" \
@@ -286,13 +292,21 @@ EOF
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
-  assert_contains "$log" "worktree create --workspace w1 --path $worktree --no-focus"
+  assert_contains "$log" "worktree create --workspace w1 --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --agent worker'
+
+  : >"$log"
+  if FAKE_HERDR_FAILURE=wrong-label run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
+  assert_not_contains "$log" 'agent start '
 
   mkdir -p "$worktree"
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" '.worktree_path == $path' <<<"$metadata" >/dev/null
-  assert_contains "$log" "worktree open --workspace w1 --path $worktree --no-focus"
+  assert_contains "$log" "worktree open --workspace w1 --path $worktree --label worker-agent --no-focus"
+
+  : >"$log"
+  if FAKE_HERDR_FAILURE=wrong-label run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
+  assert_not_contains "$log" 'agent start '
 
   : >"$log"
   if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker sibling bad-name 2>/dev/null; then exit 1; fi
@@ -763,6 +777,9 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'The active Bead orchestration contract applies equally to a single concrete work item and to each selected epic child.'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'semantic worker name that is unique among currently active workers and free of private work-item/context identifiers'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'passes the worker name verbatim as its workspace label'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch worker worktree <worker-name> <dedicated-worktree-path>'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name>'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'

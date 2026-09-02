@@ -118,10 +118,10 @@ case "$role/$topology" in
     ;;
   worker/worktree)
     if [[ -e "$worktree_path" ]]; then
-      worktree_command=(worktree open --workspace "$caller_workspace" --path "$worktree_path" --no-focus)
+      worktree_command=(worktree open --workspace "$caller_workspace" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_opened
     else
-      worktree_command=(worktree create --workspace "$caller_workspace" --path "$worktree_path" --no-focus)
+      worktree_command=(worktree create --workspace "$caller_workspace" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_created
     fi
     herdr_call "$expected_type" \
@@ -133,7 +133,10 @@ case "$role/$topology" in
        (.workspace.worktree.is_linked_worktree == true) and
        (.worktree.path | type == "string") and (.worktree.is_linked_worktree == true) and
        (.tab.focused == false) and (.root_pane.focused == false)' \
-      "${worktree_command[@]}"
+       "${worktree_command[@]}"
+    jq -e --arg name "$agent_name" \
+      '.result.workspace.label == $name' <<<"$response" >/dev/null ||
+      fail "worktree label mismatch: $response"
     workspace_id=$(jq_value '.result.workspace.workspace_id')
     tab_id=$(jq_value '.result.tab.tab_id')
     pane_id=$(jq_value '.result.root_pane.pane_id')
