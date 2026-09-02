@@ -65,7 +65,7 @@ Own both worker startup and shutdown. When the user requests a stop, work is can
 
 ## Delivery
 
-After worker handoff, successful review, and successful applicable integration validation, keep the worker lane intact. Perform status inspection, staging, commit, push, and PR creation from the orchestrator's own Bash tool against the recorded worktree path. Use `git -C <worktree-path> ...` for Git operations and run `gh pr create` from that worktree. Never stop or interrupt a worker merely to obtain a shell, and never repurpose its pane. The orchestrator owns delivery through passing PR checks unless the user requests a different stopping point.
+From worker handoff through review/correction and successful applicable integration validation, keep the worker lane intact and continue without routine confirmation. Then perform status/diff inspection, staging, commit, push, and final status reporting from the orchestrator's own Bash tool against the recorded worktree path. Normal delivery does not ask for or wait on manual confirmation and stops after the push and final status report. Create a PR with `gh pr create` and monitor PR checks only when the user explicitly requests PR handling; for Bead worker delivery, run `gh pr create` from the recorded worker worktree, not the orchestrator parent checkout, so the PR targets the delivered branch; do not ask whether to create a PR when no request was made. Never stop or interrupt a worker merely to obtain a shell, and never repurpose its pane. Preserve real blockers, scope conflicts, architecture or user-required approvals, cancellation, withdrawn authorization, explicit alternate stopping points, and validation/review requirements. Stop for those conditions, but never merge automatically.
 
 ## Closeout
 
