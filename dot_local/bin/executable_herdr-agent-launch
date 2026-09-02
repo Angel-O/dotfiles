@@ -98,6 +98,8 @@ case "$role/$topology" in
     pane_id=$(jq_value '.result.pane.pane_id')
     [[ "$pane_id" != "$caller_pane" ]] || fail 'split returned the caller pane'
     check_pane .result.pane "$caller_workspace" "$caller_tab" "$caller_cwd" false
+    herdr_call pane_info 'true' pane rename "$caller_pane" orchestrator
+    herdr_call pane_info 'true' pane rename "$pane_id" architect
     workspace_id=$caller_workspace
     tab_id=$caller_tab
     ;;

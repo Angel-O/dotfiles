@@ -11,7 +11,7 @@ For ordinary work, invoke `~/.local/bin/herdr-agent-launch worker tab <worker-na
 
 If the user selects architecture, invoke `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane, then submit the design prompt with `herdr agent prompt <architect-name> "<design-prompt>" --wait`. The architect must ask every user question and request final approval through its own `question` tool. A blocked questionnaire is interactive work in the architect pane, not a completed handoff; wait for the user to answer there and for the architect's structured approved response. The architect invokes the planner itself only after explicit approval. Invoke one `reviewer` subagent session and reuse it for every review and rereview.
 
-After worker handoff, run the reviewer and, when warranted, the `integration` subagent concurrently against the same worktree. The integration contract contains the repository-wide test commands; do not make the implementation worker run them first. Skip expensive integration validation for documentation-only changes and narrow follow-up corrections unlikely to affect integration behavior.
+After worker handoff, run the reviewer and, when warranted, the `integration` subagent concurrently against the same worktree. The integration contract contains only supplied repository-wide integration-validation commands; do not make the implementation worker run them first or assign it generic formatting, linting, static tooling, build, unit-test, focused-test, or affected-scope checks. Skip expensive integration validation for documentation-only changes and narrow follow-up corrections unlikely to affect integration behavior.
 
 ## Scope And Complexity Gate
 
