@@ -109,6 +109,15 @@ assert_orchestration_reuse_contract() {
   assert_contains "$file" 'Send accepted findings to the worker; return corrected work to that same reviewer session.'
 }
 
+assert_reference_branch_contract() {
+  local file=$1
+  assert_contains "$file" 'Reference-branch protection is unconditional by default: never implement, stage, commit, or push on a recorded reference branch.'
+  assert_contains "$file" 'Before launching any implementation worker, create or use a distinct delivery branch or dedicated worktree derived from the recorded reference branch; never launch a worker in or allow a worker to edit the reference checkout.'
+  assert_contains "$file" 'Before staging or pushing, verify that delivery remains on that distinct branch or worktree.'
+  assert_contains "$file" 'This applies whether the reference is main, an integration branch, a release branch, or another named base.'
+  assert_contains "$file" 'Explicit authorization to create or manage a PR does not authorize work, commit, or push on a reference branch; only an explicit user instruction to work or deliver on that specific reference branch waives protection.'
+}
+
 assert_delivery_contract() {
   local file=$1
   assert_contains "$file" 'without routine confirmation'
@@ -786,8 +795,11 @@ assert_delivery_contract "$personal_home/.config/opencode/agents/orchestrator.md
 assert_delivery_contract "$personal_home/.config/opencode/commands/orchestrate.md"
 assert_orchestration_reuse_contract "$personal_home/.config/opencode/agents/orchestrator.md"
 assert_orchestration_reuse_contract "$personal_home/.config/opencode/commands/orchestrate.md"
+assert_reference_branch_contract "$personal_home/.config/opencode/agents/orchestrator.md"
+assert_reference_branch_contract "$personal_home/.config/opencode/commands/orchestrate.md"
 assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'Reuse the reviewer session sequentially for every review and rereview.'
 assert_orchestration_reuse_contract "$source_dir/docs/opencode-agent-orchestration.md"
+assert_reference_branch_contract "$source_dir/docs/opencode-agent-orchestration.md"
 assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
@@ -867,6 +879,7 @@ assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_delivery_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_orchestration_reuse_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_reference_branch_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1

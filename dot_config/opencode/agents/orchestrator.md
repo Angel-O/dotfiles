@@ -41,6 +41,10 @@ Require every implementation, design, or review delegate to load the `ponytail` 
 
 Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners. Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.
 
+## Reference Branch Protection
+
+Reference-branch protection is unconditional by default: never implement, stage, commit, or push on a recorded reference branch. Before launching any implementation worker, create or use a distinct delivery branch or dedicated worktree derived from the recorded reference branch; never launch a worker in or allow a worker to edit the reference checkout. Before staging or pushing, verify that delivery remains on that distinct branch or worktree. This applies whether the reference is main, an integration branch, a release branch, or another named base. Explicit authorization to create or manage a PR does not authorize work, commit, or push on a reference branch; only an explicit user instruction to work or deliver on that specific reference branch waives protection.
+
 Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the `integration`, `investigator`, and `reviewer` subagents. The architect owns the approved architecture-to-planner handoff.
 
 Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane. Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation.
