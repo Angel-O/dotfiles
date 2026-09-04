@@ -206,25 +206,25 @@ assert_herdr_agent_launcher() {
   mkdir -p "$fake_bin" "$canned"
 
   cat >"$canned/caller.json" <<'EOF'
-{"result":{"type":"pane_current","pane":{"pane_id":"w1:p1","terminal_id":"term1","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"/repo","agent_status":"working","revision":1}}}
+{"result":{"type":"pane_current","pane":{"pane_id":"w1:p1","terminal_id":"term1","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"/caller-repo","agent_status":"working","revision":1}}}
 EOF
   cat >"$canned/split.json" <<'EOF'
-{"result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term2","workspace_id":"w1","tab_id":"w1:t1","focused":false,"cwd":"/repo","agent_status":"idle","revision":2}}}
+{"result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term2","workspace_id":"w1","tab_id":"w1:t1","focused":false,"cwd":"/caller-repo","agent_status":"idle","revision":2}}}
 EOF
   cat >"$canned/rename.json" <<'EOF'
 {"result":{"type":"pane_info"}}
 EOF
   cat >"$canned/tab.json" <<'EOF'
-{"result":{"type":"tab_created","tab":{"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w1:p3","terminal_id":"term3","workspace_id":"w1","tab_id":"w1:t2","focused":false,"cwd":"/repo","agent_status":"idle","revision":3}}}
+{"result":{"type":"tab_created","tab":{"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w1:p3","terminal_id":"term3","workspace_id":"w1","tab_id":"w1:t2","focused":false,"cwd":"/caller-repo","agent_status":"idle","revision":3}}}
 EOF
   cat >"$canned/worktree.json" <<EOF
-{"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker-agent","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"repo","repo_name":"repo","repo_root":"/repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
+{"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker-agent","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"caller-repo","repo_name":"caller-repo","repo_root":"/caller-repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
 EOF
   cat >"$canned/start.json" <<'EOF'
-{"result":{"type":"agent_started","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"launch_pending":false,"interactive_ready":true,"cwd":"/repo","revision":5},"argv":["opencode","--agent","ROLE"]}}
+{"result":{"type":"agent_started","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"launch_pending":false,"interactive_ready":true,"cwd":"/caller-repo","revision":5},"argv":["opencode","--agent","ROLE"]}}
 EOF
   cat >"$canned/get.json" <<'EOF'
-{"result":{"type":"agent_info","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"/repo","revision":6}}}
+{"result":{"type":"agent_info","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"/caller-repo","revision":6}}}
 EOF
   cat >"$fake_bin/herdr" <<'EOF'
 #!/usr/bin/env bash
@@ -258,6 +258,8 @@ else
   output=$(<"$FAKE_HERDR_CANNED/$file")
 fi
 if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
+  # The caller workspace represents a different repository in this fixture.
+  test "$3 $4" = "--cwd /caller-repo" || { printf 'worktree repository selector mismatch\n' >&2; exit 1; }
   test "$7 $8" = "--label worker-agent" || { printf 'worktree label argument mismatch\n' >&2; exit 1; }
 fi
 if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
@@ -278,7 +280,7 @@ EOF
     local launcher_path=${1:-}
     local -a launcher_args=("$role" "$topology" "$name")
     [[ -n "$launcher_path" ]] && launcher_args+=("$launcher_path")
-    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=/repo
+    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=/caller-repo
     case "$topology" in
       sibling) fake_tab=w1:t1; fake_pane=w1:p2 ;;
       worktree) fake_workspace=w2; fake_tab=w2:t1; fake_pane=w2:p1; fake_cwd=$worktree ;;
@@ -293,21 +295,21 @@ EOF
   }
 
   metadata=$(run_launcher architect sibling architect-agent)
-  jq -e ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:"/repo"}' <<<"$metadata" >/dev/null
-  assert_contains "$log" 'pane split --current --direction right --cwd /repo --no-focus'
+  jq -e ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:"/caller-repo"}' <<<"$metadata" >/dev/null
+  assert_contains "$log" 'pane split --current --direction right --cwd /caller-repo --no-focus'
   test "$(grep -Fc 'pane rename ' "$log")" -eq 2
   grep -Fxq 'pane rename w1:p1 orchestrator' "$log"
   grep -Fxq 'pane rename w1:p2 architect' "$log"
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --agent architect'
 
   metadata=$(run_launcher worker tab worker-agent)
-  jq -e ' . == {role:"worker",topology:"tab",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:"/repo"}' <<<"$metadata" >/dev/null
-  assert_contains "$log" 'tab create --workspace w1 --cwd /repo --no-focus'
+  jq -e ' . == {role:"worker",topology:"tab",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:"/caller-repo"}' <<<"$metadata" >/dev/null
+  assert_contains "$log" 'tab create --workspace w1 --cwd /caller-repo --no-focus'
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w1:p3 -- --agent worker'
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
-  assert_contains "$log" "worktree create --workspace w1 --path $worktree --label worker-agent --no-focus"
+  assert_contains "$log" "worktree create --cwd /caller-repo --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --agent worker'
 
   : >"$log"
@@ -317,7 +319,7 @@ EOF
   mkdir -p "$worktree"
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" '.worktree_path == $path' <<<"$metadata" >/dev/null
-  assert_contains "$log" "worktree open --workspace w1 --path $worktree --label worker-agent --no-focus"
+  assert_contains "$log" "worktree open --cwd /caller-repo --path $worktree --label worker-agent --no-focus"
 
   : >"$log"
   if FAKE_HERDR_FAILURE=wrong-label run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
@@ -337,7 +339,7 @@ EOF
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
-      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD=/repo \
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD=/caller-repo \
       bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
   done
   for failure in missing wrong-placement; do
@@ -350,7 +352,7 @@ EOF
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
-      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD=/repo \
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD=/caller-repo \
       bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
   done
   : >"$log"

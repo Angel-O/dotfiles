@@ -117,11 +117,12 @@ case "$role/$topology" in
     check_pane .result.root_pane "$caller_workspace" "$tab_id" "$caller_cwd" false
     ;;
   worker/worktree)
+    # Select the repository from the caller pane; its workspace may belong elsewhere.
     if [[ -e "$worktree_path" ]]; then
-      worktree_command=(worktree open --workspace "$caller_workspace" --path "$worktree_path" --label "$agent_name" --no-focus)
+      worktree_command=(worktree open --cwd "$caller_cwd" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_opened
     else
-      worktree_command=(worktree create --workspace "$caller_workspace" --path "$worktree_path" --label "$agent_name" --no-focus)
+      worktree_command=(worktree create --cwd "$caller_cwd" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_created
     fi
     herdr_call "$expected_type" \
