@@ -25,6 +25,7 @@ agent_name=$3
 [[ "$agent_name" =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || fail "invalid agent name: $agent_name"
 
 worktree_path=
+source_repo=
 if [[ "$role/$topology" == worker/worktree ]]; then
   worktree_path=$4
   [[ "$worktree_path" == /* ]] || fail 'worktree path must be absolute'
@@ -35,6 +36,12 @@ fi
   fail 'Herdr caller context is incomplete'
 command -v herdr >/dev/null 2>&1 || fail 'herdr is not installed'
 command -v jq >/dev/null 2>&1 || fail 'jq is not installed'
+if [[ "$role/$topology" == worker/worktree ]]; then
+  # The launcher process selects the repository; pane cwd is placement metadata.
+  if ! source_repo=$(git rev-parse --show-toplevel 2>/dev/null); then
+    fail 'launcher cwd is not inside a Git repository'
+  fi
+fi
 
 response=
 herdr_call() {
@@ -117,12 +124,11 @@ case "$role/$topology" in
     check_pane .result.root_pane "$caller_workspace" "$tab_id" "$caller_cwd" false
     ;;
   worker/worktree)
-    # Select the repository from the caller pane; its workspace may belong elsewhere.
     if [[ -e "$worktree_path" ]]; then
-      worktree_command=(worktree open --cwd "$caller_cwd" --path "$worktree_path" --label "$agent_name" --no-focus)
+      worktree_command=(worktree open --cwd "$source_repo" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_opened
     else
-      worktree_command=(worktree create --cwd "$caller_cwd" --path "$worktree_path" --label "$agent_name" --no-focus)
+      worktree_command=(worktree create --cwd "$source_repo" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_created
     fi
     herdr_call "$expected_type" \
@@ -130,6 +136,7 @@ case "$role/$topology" in
        (.root_pane | type == "object") and (.worktree | type == "object") and
        (.workspace.workspace_id | type == "string") and (.workspace.focused == false) and
        (.workspace.worktree | type == "object") and
+       (.workspace.worktree.repo_root | type == "string") and
        (.workspace.worktree.checkout_path | type == "string") and
        (.workspace.worktree.is_linked_worktree == true) and
        (.worktree.path | type == "string") and (.worktree.is_linked_worktree == true) and
@@ -138,6 +145,8 @@ case "$role/$topology" in
     jq -e --arg name "$agent_name" \
       '.result.workspace.label == $name' <<<"$response" >/dev/null ||
       fail "worktree label mismatch: $response"
+    [[ "$(jq_value '.result.workspace.worktree.repo_root')" == "$source_repo" ]] ||
+      fail "worktree repository mismatch: $response"
     workspace_id=$(jq_value '.result.workspace.workspace_id')
     tab_id=$(jq_value '.result.tab.tab_id')
     pane_id=$(jq_value '.result.root_pane.pane_id')
