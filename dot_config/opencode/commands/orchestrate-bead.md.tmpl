@@ -17,6 +17,8 @@ If the user selects architecture for a large initiative, invoke `~/.local/bin/he
 
 Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners. Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.
 
+Reference-branch protection is unconditional by default: never implement, stage, commit, or push on a recorded reference branch. Before launching any implementation worker, create or use a distinct delivery branch or dedicated worktree derived from the recorded reference branch; never launch a worker in or allow a worker to edit the reference checkout. Before staging or pushing, verify that delivery remains on that distinct branch or worktree. This applies whether the reference is main, an integration branch, a release branch, or another named base. Explicit authorization to create or manage a PR does not authorize work, commit, or push on a reference branch; only an explicit user instruction to work or deliver on that specific reference branch waives protection.
+
 ## Contract-First Parallelism
 
 Before launching epic workers, build a dependency DAG for the concrete children and define a concise contract for every child. Each contract must state the owned outcome and write surface, required inputs, promised outputs or interfaces, dependency assumptions, integration points, acceptance criteria, and any files or APIs that must not be changed. Resolve overlapping ownership before work begins. Sequence implementation only when a child cannot implement or validate against the defined interface without concrete output from another child.
