@@ -100,6 +100,15 @@ assert_not_contains() {
   fi
 }
 
+assert_orchestration_reuse_contract() {
+  local file=$1
+  assert_contains "$file" 'Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners.'
+  assert_contains "$file" 'Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.'
+  assert_contains "$file" 'at most one integration subagent session per orchestration run and reuse it for relevant reruns and same-scope follow-ups.'
+  assert_contains "$file" 'Start a second integration session only when genuinely necessary because the existing session'
+  assert_contains "$file" 'Send accepted findings to the worker; return corrected work to that same reviewer session.'
+}
+
 assert_delivery_contract() {
   local file=$1
   assert_contains "$file" 'without routine confirmation'
@@ -754,12 +763,31 @@ assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'r
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning effort'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'openai/gpt-'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reuse it for every review and rereview'
+python3 - "$personal_home/.config/opencode/commands/orchestrate.md" <<'PY'
+from pathlib import Path
+import sys
+
+text = Path(sys.argv[1]).read_text()
+architecture = text.index('If the user selects architecture')
+handoff = text.index('After worker handoff')
+scope = text.index('## Scope And Complexity Gate')
+for sentence in (
+    'Invoke one `reviewer` subagent session and reuse it for every review and rereview.',
+    'Send accepted findings to the worker; return corrected work to that same reviewer session.',
+):
+    position = text.index(sentence)
+    assert architecture < handoff < position < scope
+PY
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'only supplied repository-wide integration-validation commands'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'repository-wide test commands'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'assign it generic formatting, linting, static tooling, build, unit-test, focused-test, or affected-scope checks'
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start'
 assert_delivery_contract "$personal_home/.config/opencode/agents/orchestrator.md"
 assert_delivery_contract "$personal_home/.config/opencode/commands/orchestrate.md"
+assert_orchestration_reuse_contract "$personal_home/.config/opencode/agents/orchestrator.md"
+assert_orchestration_reuse_contract "$personal_home/.config/opencode/commands/orchestrate.md"
+assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'Reuse the reviewer session sequentially for every review and rereview.'
+assert_orchestration_reuse_contract "$source_dir/docs/opencode-agent-orchestration.md"
 assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
@@ -838,6 +866,7 @@ assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_delivery_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_orchestration_reuse_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1

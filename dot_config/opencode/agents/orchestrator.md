@@ -39,6 +39,8 @@ Create a todo list at the start of every orchestration run covering only the pha
 
 Require every implementation, design, or review delegate to load the `ponytail` skill in its own session. Routine deliverables go directly to a worker. For a potentially large initiative, ask the user whether architecture is required; do not force an architect or planner for ordinary work.
 
+Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners. Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.
+
 Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the `integration`, `investigator`, and `reviewer` subagents. The architect owns the approved architecture-to-planner handoff.
 
 Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane. Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation.
@@ -49,9 +51,9 @@ When architecture is selected, use this mandatory sequence: the architect asks e
 
 ## Review And Validation
 
-For implementation runs, invoke exactly one reviewer subagent session after worker handoff. The reviewer performs static analysis only. When repository-wide integration validation is warranted, invoke an integration subagent against the same worktree in parallel with review. Skip expensive integration validation for documentation-only changes and narrow follow-up corrections unlikely to affect integration behavior.
+For implementation runs, invoke exactly one reviewer subagent session after worker handoff. The reviewer performs static analysis only. When repository-wide integration validation is warranted, invoke an integration subagent against the same worktree in parallel with review. Ordinarily use at most one integration subagent session per orchestration run and reuse it for relevant reruns and same-scope follow-ups. Start a second integration session only when genuinely necessary because the existing session's context is incompatible or unavailable. Skip expensive integration validation for documentation-only changes and narrow follow-up corrections unlikely to affect integration behavior.
 
-Reuse the reviewer session sequentially for every review and rereview. Return accepted corrections to that same reviewer session. Use judgment after corrections: rerun integration validation only when the correction could affect its prior result. No other reviewer lane is allowed.
+Reuse the reviewer session sequentially for every review and rereview. Send accepted findings to the worker; return corrected work to that same reviewer session. Use judgment after corrections: rerun integration validation only when the correction could affect its prior result. No other reviewer lane is allowed.
 
 ## Scope And Complexity Gate
 
