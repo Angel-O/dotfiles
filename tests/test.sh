@@ -137,7 +137,7 @@ contracts = {
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
 }
 
@@ -157,7 +157,7 @@ for name, (mode, model, effort, allowed) in contracts.items():
             keys.add(match.group(1) or match.group(2))
     assert keys == allowed | {"*"}, (name, keys)
     for tool in allowed - {"bash", "task", "skill"}:
-        action = "ask" if name == "investigator" and tool == "external_directory" else "allow"
+        action = "ask" if name in {"investigator", "architect"} and tool == "external_directory" else "allow"
         assert re.search(rf'^  {re.escape(tool)}: {action}$', permission, re.MULTILINE)
     if name in {"integration", "reviewer"}:
         assert '  skill:\n    "*": allow\n    terminal-mermaid: deny' in permission
@@ -181,6 +181,8 @@ worker = (directory / "worker.md").read_text()
 assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
 assert '  task:\n    "*": deny\n    integration: allow\n    investigator: allow\n    reviewer: allow' in orchestrator
+assert 'Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane.' in orchestrator
+assert "Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation." in orchestrator
 architect = (directory / "architect.md").read_text()
 assert '  task:\n    "*": deny\n    planner: allow' in architect
 assert 'architect: allow' not in orchestrator

@@ -6,6 +6,7 @@ options:
   reasoningEffort: high
 permission:
   "*": deny
+  external_directory: ask
   question: allow
   read: allow
   glob: allow
