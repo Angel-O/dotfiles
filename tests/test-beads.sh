@@ -16,6 +16,45 @@ fail() {
   exit 1
 }
 
+render_installer() {
+  name=$1
+  beads_pin=$2
+  viewer_pin=$3
+  variant=$case_root/source-$name
+  mkdir -p "$variant"
+  cp "$source_dir/.chezmoidata.toml" "$variant/.chezmoidata.toml"
+  python3 - "$variant/.chezmoidata.toml" "$beads_pin" "$viewer_pin" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+beads_pin, viewer_pin = sys.argv[2:]
+section = None
+lines = []
+for line in path.read_text().splitlines():
+    if line.startswith("["):
+        section = line
+    if line.startswith("ref = "):
+        if section == "[pins.beads]":
+            line = f'ref = "{beads_pin}"'
+        elif section == "[pins.beadsViewer]":
+            line = f'ref = "{viewer_pin}"'
+    lines.append(line)
+path.write_text("\n".join(lines) + "\n")
+PY
+  output=$case_root/$name.sh
+  chezmoi execute-template --source "$variant" \
+    --config "$source_dir/tests/fixtures/personal-with-beads.toml" \
+    <"$source_dir/run_after_15-install-beads-viewer-fork.sh.tmpl" >"$output"
+  sh -n "$output"
+  printf '%s\n' "$output"
+}
+
+file_inode() {
+  set -- $(ls -di "$1")
+  printf '%s\n' "$1"
+}
+
 for removed in \
   dot_local/bin/executable_wbd \
   dot_local/bin/executable_wbv \
@@ -41,6 +80,7 @@ done
 grep -Fq 'libexec_dir=$HOME/.local/libexec/beads-viewer' "$enabled"
 grep -Fq 'mv "$target_tmp" "$bin_dir/$command"' "$enabled"
 grep -Fq 'mv "$target_tmp" "$libexec_dir/$script"' "$enabled"
+grep -Fq 'Build only the dependency whose pinned pair member is not already installed.' "$enabled"
 grep -Fq 'exit 0' "$disabled"
 ! grep -Fq 'Angel-O/beads_viewer' "$disabled" || fail 'disabled installer contains fork configuration'
 ! grep -Fq 'Angel-O/beads' "$disabled" || fail 'disabled installer contains Beads fork configuration'
@@ -81,6 +121,7 @@ fi
 EOF
 cat >"$case_root/bin/go" <<'EOF'
 #!/bin/sh
+[ "${FAKE_GO_FAIL:-0}" != 1 ] || exit 92
 original_args=$*
 while [ "$#" -gt 0 ]; do
   if [ "$1" = -o ]; then
@@ -90,18 +131,27 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 printf '%s|%s|%s\n' "$PWD" "${CGO_ENABLED:-}" "$original_args" >>"$FAKE_GO_LOG"
-printf '#!/bin/sh\nprintf "viewer binary: %s\\n"\n' "${output##*/}" >"$output"
+printf '#!/bin/sh\nprintf "viewer binary: %s:%s\\n"\n' "${output##*/}" "$FAKE_GO_TAG" >"$output"
 chmod 0755 "$output"
 EOF
 chmod +x "$case_root/bin/git" "$case_root/bin/go"
+cat >"$case_root/bin/mv" <<'EOF'
+#!/bin/sh
+if [ "${FAKE_MV_FAIL:-0}" = 1 ] && [ "$2" = "$FAKE_MV_TARGET" ]; then
+  exit 93
+fi
+exec /bin/mv "$@"
+EOF
+chmod +x "$case_root/bin/mv"
 HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin \
   FAKE_BEADS_SOURCE=$case_root/beads FAKE_BEADS_REF=$beads_ref \
   FAKE_VIEWER_SOURCE=$case_root/viewer FAKE_VIEWER_REF=$viewer_ref \
+  FAKE_GO_TAG=initial \
   FAKE_GO_LOG=$case_root/go.log sh "$enabled"
 
 for command in bd bv wbd wbv; do
   test -x "$case_root/home/.local/bin/$command"
-  test "$("$case_root/home/.local/bin/$command")" = "viewer binary: $command"
+  test "$("$case_root/home/.local/bin/$command")" = "viewer binary: $command:initial"
 done
 grep -Fq "|1|build -trimpath -tags gms_pure_go -ldflags -X main.Build=$beads_short -o" "$case_root/go.log"
 for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
@@ -112,10 +162,132 @@ done
 test "$(cat "$case_root/home/.local/share/beads-viewer-fork/installed-ref")" = \
   "$expected_pair"
 test ! -e "$case_root/home/.local/bin/wbd.sh"
+go_count=$(wc -l <"$case_root/go.log")
+bd_inode=$(file_inode "$case_root/home/.local/bin/bd")
+bv_inode=$(file_inode "$case_root/home/.local/bin/bv")
+wbd_inode=$(file_inode "$case_root/home/.local/bin/wbd")
+wbv_inode=$(file_inode "$case_root/home/.local/bin/wbv")
+viewer_script_inode=$(file_inode \
+  "$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")
 HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin FAKE_GIT_FAIL=1 \
   FAKE_BEADS_SOURCE=$case_root/beads FAKE_BEADS_REF=$beads_ref \
   FAKE_VIEWER_SOURCE=$case_root/viewer FAKE_VIEWER_REF=$viewer_ref \
+  FAKE_GO_TAG=initial \
   FAKE_GO_LOG=$case_root/go.log sh "$enabled"
+test "$(wc -l <"$case_root/go.log")" -eq "$go_count"
+
+# A Beads-only pin change rebuilds bd but leaves every Viewer artifact alone.
+beads_ref_v2=beads-ref-v2
+expected_pair_v2="Angel-O/beads@$beads_ref_v2 Angel-O/beads_viewer@$viewer_ref"
+beads_installer=$(render_installer beads-only "$beads_ref_v2" "$viewer_ref")
+cp -R "$case_root/beads" "$case_root/beads-v2"
+HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin \
+  FAKE_BEADS_SOURCE=$case_root/beads-v2 FAKE_BEADS_REF=$beads_ref_v2 \
+  FAKE_VIEWER_SOURCE=$case_root/viewer FAKE_VIEWER_REF=$viewer_ref \
+  FAKE_GO_TAG=beads-v2 \
+  FAKE_GO_LOG=$case_root/go.log sh "$beads_installer"
+test "$(wc -l <"$case_root/go.log")" -eq 5
+test "$("$case_root/home/.local/bin/bd")" = 'viewer binary: bd:beads-v2'
+for command in bv wbd wbv; do
+  test "$("$case_root/home/.local/bin/$command")" = "viewer binary: $command:initial"
+done
+test "$(file_inode "$case_root/home/.local/bin/bd")" != "$bd_inode"
+test "$(file_inode "$case_root/home/.local/bin/bv")" = "$bv_inode"
+test "$(file_inode "$case_root/home/.local/bin/wbd")" = "$wbd_inode"
+test "$(file_inode "$case_root/home/.local/bin/wbv")" = "$wbv_inode"
+test "$(file_inode "$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")" = \
+  "$viewer_script_inode"
+test "$(cat "$case_root/home/.local/share/beads-viewer-fork/installed-ref")" = \
+  "$expected_pair_v2"
+
+# A Viewer-only pin change rebuilds Viewer commands and scripts but leaves bd alone.
+viewer_ref_v2=viewer-ref-v2
+expected_pair_v3="Angel-O/beads@$beads_ref_v2 Angel-O/beads_viewer@$viewer_ref_v2"
+viewer_installer=$(render_installer viewer-only "$beads_ref_v2" "$viewer_ref_v2")
+cp -R "$case_root/viewer" "$case_root/viewer-v2"
+for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
+  printf '#!/bin/sh\nprintf "viewer script: %s-v2\\n"\n' "$script" \
+    >"$case_root/viewer-v2/scripts/$script"
+done
+bd_inode=$(file_inode "$case_root/home/.local/bin/bd")
+bv_inode=$(file_inode "$case_root/home/.local/bin/bv")
+wbd_inode=$(file_inode "$case_root/home/.local/bin/wbd")
+wbv_inode=$(file_inode "$case_root/home/.local/bin/wbv")
+viewer_script_inode=$(file_inode \
+  "$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")
+HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin \
+  FAKE_BEADS_SOURCE=$case_root/beads-v2 FAKE_BEADS_REF=$beads_ref_v2 \
+  FAKE_VIEWER_SOURCE=$case_root/viewer-v2 FAKE_VIEWER_REF=$viewer_ref_v2 \
+  FAKE_GO_TAG=viewer-v2 \
+  FAKE_GO_LOG=$case_root/go.log sh "$viewer_installer"
+test "$(wc -l <"$case_root/go.log")" -eq 8
+test "$("$case_root/home/.local/bin/bd")" = 'viewer binary: bd:beads-v2'
+for command in bv wbd wbv; do
+  test "$("$case_root/home/.local/bin/$command")" = "viewer binary: $command:viewer-v2"
+done
+test "$(file_inode "$case_root/home/.local/bin/bd")" = "$bd_inode"
+test "$(file_inode "$case_root/home/.local/bin/bv")" != "$bv_inode"
+test "$(file_inode "$case_root/home/.local/bin/wbd")" != "$wbd_inode"
+test "$(file_inode "$case_root/home/.local/bin/wbv")" != "$wbv_inode"
+test "$(file_inode "$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")" != \
+  "$viewer_script_inode"
+test "$("$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")" = \
+  'viewer script: migrate-beads-hub-prefix.sh-v2'
+test "$(cat "$case_root/home/.local/share/beads-viewer-fork/installed-ref")" = \
+  "$expected_pair_v3"
+
+# Changing both pins updates both sides, while a failed build leaves the prior pair stamp.
+beads_ref_v3=beads-ref-v3
+viewer_ref_v3=viewer-ref-v3
+expected_pair_v4="Angel-O/beads@$beads_ref_v3 Angel-O/beads_viewer@$viewer_ref_v3"
+both_installer=$(render_installer both "$beads_ref_v3" "$viewer_ref_v3")
+cp -R "$case_root/beads-v2" "$case_root/beads-v3"
+cp -R "$case_root/viewer-v2" "$case_root/viewer-v3"
+for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
+  printf '#!/bin/sh\nprintf "viewer script: %s-v3\\n"\n' "$script" \
+    >"$case_root/viewer-v3/scripts/$script"
+done
+HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin \
+  FAKE_BEADS_SOURCE=$case_root/beads-v3 FAKE_BEADS_REF=$beads_ref_v3 \
+  FAKE_VIEWER_SOURCE=$case_root/viewer-v3 FAKE_VIEWER_REF=$viewer_ref_v3 \
+  FAKE_GO_TAG=both-v3 \
+  FAKE_GO_LOG=$case_root/go.log sh "$both_installer"
+test "$(wc -l <"$case_root/go.log")" -eq 12
+test "$("$case_root/home/.local/bin/bd")" = 'viewer binary: bd:both-v3'
+for command in bv wbd wbv; do
+  test "$("$case_root/home/.local/bin/$command")" = "viewer binary: $command:both-v3"
+done
+test "$("$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")" = \
+  'viewer script: migrate-beads-hub-prefix.sh-v3'
+test "$(cat "$case_root/home/.local/share/beads-viewer-fork/installed-ref")" = \
+  "$expected_pair_v4"
+
+viewer_ref_v4=viewer-ref-v4
+failed_viewer_installer=$(render_installer viewer-failure "$beads_ref_v3" "$viewer_ref_v4")
+cp -R "$case_root/viewer-v3" "$case_root/viewer-v4"
+if HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin \
+  FAKE_BEADS_SOURCE=$case_root/beads-v3 FAKE_BEADS_REF=$beads_ref_v3 \
+  FAKE_VIEWER_SOURCE=$case_root/viewer-v4 FAKE_VIEWER_REF=$viewer_ref_v4 \
+  FAKE_GO_FAIL=1 FAKE_GO_TAG=failed \
+  FAKE_GO_LOG=$case_root/go.log sh "$failed_viewer_installer"; then
+  fail 'failed Viewer build unexpectedly succeeded'
+fi
+test "$(cat "$case_root/home/.local/share/beads-viewer-fork/installed-ref")" = \
+  "$expected_pair_v4"
+test "$("$case_root/home/.local/bin/bd")" = 'viewer binary: bd:both-v3'
+test "$("$case_root/home/.local/bin/bv")" = 'viewer binary: bv:both-v3'
+test "$("$case_root/home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh")" = \
+  'viewer script: migrate-beads-hub-prefix.sh-v3'
+if HOME=$case_root/home PATH=$case_root/bin:/usr/bin:/bin \
+  FAKE_BEADS_SOURCE=$case_root/beads-v3 FAKE_BEADS_REF=$beads_ref_v3 \
+  FAKE_VIEWER_SOURCE=$case_root/viewer-v4 FAKE_VIEWER_REF=$viewer_ref_v4 \
+  FAKE_MV_FAIL=1 FAKE_MV_TARGET=$case_root/home/.local/bin/bv \
+  FAKE_GO_TAG=mid-install FAKE_GO_LOG=$case_root/go.log sh "$failed_viewer_installer"; then
+  fail 'mid-install replacement unexpectedly succeeded'
+fi
+test ! -e "$case_root/home/.local/share/beads-viewer-fork/installed-ref"
+test "$("$case_root/home/.local/bin/bd")" = 'viewer binary: bd:both-v3'
+test "$("$case_root/home/.local/bin/bv")" = 'viewer binary: bv:both-v3'
 
 # Optional cross-repository contract path; the caller supplies the checkout.
 if [ -n "${BEADS_SOURCE:-}" ]; then

@@ -14,12 +14,32 @@ bin_dir=$HOME/.local/bin
 libexec_dir=$HOME/.local/libexec/beads-viewer
 installed_pair="$beads_source_repo@$beads_wanted_ref $viewer_source_repo@$viewer_wanted_ref"
 
-if [ -x "$bin_dir/bd" ] && [ -x "$bin_dir/bv" ] &&
-  [ -x "$bin_dir/wbd" ] && [ -x "$bin_dir/wbv" ] &&
-  [ -x "$libexec_dir/migrate-beads-hub-prefix.sh" ] &&
-  [ -x "$libexec_dir/migrate-beads-work-to-hub.sh" ] &&
-  [ -f "$libexec_dir/beads-hub-prefix-internal.sh" ] && [ -f "$stamp" ] &&
-  [ "$(cat "$stamp")" = "$installed_pair" ]; then
+beads_installed=0
+viewer_installed=0
+if [ -f "$stamp" ]; then
+  previous_pair=$(cat "$stamp")
+  previous_beads=
+  previous_viewer=
+  previous_extra=
+  if IFS=' ' read -r previous_beads previous_viewer previous_extra <"$stamp" &&
+    [ -z "$previous_extra" ] && [ "$previous_beads $previous_viewer" = "$previous_pair" ]; then
+    if [ "$previous_beads" = "$beads_source_repo@$beads_wanted_ref" ] &&
+      [ -x "$bin_dir/bd" ]; then
+      beads_installed=1
+    fi
+    if [ "$previous_viewer" = "$viewer_source_repo@$viewer_wanted_ref" ]; then
+      if [ -x "$bin_dir/bv" ] && [ -x "$bin_dir/wbd" ] && [ -x "$bin_dir/wbv" ] &&
+        [ -x "$libexec_dir/migrate-beads-hub-prefix.sh" ] &&
+        [ -x "$libexec_dir/migrate-beads-work-to-hub.sh" ] &&
+        [ -f "$libexec_dir/beads-hub-prefix-internal.sh" ]; then
+        viewer_installed=1
+      fi
+    fi
+  fi
+fi
+
+# Build only the dependency whose pinned pair member is not already installed.
+if [ "$beads_installed" -eq 1 ] && [ "$viewer_installed" -eq 1 ]; then
   exit 0
 fi
 
@@ -53,35 +73,56 @@ fetch_source() (
   git -C "$destination" checkout --detach "$resolved_ref"
 )
 
-fetch_source "$beads_source_repo" "$beads_wanted_ref" "$tmp/beads" Beads
-fetch_source "$viewer_source_repo" "$viewer_wanted_ref" "$tmp/viewer" 'Beads Viewer'
+if [ "$beads_installed" -eq 0 ]; then
+  fetch_source "$beads_source_repo" "$beads_wanted_ref" "$tmp/beads" Beads
+fi
+if [ "$viewer_installed" -eq 0 ]; then
+  fetch_source "$viewer_source_repo" "$viewer_wanted_ref" "$tmp/viewer" 'Beads Viewer'
+fi
 
 mkdir -p "$bin_dir" "$libexec_dir" "$state_dir"
-beads_build=$(git -C "$tmp/beads" rev-parse --short HEAD)
-(cd "$tmp/beads" && CGO_ENABLED=1 go build -trimpath -tags gms_pure_go \
-  -ldflags "-X main.Build=$beads_build" -o "$tmp/bd" ./cmd/bd)
-if [ "$(uname -s)" = Darwin ] && command -v codesign >/dev/null 2>&1; then
-  codesign -s - -f "$tmp/bd" 2>/dev/null || true
+if [ "$beads_installed" -eq 0 ]; then
+  beads_build=$(git -C "$tmp/beads" rev-parse --short HEAD)
+  (cd "$tmp/beads" && CGO_ENABLED=1 go build -trimpath -tags gms_pure_go \
+    -ldflags "-X main.Build=$beads_build" -o "$tmp/bd" ./cmd/bd)
+  if [ "$(uname -s)" = Darwin ] && command -v codesign >/dev/null 2>&1; then
+    codesign -s - -f "$tmp/bd" 2>/dev/null || true
+  fi
 fi
-for command in bv wbd wbv; do
-  (cd "$tmp/viewer" && go build -trimpath -o "$tmp/$command" "./cmd/$command")
-done
+if [ "$viewer_installed" -eq 0 ]; then
+  for command in bv wbd wbv; do
+    (cd "$tmp/viewer" && go build -trimpath -o "$tmp/$command" "./cmd/$command")
+  done
+fi
 
-for command in bd bv wbd wbv; do
-  target_tmp=$(mktemp "$bin_dir/.$command.tmp.XXXXXX")
-  cp "$tmp/$command" "$target_tmp"
-  chmod 0755 "$target_tmp"
-  mv "$target_tmp" "$bin_dir/$command"
-  target_tmp=
-done
+# Do not leave a trusted pair stamp while the changed artifacts are incomplete.
+rm -f "$stamp"
 
-for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
-  target_tmp=$(mktemp "$libexec_dir/.$script.tmp.XXXXXX")
-  cp "$tmp/viewer/scripts/$script" "$target_tmp"
+if [ "$beads_installed" -eq 0 ]; then
+  target_tmp=$(mktemp "$bin_dir/.bd.tmp.XXXXXX")
+  cp "$tmp/bd" "$target_tmp"
   chmod 0755 "$target_tmp"
-  mv "$target_tmp" "$libexec_dir/$script"
+  mv "$target_tmp" "$bin_dir/bd"
   target_tmp=
-done
+fi
+
+if [ "$viewer_installed" -eq 0 ]; then
+  for command in bv wbd wbv; do
+    target_tmp=$(mktemp "$bin_dir/.$command.tmp.XXXXXX")
+    cp "$tmp/$command" "$target_tmp"
+    chmod 0755 "$target_tmp"
+    mv "$target_tmp" "$bin_dir/$command"
+    target_tmp=
+  done
+
+  for script in beads-hub-prefix-internal.sh migrate-beads-hub-prefix.sh migrate-beads-work-to-hub.sh; do
+    target_tmp=$(mktemp "$libexec_dir/.$script.tmp.XXXXXX")
+    cp "$tmp/viewer/scripts/$script" "$target_tmp"
+    chmod 0755 "$target_tmp"
+    mv "$target_tmp" "$libexec_dir/$script"
+    target_tmp=
+  done
+fi
 
 stamp_tmp=$(mktemp "$state_dir/.installed-ref.tmp.XXXXXX")
 printf '%s\n' "$installed_pair" >"$stamp_tmp"
