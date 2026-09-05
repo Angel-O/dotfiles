@@ -47,3 +47,5 @@ This gate is the orchestrator's single most important responsibility during revi
 ## Worker Lifecycle
 
 The orchestrator owns worker startup and shutdown. A user stop request, cancellation, or withdrawal of authorization is acted on immediately through the Herdr agent surface. Stopping work leaves the worker pane, workspace, and worktree intact unless the user explicitly requests cleanup.
+
+Record each launched worker identity (worker name, pane, workspace, and worktree path) before prompting it. A prompt wait timeout is not completion. After a timeout, inspect the same worker lane and continue waiting on that same worker. When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop. Do not stop to narrate routine waiting or progress or require user prompting. Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.
