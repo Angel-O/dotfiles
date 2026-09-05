@@ -106,7 +106,10 @@ assert_orchestration_reuse_contract() {
   assert_contains "$file" 'Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.'
   assert_contains "$file" 'at most one integration subagent session per orchestration run and reuse it for relevant reruns and same-scope follow-ups.'
   assert_contains "$file" 'Start a second integration session only when genuinely necessary because the existing session'
-  assert_contains "$file" 'Send accepted findings to the worker; return corrected work to that same reviewer session.'
+  assert_contains "$file" 'do not share a reviewer session across concurrently active parallel workers.'
+  assert_contains "$file" 'review and rereview in that worker'
+  assert_contains "$file" 'Send accepted findings only to that worker; return corrected work only to its paired reviewer session.'
+  assert_contains "$file" 'After that worker lane and review cycle complete, reuse its reviewer for another worker only when the reviewer has capacity.'
 }
 
 assert_reference_branch_contract() {
@@ -798,8 +801,8 @@ architecture = text.index('If the user selects architecture')
 handoff = text.index('After worker handoff')
 scope = text.index('## Scope And Complexity Gate')
 for sentence in (
-    'Invoke one `reviewer` subagent session and reuse it for every review and rereview.',
-    'Send accepted findings to the worker; return corrected work to that same reviewer session.',
+    'For each concurrently active worker lane, invoke one distinct `reviewer` subagent session and reuse it for every review and rereview in that worker\'s correction cycle.',
+    'Send accepted findings only to that worker; return corrected work only to its paired reviewer session.',
 ):
     position = text.index(sentence)
     assert architecture < handoff < position < scope
@@ -814,9 +817,11 @@ assert_orchestration_reuse_contract "$personal_home/.config/opencode/agents/orch
 assert_orchestration_reuse_contract "$personal_home/.config/opencode/commands/orchestrate.md"
 assert_reference_branch_contract "$personal_home/.config/opencode/agents/orchestrator.md"
 assert_reference_branch_contract "$personal_home/.config/opencode/commands/orchestrate.md"
-assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'Reuse the reviewer session sequentially for every review and rereview.'
+assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'For each concurrently active worker lane in an implementation run, invoke one distinct reviewer subagent session after handoff.'
+assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" "Reuse each worker's reviewer session sequentially for every review and rereview in that worker's correction cycle."
 assert_orchestration_reuse_contract "$source_dir/docs/opencode-agent-orchestration.md"
 assert_reference_branch_contract "$source_dir/docs/opencode-agent-orchestration.md"
+assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'For each concurrently active worker lane, the orchestrator creates one distinct reviewer session.'
 assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
@@ -886,8 +891,11 @@ assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reasoning-effort'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reasoning effort'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'For each concurrently active worker lane, create one distinct `reviewer` subagent session.'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'do not share a reviewer session across concurrently active parallel workers.'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'one `reviewer` subagent session'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reuse that same session sequentially'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'After that worker lane and review cycle complete, reuse its reviewer for another worker only when the reviewer has capacity.'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'including implementation, formatting, focused tests, builds, and static tooling'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Repository-wide integration validation belongs to the integration subagent after worker handoff.'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'full test suites belong to the integration subagent'
