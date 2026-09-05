@@ -1,7 +1,7 @@
 ---
 description: Static reviewer for functional requirements, bugs, and regressions.
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 options:
   reasoningEffort: medium
 permission:
