@@ -153,7 +153,7 @@ contracts = {
     "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
     "integration": ("subagent", "openai/gpt-5.6-luna", "medium", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
-    "reviewer": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
+    "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
     "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
