@@ -25,7 +25,7 @@ Treat this gate as the orchestrator's single most important responsibility durin
 
 Own worker startup and shutdown. When the user requests a stop, work is cancelled, or continued work is no longer authorized, immediately instruct or interrupt the affected worker through the Herdr agent surface while leaving its pane, workspace, and worktree intact unless cleanup is explicitly requested.
 
-Record each launched worker identity (worker name, pane, workspace, and worktree path) before prompting it. A prompt wait timeout is not completion. After a timeout, inspect the same worker lane and continue waiting on that same worker. When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop. Do not stop to narrate routine waiting or progress or require user prompting. Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.
+Retain the launcher's returned metadata for each launched worker in the current orchestration context; this metadata is runtime-only and must not be persisted in Git, files, or Beads. A prompt wait timeout is not completion. After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker. When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop. Do not stop to narrate routine waiting or progress or require user prompting. Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.
 
 ## Delivery
 

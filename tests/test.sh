@@ -136,9 +136,9 @@ assert_delivery_contract() {
 
 assert_worker_liveness_contract() {
   local file=$1
-  assert_contains "$file" 'Record each launched worker identity'
+  assert_contains "$file" "Retain the launcher's returned metadata for each launched worker in the current orchestration context; this metadata is runtime-only and must not be persisted in Git, files, or Beads."
   assert_contains "$file" 'A prompt wait timeout is not completion.'
-  assert_contains "$file" 'After a timeout, inspect the same worker lane and continue waiting on that same worker.'
+  assert_contains "$file" 'After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker.'
   assert_contains "$file" 'When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop.'
   assert_contains "$file" 'Do not stop to narrate routine waiting or progress or require user prompting.'
   assert_contains "$file" 'Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.'
