@@ -224,10 +224,12 @@ assert_herdr_agent_launcher() {
   local canned="$test_dir/canned"
   local log="$test_dir/herdr.log"
   local worktree="$test_dir/worktree"
+  local delivery_worktree="$test_dir/delivery-worktree"
   local process_repo="$test_dir/process-repo"
   local pane_repo="$test_dir/pane-repo"
   mkdir -p "$fake_bin" "$canned"
   mkdir -p "$process_repo" "$pane_repo"
+  mkdir -p "$delivery_worktree"
   git -C "$process_repo" init --quiet
   git -C "$pane_repo" init --quiet
   process_repo=$(git -C "$process_repo" rev-parse --show-toplevel)
@@ -273,6 +275,8 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   missing:"pane split") jq 'del(.result.pane.cwd)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-placement:"pane split") jq '.result.pane.workspace_id = "w9"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-focus:"tab create") jq '.result.root_pane.focused = true' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-cwd:"tab create") jq '.result.root_pane.cwd = "/wrong-cwd"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-workspace:"tab create") jq '.result.tab.workspace_id = "w9"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-worktree:"worktree create") jq '.result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-worktree:"worktree open") jq '.result.type = "worktree_opened" | .result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-repository:"worktree create") jq '.result.workspace.worktree.repo_root = "/wrong-repository"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
@@ -281,6 +285,7 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   wrong-label:"worktree create") jq '.result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-label:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-argv:"agent start") jq '.result.argv = ["opencode", "--agent", "investigator"]' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-agent-cwd:"agent start"|wrong-agent-cwd:"agent get") ;;
   wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
 esac
 if [[ "$1 $2" == "worktree open" ]]; then
@@ -289,7 +294,11 @@ else
   output=$(<"$FAKE_HERDR_CANNED/$file")
 fi
 if [[ "$1 $2" == "tab create" ]]; then
+  test "$5 $6" = "--cwd $FAKE_HERDR_TAB_CWD" || { printf 'tab cwd argument mismatch\n' >&2; exit 1; }
   test "$7 $8" = "--label $FAKE_HERDR_NAME" || { printf 'tab label argument mismatch\n' >&2; exit 1; }
+  if [[ "${FAKE_HERDR_FAILURE:-}" != wrong-cwd ]]; then
+    output=$(printf '%s\n' "$output" | jq --arg cwd "$FAKE_HERDR_TAB_CWD" '.result.root_pane.cwd = $cwd')
+  fi
   output=$(printf '%s\n' "$output" | jq --arg label "$FAKE_HERDR_NAME" '.result.tab.label = $label')
 fi
 if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
@@ -311,6 +320,9 @@ if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
     '.result.agent.name = $name | .result.agent.workspace_id = $workspace |
      .result.agent.tab_id = $tab | .result.agent.pane_id = $pane |
      .result.agent.cwd = $cwd')
+  if [[ "${FAKE_HERDR_FAILURE:-}" == wrong-agent-cwd ]]; then
+    output=$(printf '%s\n' "$output" | jq '.result.agent.cwd = "/wrong-cwd"')
+  fi
 fi
 printf '%s\n' "$output" | sed "s/ROLE/$FAKE_HERDR_ROLE/g"
 EOF
@@ -322,9 +334,10 @@ EOF
     local launcher_path=${1:-}
     local -a launcher_args=("$role" "$topology" "$name")
     [[ -n "$launcher_path" ]] && launcher_args+=("$launcher_path")
-    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=$pane_repo
+    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=$pane_repo fake_tab_cwd=$pane_repo
     case "$topology" in
       sibling) fake_tab=w1:t1; fake_pane=w1:p2 ;;
+      tab) [[ -z "$launcher_path" ]] || { fake_cwd=$launcher_path; fake_tab_cwd=$launcher_path; } ;;
       worktree) fake_workspace=w2; fake_tab=w2:t1; fake_pane=w2:p1; fake_cwd=$worktree ;;
     esac
     : >"$log"
@@ -336,6 +349,7 @@ EOF
         FAKE_HERDR_SOURCE_REPO="$process_repo" \
         FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
         FAKE_HERDR_TAB="$fake_tab" FAKE_HERDR_PANE="$fake_pane" FAKE_HERDR_CWD="$fake_cwd" \
+        FAKE_HERDR_TAB_CWD="$fake_tab_cwd" \
         bash "$launcher" "${launcher_args[@]}"
     )
   }
@@ -353,9 +367,17 @@ EOF
   assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --agent worker'
 
+  metadata=$(run_launcher worker tab worker "$delivery_worktree")
+  jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
+  assert_contains "$log" "tab create --workspace w1 --cwd $delivery_worktree --label worker --no-focus"
+  assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --agent worker'
+
   : >"$log"
   if FAKE_HERDR_FAILURE=wrong-label run_launcher worker tab worker >/dev/null 2>&1; then exit 1; fi
   assert_not_contains "$log" 'agent start '
+
+  if run_launcher worker tab worker "$test_dir/missing-worktree" >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker tab worker "$pane_repo" >/dev/null 2>&1; then exit 1; fi
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
@@ -382,6 +404,8 @@ EOF
   test ! -s "$log"
   if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker worktree worker-agent relative 2>/dev/null; then exit 1; fi
   test ! -s "$log"
+  if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker tab worker relative 2>/dev/null; then exit 1; fi
+  test ! -s "$log"
   if PATH="$fake_bin:$PATH" HERDR_ENV=0 bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
   test ! -s "$log"
 
@@ -390,7 +414,24 @@ EOF
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
       FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$pane_repo" \
+      FAKE_HERDR_TAB_CWD="$pane_repo" \
       bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+  done
+  for failure in wrong-focus wrong-cwd wrong-workspace; do
+    : >"$log"
+    if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
+      FAKE_HERDR_NAME=worker FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$delivery_worktree" \
+      FAKE_HERDR_TAB_CWD="$delivery_worktree" bash "$launcher" worker tab worker "$delivery_worktree" 2>/dev/null; then exit 1; fi
+    assert_not_contains "$log" 'agent start '
+  done
+  for failure in wrong-agent-cwd; do
+    : >"$log"
+    if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$delivery_worktree" \
+      FAKE_HERDR_TAB_CWD="$delivery_worktree" bash "$launcher" worker tab worker-agent "$delivery_worktree" 2>/dev/null; then exit 1; fi
+    assert_not_contains "$log" 'agent get '
   done
   for failure in missing wrong-placement; do
     : >"$log"
@@ -403,6 +444,7 @@ EOF
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
       FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$pane_repo" \
+      FAKE_HERDR_TAB_CWD="$pane_repo" \
       bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
   done
   for failure in wrong-worktree wrong-repository; do
@@ -417,6 +459,12 @@ EOF
 }
 
 assert_herdr_agent_launcher
+
+assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
+assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
+assert_contains "$source_dir/docs/opencode-agent-orchestration.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
+
+[[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
@@ -778,7 +826,8 @@ assert_not_contains "$personal_home/.config/opencode/agents/integration.md" 'ful
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
+assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent prompt worker "<contract>" --wait'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name>'
 assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
