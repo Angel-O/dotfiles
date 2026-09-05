@@ -111,16 +111,20 @@ case "$role/$topology" in
     tab_id=$caller_tab
     ;;
   worker/tab)
+    # Herdr's tab label is the visible tab title; the agent argument only selects the role.
     herdr_call tab_created \
       '.result | (.tab | type == "object") and (.root_pane | type == "object") and
        (.tab.tab_id | type == "string") and (.tab.workspace_id | type == "string") and
+       (.tab.label | type == "string") and
        (.tab.focused == false) and (.root_pane.focused == false)' \
-      tab create --workspace "$caller_workspace" --cwd "$caller_cwd" --no-focus
+      tab create --workspace "$caller_workspace" --cwd "$caller_cwd" --label "$agent_name" --no-focus
     tab_id=$(jq_value '.result.tab.tab_id')
     workspace_id=$(jq_value '.result.tab.workspace_id')
     pane_id=$(jq_value '.result.root_pane.pane_id')
     [[ "$workspace_id" == "$caller_workspace" && "$tab_id" != "$caller_tab" ]] ||
       fail "tab placement mismatch: $response"
+    jq -e --arg name "$agent_name" '.result.tab.label == $name' <<<"$response" >/dev/null ||
+      fail "tab label mismatch: $response"
     check_pane .result.root_pane "$caller_workspace" "$tab_id" "$caller_cwd" false
     ;;
   worker/worktree)
