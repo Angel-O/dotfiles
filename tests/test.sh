@@ -292,7 +292,14 @@ fi
 if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
   # The caller workspace represents a different repository in this fixture.
   test "$3 $4" = "--cwd $FAKE_HERDR_SOURCE_REPO" || { printf 'worktree repository selector mismatch\n' >&2; exit 1; }
-  test "$7 $8" = "--label worker-agent" || { printf 'worktree label argument mismatch\n' >&2; exit 1; }
+  if [[ "$1 $2" == "worktree create" ]]; then
+    test "$5 $6" = "--branch worktree/$FAKE_HERDR_NAME" || { printf 'worktree branch argument mismatch\n' >&2; exit 1; }
+    test "$9 ${10}" = "--label $FAKE_HERDR_NAME" || { printf 'worktree label argument mismatch\n' >&2; exit 1; }
+  else
+    test "$5 $6" = "--path $FAKE_HERDR_CWD" || { printf 'worktree open path argument mismatch\n' >&2; exit 1; }
+    test "$7 $8" = "--label $FAKE_HERDR_NAME" || { printf 'worktree label argument mismatch\n' >&2; exit 1; }
+    test "$9" = "--no-focus" && test "$#" -eq 9 || { printf 'worktree open arguments mismatch\n' >&2; exit 1; }
+  fi
 fi
 if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
   output=$(printf '%s\n' "$output" | jq \
@@ -349,7 +356,7 @@ EOF
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
-  assert_contains "$log" "worktree create --cwd $process_repo --path $worktree --label worker-agent --no-focus"
+  assert_contains "$log" "worktree create --cwd $process_repo --branch worktree/worker-agent --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --agent worker'
 
   : >"$log"

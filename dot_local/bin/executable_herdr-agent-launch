@@ -129,10 +129,12 @@ case "$role/$topology" in
     ;;
   worker/worktree)
     if [[ -e "$worktree_path" ]]; then
+      # Existing worktrees are reopened by path; their branch is not renamed.
       worktree_command=(worktree open --cwd "$source_repo" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_opened
     else
-      worktree_command=(worktree create --cwd "$source_repo" --path "$worktree_path" --label "$agent_name" --no-focus)
+      # agent_name is already validated and ID-free, so use it directly in the branch.
+      worktree_command=(worktree create --cwd "$source_repo" --branch "worktree/$agent_name" --path "$worktree_path" --label "$agent_name" --no-focus)
       expected_type=worktree_created
     fi
     herdr_call "$expected_type" \
