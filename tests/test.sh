@@ -134,6 +134,16 @@ assert_delivery_contract() {
   assert_not_contains "$file" 'owns delivery through passing PR checks'
 }
 
+assert_worker_liveness_contract() {
+  local file=$1
+  assert_contains "$file" "Retain the launcher's returned metadata for each launched worker in the current orchestration context; this metadata is runtime-only and must not be persisted in Git, files, or Beads."
+  assert_contains "$file" 'A prompt wait timeout is not completion.'
+  assert_contains "$file" 'After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker.'
+  assert_contains "$file" 'When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop.'
+  assert_contains "$file" 'Do not stop to narrate routine waiting or progress or require user prompting.'
+  assert_contains "$file" 'Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.'
+}
+
 assert_beads_viewer_externals() {
   local file=$1
   python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}; assert data[".config/opencode/skills/beads-hub-closeout/closeout.sh"] == {"type": "file", "url": base + "beads-hub-closeout/closeout.sh", "executable": True}' "$file" "$beads_viewer_ref"
@@ -463,6 +473,10 @@ assert_herdr_agent_launcher
 assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
 assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
 assert_contains "$source_dir/docs/opencode-agent-orchestration.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
+assert_worker_liveness_contract "$source_dir/dot_config/opencode/commands/orchestrate.md"
+assert_worker_liveness_contract "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+assert_worker_liveness_contract "$source_dir/dot_config/opencode/agents/orchestrator.md"
+assert_worker_liveness_contract "$source_dir/docs/opencode-agent-orchestration.md"
 
 [[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
@@ -862,6 +876,8 @@ assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'assig
 assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start'
 assert_delivery_contract "$personal_home/.config/opencode/agents/orchestrator.md"
 assert_delivery_contract "$personal_home/.config/opencode/commands/orchestrate.md"
+assert_worker_liveness_contract "$personal_home/.config/opencode/agents/orchestrator.md"
+assert_worker_liveness_contract "$personal_home/.config/opencode/commands/orchestrate.md"
 assert_orchestration_reuse_contract "$personal_home/.config/opencode/agents/orchestrator.md"
 assert_orchestration_reuse_contract "$personal_home/.config/opencode/commands/orchestrate.md"
 assert_reference_branch_contract "$personal_home/.config/opencode/agents/orchestrator.md"
@@ -952,6 +968,7 @@ assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 assert_delivery_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_worker_liveness_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_orchestration_reuse_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_reference_branch_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
