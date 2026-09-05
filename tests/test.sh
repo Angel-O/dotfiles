@@ -274,6 +274,7 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   wrong-worktree:"worktree open") jq '.result.type = "worktree_opened" | .result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-repository:"worktree create") jq '.result.workspace.worktree.repo_root = "/wrong-repository"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-repository:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.worktree.repo_root = "/wrong-repository"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  wrong-label:"tab create") jq '.result.tab.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-label:"worktree create") jq '.result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-label:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-argv:"agent start") jq '.result.argv = ["opencode", "--agent", "investigator"]' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
@@ -283,6 +284,10 @@ if [[ "$1 $2" == "worktree open" ]]; then
   output=$(jq '.result.type = "worktree_opened"' "$FAKE_HERDR_CANNED/$file")
 else
   output=$(<"$FAKE_HERDR_CANNED/$file")
+fi
+if [[ "$1 $2" == "tab create" ]]; then
+  test "$7 $8" = "--label $FAKE_HERDR_NAME" || { printf 'tab label argument mismatch\n' >&2; exit 1; }
+  output=$(printf '%s\n' "$output" | jq --arg label "$FAKE_HERDR_NAME" '.result.tab.label = $label')
 fi
 if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
   # The caller workspace represents a different repository in this fixture.
@@ -333,10 +338,14 @@ EOF
   grep -Fxq 'pane rename w1:p2 architect' "$log"
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --agent architect'
 
-  metadata=$(run_launcher worker tab worker-agent)
-  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
-  assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --no-focus"
-  assert_contains "$log" 'agent start worker-agent --kind opencode --pane w1:p3 -- --agent worker'
+  metadata=$(run_launcher worker tab worker)
+  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
+  assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
+  assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --agent worker'
+
+  : >"$log"
+  if FAKE_HERDR_FAILURE=wrong-label run_launcher worker tab worker >/dev/null 2>&1; then exit 1; fi
+  assert_not_contains "$log" 'agent start '
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
