@@ -7,12 +7,12 @@ ponytailSkill = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
 [pins.beads]
 source = "Angel-O/beads"
 branch = "feat/bulk-history-read"
-ref = "ebd19be463f04930d6ec505e10b39cfab13e8ccf"
+ref = "dd749ca8ef4c56508d13505042c2affde1b96dfc"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
 branch = "feature/repository-aware-correlations"
-ref = "26267216143d7da2c367982a08ba6a1ff6971a99"
+ref = "0450caf37b9c40dbce1708f4f3e6693197e23727"
 
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
