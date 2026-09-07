@@ -1,0 +1,25 @@
+---
+description: Materialize an approved architecture and planner decomposition into a private Beads epic
+{{- if .modules.opencode }}
+agent: orchestrator
+{{- end }}
+---
+
+Materialize the existing canonical epic `$1` and nothing else.
+
+Load the `beads-hub` skill before acting. Follow its contract and use only `wbd` for Hub operations. This command accepts exactly one positional argument: if `$1` is missing or `$2` is present, stop and report the usage error without running any `wbd` command. The argument must be the exact canonical ID supplied by the user; never resolve, shorten, or guess an ID.
+
+Use only the already approved architecture and planner decomposition retained in the current orchestration context. Do not launch, ask for, redo, infer, summarize, repair, or alter architecture or planner work. Require a non-empty, explicit approved architecture and a complete, unambiguous decomposition handoff before any mutation. If either is absent, ambiguous, or not separable, stop and report that blocker before any Hub mutation.
+
+Before mutating anything, run `wbd show "$1" --json` and require one exact returned record whose `issue_type` is `epic`. Then run `wbd comments "$1" --json` and `wbd show "$1" --json --expand-dependencies`; inspect all existing comments and direct `parent-child` children. Compare every existing comment body's text byte-for-byte with the approved architecture retained in this context. Stop and report if a comment matches that architecture exactly, or if any direct `parent-child` child exists. Ignore unrelated comments; they do not indicate materialization. Because this workflow has no ownership marker, do not use heuristics or attempt to distinguish, repair, retry, roll back, or delete a materialization. Do not duplicate anything.
+
+Before the first mutation, validate every planner slice without filling gaps from the architecture or from judgment. Require at least one slice, and require each slice to explicitly state a non-empty title, description, exactly one context, one concrete type (`task`, `bug`, `feature`, or `chore`), a Beads priority (`0` through `4`), and its blockers (explicitly none or an explicit list). Reject missing, malformed, duplicate, self-referential, or unknown slice references. Add a blocking edge only when the planner explicitly marks that listed blocker as genuine; never turn a suggestion, ordering preference, or architecture relationship into a dependency.
+
+After all preflight checks pass, perform mutations sequentially and stop on the first failed mutation:
+
+1. Preserve the approved architecture exactly, byte-for-byte, as one comment on the epic. Put only that architecture text in a mode-0600 temporary runtime file, with no title, heading, summary, or wrapper prose, and run `wbd comments add "$1" --file "$architecture_file" --json`. Remove the file afterward. Do not put its contents or private IDs/contexts in any Git-visible file.
+2. For each planner slice, run `wbd create "$title" --type "$type" --description "$description" --priority "$priority" --context "$context" --json`. Parse exactly one returned child ID, then validate it immediately with `wbd show "$child_id" --json`: it must be that exact canonical ID, a concrete child of the requested type, with the approved title, description, priority, and exactly one approved context. Record the child ID only in runtime state.
+3. Parent-link that validated child first with `wbd dep add "$child_id" "$1" --type parent-child --json`. This is the only lifecycle relationship to the epic; do not use `wbd link`, claim, close, or any deletion operation.
+4. After every slice has been created and parent-linked, add only the explicitly approved genuine blocker edges with `wbd dep add "$blocked_child_id" "$blocker_child_id" --type blocks --json`, in planner order. Do not add any other edge.
+
+On any failed mutation or returned-child validation, stop immediately. Do not retry, rollback, delete, claim, close, link, launch workers, or begin implementation. Report the blocker and the completed versus unfinished operations, including only runtime IDs and contexts in that report.
