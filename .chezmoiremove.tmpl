@@ -22,3 +22,6 @@
 {{ if not (and .modules.herdr .modules.beads $opencodeBeads) }}
 .config/opencode/commands/orchestrate-bead.md
 {{ end }}
+{{ if not (and .modules.beads $opencodeBeads) }}
+.config/opencode/commands/materialize-epic.md
+{{ end }}

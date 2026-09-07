@@ -76,6 +76,9 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- if or (not .modules.herdr) (not .modules.beads) (not .integrations.opencodeBeads) }}
 .config/opencode/commands/orchestrate-bead.md
 {{- end }}
+{{- if or (not .modules.beads) (not (dig "integrations" "opencodeBeads" false .)) }}
+.config/opencode/commands/materialize-epic.md
+{{- end }}
 
 .config/opencode/env.local
 

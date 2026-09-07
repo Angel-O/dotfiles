@@ -480,6 +480,8 @@ assert_worker_liveness_contract "$source_dir/docs/opencode-agent-orchestration.m
 
 [[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
+bash "$source_dir/tests/test-materialize-epic.sh"
+
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
 assert_contains "$source_dir/README.md" 'atomically installs `bd`, `bv`, `wbd`, and `wbv`'
@@ -1165,6 +1167,7 @@ chezmoi managed \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
+.config/opencode/commands/materialize-epic.md
 .config/opencode/commands/orchestrate-bead.md
 EOF
 cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
