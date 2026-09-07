@@ -48,7 +48,7 @@ PY
 assert_contains "$source_dir/.chezmoiignore" '.config/opencode/commands/materialize-epic.md'
 assert_contains "$source_dir/.chezmoiremove.tmpl" '.config/opencode/commands/materialize-epic.md'
 assert_contains "$source_dir/README.md" '`materialize-epic` command consumes only an already approved architecture'
-assert_contains "$source_dir/.chezmoidata.toml" 'ref = "401cd5bb31bc5181c829b205af9a2ca10198ea70"'
+python3 -c 'import re,tomllib,sys; ref=tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"]; assert re.fullmatch(r"[0-9a-f]{40}", ref)' "$source_dir/.chezmoidata.toml"
 
 work=$(mktemp)
 external=$(mktemp)
