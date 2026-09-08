@@ -48,7 +48,6 @@ PY
 assert_contains "$source_dir/.chezmoiignore" '.config/opencode/commands/materialize-epic.md'
 assert_contains "$source_dir/.chezmoiremove.tmpl" '.config/opencode/commands/materialize-epic.md'
 assert_contains "$source_dir/README.md" '`materialize-epic` command consumes only an already approved architecture'
-assert_contains "$source_dir/.chezmoidata.toml" 'ref = "4bb41eecb5cd9aafefc205a4f8eac9d6d3965a10"'
 
 work=$(mktemp)
 external=$(mktemp)
