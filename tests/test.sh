@@ -912,7 +912,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.4-mini")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
