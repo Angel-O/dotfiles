@@ -89,7 +89,7 @@ Chezmoi should manage only the approved shared Git subset: worktree aliases, glo
 
 ## OpenCode Superset Layer
 
-The existing global `~/.config/opencode/opencode.jsonc` remains unmanaged. The launcher sets `OPENCODE_CONFIG=~/.config/opencode/portable.jsonc`, which OpenCode merges after the global layer. Work rendering omits provider/model and ordinary array-valued settings; plugin declarations are safe because OpenCode explicitly accumulates and de-duplicates plugins across config sources.
+The existing global `~/.config/opencode/opencode.jsonc` remains unmanaged. The launcher sets `OPENCODE_CONFIG=~/.config/opencode/portable.jsonc`, which OpenCode merges after the global layer. Work rendering omits provider and default-model settings, while the portable layer fixes models for shared agents, including the built-in title agent. Plugin declarations are safe because OpenCode explicitly accumulates and de-duplicates plugins across config sources.
 
 Custom orchestration agents are additive Markdown files under `~/.config/opencode/agents/`. They use their own fixed models, reasoning efforts, and deny-by-default tool permissions without redefining built-in agents. The manual orchestration command selects the custom orchestrator, while the Bead command starts the fixed custom worker automatically.
 
