@@ -1080,6 +1080,7 @@ assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstu
 cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$work_home/.config/opencode/plugins/plan-diagrams.js"
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$work_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
+assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
