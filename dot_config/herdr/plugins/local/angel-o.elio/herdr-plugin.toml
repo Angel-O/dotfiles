@@ -1,0 +1,24 @@
+id = "angel-o.elio"
+name = "File Explorer"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Open elio (terminal file manager) in a herdr pane"
+platforms = ["linux", "macos", "windows"]
+
+[[panes]]
+id = "explorer"
+title = "Explorer"
+placement = "split"
+command = ["bash", "-c", "exec elio"]
+
+[[actions]]
+id = "open"
+title = "Open file explorer"
+contexts = ["workspace"]
+command = ["bash", "-c", "DIR=\"$(bash \"$HERDR_PLUGIN_ROOT/bin/resolve-dir.sh\")\"; exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.elio --entrypoint explorer --placement split --cwd \"$DIR\""]
+
+[[actions]]
+id = "open-tab"
+title = "Open file explorer (new tab)"
+contexts = ["workspace"]
+command = ["bash", "-c", "DIR=\"$(bash \"$HERDR_PLUGIN_ROOT/bin/resolve-dir.sh\")\"; exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.elio --entrypoint explorer --placement tab --cwd \"$DIR\""]

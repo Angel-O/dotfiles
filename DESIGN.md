@@ -105,6 +105,7 @@ Private work launcher values live in ignored `~/.config/opencode/env.local` and 
 | OpenCode local authored plugin | Track source file directly |
 | OpenCode Herdr integration | Regenerate using Herdr's integration installer |
 | Herdr GitHub plugin | Idempotently install from pinned source data when selected locally |
+| Local Elio Herdr plugin | Link the vendored source when selected locally |
 | Reviewr on personal machine | Keep the existing local development link |
 | Reviewr on work machine | Install a pinned GitHub release |
 | Oh My Zsh third-party plugin | Use a pinned chezmoi external or installation script |

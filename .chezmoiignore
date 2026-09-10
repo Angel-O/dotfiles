@@ -44,6 +44,9 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/herdr/plugins/config/persiyanov.reviewr/**
 .config/herdr/reviewr-toggle-tab.sh
 {{- end }}
+{{- if or (not .modules.herdr) (not .herdrPlugins.elio) }}
+.config/herdr/plugins/local/angel-o.elio/**
+{{- end }}
 
 {{- if not .modules.opencode }}
 .config/opencode/*
