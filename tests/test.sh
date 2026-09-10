@@ -138,10 +138,71 @@ assert_worker_liveness_contract() {
   local file=$1
   assert_contains "$file" "Retain the launcher's returned metadata for each launched worker in the current orchestration context; this metadata is runtime-only and must not be persisted in Git, files, or Beads."
   assert_contains "$file" 'A prompt wait timeout is not completion.'
+  assert_contains "$file" 'After a timeout, immediately invoke `herdr agent wait <recorded-worker>` for that same recorded lane and repeat the active wait until it settles or a real blocker occurs; never passively wait or end the turn.'
+  assert_contains "$file" 'This avoids delivery gaps before handoff, review, and next-wave launch.'
   assert_contains "$file" 'After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker.'
   assert_contains "$file" 'When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop.'
   assert_contains "$file" 'Do not stop to narrate routine waiting or progress or require user prompting.'
   assert_contains "$file" 'Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.'
+}
+
+assert_fresh_worker_prompt_contract() {
+  local file=$1
+  local style=${2:-generic}
+  python3 - "$file" "$style" <<'PY'
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+style = sys.argv[2]
+field_order = [
+    "Work item",
+    "Dedicated worktree and ownership",
+    "Scope and exclusions",
+    "Inputs and prerequisites",
+    "Expected outputs or interfaces",
+    "Acceptance and compatibility criteria",
+    "Validation expected and owner",
+    "Handoff contents",
+    "Stop/report conditions",
+]
+policy_line = next(line for line in text.splitlines() if "Use these labeled fields in this order:" in line)
+cursor = -1
+for label in field_order:
+    position = policy_line.index(f"`{label}`")
+    assert position > cursor
+    cursor = position
+if style == "ordinary":
+    assert "Before every fresh worker launch, submit one self-contained contract." in text
+    assert "Fill every field before launching." in text
+else:
+    assert "Every fresh worker launch prompt is one self-contained contract." in text
+    assert "Do not launch until every field is filled in." in text
+if style == "bead":
+    for field in "canonical private Bead ID", "title", "wave", "prerequisite status":
+        assert field in text
+    assert "never copy it into a branch, workspace, file, commit, or report" in text
+PY
+}
+
+assert_authorized_loop_simulation() {
+  local file=$1
+  python3 - "$file" <<'PY'
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+events = [
+    "Run one authorized loop.",
+    "A prompt wait timeout is not completion.",
+    "After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker.",
+    "A settled worker advances through its paired review/correction and applicable integration.",
+    "After delivery of a completed child or wave, recompute dependency readiness and immediately launch the next authorized ready wave.",
+]
+positions = [text.index(event) for event in events]
+assert positions == sorted(positions)
+assert "Stop only for a real blocker, required approval, cancellation, withdrawn authorization" in text
+PY
 }
 
 assert_beads_viewer_externals() {
@@ -480,6 +541,20 @@ EOF
 }
 
 assert_herdr_agent_launcher
+
+for orchestration_file in \
+  "$source_dir/dot_config/opencode/agents/orchestrator.md" \
+  "$source_dir/dot_config/opencode/commands/orchestrate.md" \
+  "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl" \
+  "$source_dir/docs/opencode-agent-orchestration.md"; do
+  style=generic
+  case "$orchestration_file" in
+    */commands/orchestrate.md) style=ordinary ;;
+    *.tmpl) style=bead ;;
+  esac
+  assert_fresh_worker_prompt_contract "$orchestration_file" "$style"
+  assert_authorized_loop_simulation "$orchestration_file"
+done
 
 assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
 assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
@@ -954,6 +1029,8 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
+assert_fresh_worker_prompt_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" bead
+assert_authorized_loop_simulation "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'The active Bead orchestration contract applies equally to a single concrete work item and to each selected epic child.'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'semantic worker name that is unique among currently active workers and free of private work-item/context identifiers'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'passes the worker name verbatim as its workspace label'
@@ -1202,6 +1279,8 @@ assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.m
 assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
 assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent worker'
 assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent architect'
+assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'For now, stop immediately after all workers for the first eligible wave have started successfully in their child workspaces.'
+assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'Do not send any worker its task prompt yet, do not start implementation, and do not launch a reviewer.'
 assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
 test ! -e "$external_home/.local/bin/opencode-env"
 test ! -e "$external_home/.local/bin/herdr-agent-launch"
