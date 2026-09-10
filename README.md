@@ -39,7 +39,7 @@ The inventory uses these classifications:
 | `ghostty` | XDG config, Ghostty cask, Hack, and JetBrains Mono |
 | `helix` | Authored XDG configuration with the shared `dracula_at_night` theme |
 | `warp` | Configuration-only Option/Meta policy; does not install Warp |
-| `herdr` | Herdr core, shared config, and machine-selected pinned plugins |
+| `herdr` | Herdr core, shared config, and machine-selected plugins |
 | `opencode` | Portable config layer, launcher, local plugins, commands, and skills; does not install the OpenCode executable |
 | `starship` | Starship, themes, selector, and `stheme` support |
 | `shell` | Zsh fragments, Oh My Zsh, FZF, Zoxide, and cross-tool hooks |
@@ -87,9 +87,9 @@ Pull requests and pushes to `main` run the same command on GitHub's standard hos
 
 ## Dependency Updates
 
-The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages Herdr plugin refs and both Beads runtime fork pins in `.chezmoidata.toml`. If the app is not enabled, install it for this GitHub account and grant it access to this repository; no self-hosted workflow is required.
+The hosted [Mend Renovate GitHub App](https://github.com/apps/renovate) manages GitHub-sourced Herdr plugin refs and both Beads runtime fork pins in `.chezmoidata.toml`. The local Elio plugin is vendored and is not a Renovate dependency. If the app is not enabled, install it for this GitHub account and grant it access to this repository; no self-hosted workflow is required.
 
-Renovate opens one grouped `Herdr plugins` PR when plugin updates are available. Release-tag pins follow newer GitHub tags, while plugin commit pins follow their configured branches. The exact Beads and Viewer commits follow their configured feature branches and share one `Beads runtime` update group because they form a compatibility pair. Review the resulting pair, including an unchanged companion pin when only one branch advances, and merge only after Docker validation passes. Renovate PRs are not automerged. `INVENTORY.md` intentionally records pin policy rather than duplicating exact refs.
+Renovate opens one grouped `Herdr plugins` PR for GitHub-sourced plugin updates. Release-tag pins follow newer GitHub tags, while plugin commit pins follow their configured branches. The exact Beads and Viewer commits follow their configured feature branches and share one `Beads runtime` update group because they form a compatibility pair. Review the resulting pair, including an unchanged companion pin when only one branch advances, and merge only after Docker validation passes. Renovate PRs are not automerged. `INVENTORY.md` intentionally records pin policy rather than duplicating exact refs.
 
 ## Machine Workflows
 

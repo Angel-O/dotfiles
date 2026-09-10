@@ -60,7 +60,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 
 ## Herdr GitHub Plugins
 
-`.chezmoidata.toml` is the authoritative source for plugin repositories and exact refs; Renovate maintains those values so this inventory does not duplicate them.
+`.chezmoidata.toml` is the authoritative source for GitHub plugin repositories and exact refs; Renovate maintains those values so this inventory does not duplicate them.
 
 | Plugin ID | Pin policy | Default | Approved treatment |
 | --- | --- | --- | --- |
@@ -70,7 +70,12 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | `ez-corp.space-usage` | Default branch commit | On | Install pinned and manage config when selected |
 | `herdr-bar` | Default branch commit | On | Install pinned and manage config when selected |
 | `thomasschafer.herdr-kiosk` | Default branch commit | On | Install pinned when selected; plugin manages its own config |
-| `robert-flo.elio` | Default branch commit | Off | Install pinned when selected; distinct from the shared CLI |
+
+## Herdr Local Plugins
+
+| Plugin ID | Source | Default | Approved treatment |
+| --- | --- | --- | --- |
+| `angel-o.elio` | Vendored under the chezmoi source | Off | Link locally when selected; distinct from the shared CLI |
 
 ## Herdr Machine-Specific Plugin Installation
 

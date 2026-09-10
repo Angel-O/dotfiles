@@ -85,7 +85,7 @@ apply_fixture() {
 assert_contains() {
   local file=$1
   local text=$2
-  grep -Fq "$text" "$file" || {
+  grep -Fq -- "$text" "$file" || {
     printf 'expected %s to contain: %s\n' "$file" "$text" >&2
     exit 1
   }
@@ -542,6 +542,22 @@ EOF
 
 assert_herdr_agent_launcher
 
+elio_source="$source_dir/dot_config/herdr/plugins/local/angel-o.elio"
+test -f "$elio_source/herdr-plugin.toml"
+test -x "$elio_source/bin/executable_resolve-dir.sh"
+test ! -e "$elio_source/README.md"
+test ! -e "$elio_source/assets"
+test ! -e "$elio_source/.git"
+python3 -c 'from pathlib import Path; import sys; assert {str(path.relative_to(sys.argv[1])) for path in Path(sys.argv[1]).rglob("*") if path.is_file()} == {"herdr-plugin.toml", "bin/executable_resolve-dir.sh"}' "$elio_source"
+assert_contains "$elio_source/herdr-plugin.toml" 'id = "angel-o.elio"'
+assert_contains "$elio_source/herdr-plugin.toml" '--plugin angel-o.elio --entrypoint explorer --placement split'
+assert_contains "$elio_source/herdr-plugin.toml" '--plugin angel-o.elio --entrypoint explorer --placement tab'
+assert_not_contains "$elio_source/herdr-plugin.toml" 'cargo install'
+assert_not_contains "$elio_source/bin/executable_resolve-dir.sh" 'node -e'
+test "$(HERDR_PLUGIN_CONTEXT_JSON='{"focused_pane_cwd":"/focused","workspace_cwd":"/workspace"}' bash "$elio_source/bin/executable_resolve-dir.sh")" = /focused
+test "$(HERDR_PLUGIN_CONTEXT_JSON='{"focused_pane_cwd":"","workspace_cwd":"/workspace"}' bash "$elio_source/bin/executable_resolve-dir.sh")" = /workspace
+test "$(HERDR_PLUGIN_CONTEXT_JSON='not-json' bash -c 'cd /tmp && exec bash "$1"' _ "$elio_source/bin/executable_resolve-dir.sh")" = /tmp
+
 for orchestration_file in \
   "$source_dir/dot_config/opencode/agents/orchestrator.md" \
   "$source_dir/dot_config/opencode/commands/orchestrate.md" \
@@ -574,7 +590,7 @@ assert_contains "$source_dir/README.md" 'atomically installs `bd`, `bv`, `wbd`, 
 assert_contains "$source_dir/README.md" '`~/.local/libexec/beads-viewer`'
 assert_contains "$source_dir/README.md" '~/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh'
 assert_contains "$source_dir/README.md" 'Disabling the module stops future installation and management without deleting'
-python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pins=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]; config=json.load(open(source+"/renovate.json")); managers=config["customManagers"]; assert pins["beads"]["branch"] == "feat/bulk-history-read"; assert pins["beadsViewer"]["branch"] == "feature/repository-aware-correlations"; runtime=[manager for manager in managers if manager.get("depTypeTemplate") == "beads-runtime" and manager.get("datasourceTemplate") == "git-refs"]; assert len(runtime) == 2; assert any(rule.get("groupName") == "Beads runtime" for rule in config["packageRules"])' "$source_dir"
+python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pins=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]; config=json.load(open(source+"/renovate.json")); managers=config["customManagers"]; assert "elio" not in pins["herdrPlugins"]; assert pins["beads"]["branch"] == "feat/bulk-history-read"; assert pins["beadsViewer"]["branch"] == "feature/repository-aware-correlations"; runtime=[manager for manager in managers if manager.get("depTypeTemplate") == "beads-runtime" and manager.get("datasourceTemplate") == "git-refs"]; assert len(runtime) == 2; assert any(rule.get("groupName") == "Beads runtime" for rule in config["packageRules"])' "$source_dir"
 beads_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beads"]["ref"])' "$source_dir/.chezmoidata.toml")
 beads_viewer_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"])' "$source_dir/.chezmoidata.toml")
 ponytail_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["ponytailSkill"])' "$source_dir/.chezmoidata.toml")
@@ -860,7 +876,8 @@ assert_contains "$source_dir/.chezmoi.toml.tmpl" 'sourceDir = {{ .chezmoi.source
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
 assert_not_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'den-tanui/herdr-zoxide'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio "robert-flo/herdr-terminal-file-manager"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'herdr plugin link --enabled "$HOME/.config/herdr/plugins/local/angel-o.elio"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'elio_root="$HOME/.config/herdr/plugins/local/angel-o.elio"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
 assert_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'herdr integration install opencode'
 assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'herdr integration status'
@@ -904,7 +921,13 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "thomassch
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+o"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'herdr-zoxide.browse'
 test ! -e "$personal_home/.config/herdr/plugins/config/thomasschafer.herdr-kiosk/config.toml"
-assert_contains "$personal_home/.config/herdr/config.toml" 'command = "robert-flo.elio.open"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.elio.open"'
+test -f "$personal_home/.config/herdr/plugins/local/angel-o.elio/herdr-plugin.toml"
+test -x "$personal_home/.config/herdr/plugins/local/angel-o.elio/bin/resolve-dir.sh"
+test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/README.md"
+test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/assets"
+test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/.git"
+
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
@@ -1003,6 +1026,8 @@ personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
+printf '%s\n' "$personal_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/herdr-plugin.toml'
+printf '%s\n' "$personal_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/bin/resolve-dir.sh'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$personal_home/.config/herdr/config.toml"
 zsh -n "$personal_home"/.config/zsh/*.zsh
 HOME="$personal_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; alias warpconf >/dev/null'
@@ -1096,7 +1121,6 @@ assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.t
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
-assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin robert-flo.elio'
 mkdir -p "$work_home/.config/opencode" "$work_home/.warp"
 cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"
@@ -1169,7 +1193,7 @@ cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$work_home/.c
 cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$work_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
-assert_not_contains "$work_home/.config/herdr/config.toml" 'robert-flo.elio.open'
+assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
@@ -1215,6 +1239,8 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
 printf '%s\n' "$work_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-bead.md'
+! printf '%s\n' "$work_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/herdr-plugin.toml'
+! printf '%s\n' "$work_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/bin/resolve-dir.sh'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/beads-hub/SKILL.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/work-beads/SKILL.md'
 
@@ -1427,7 +1453,7 @@ assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'jeffarese/herdr-bar'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'thomasschafer/herdr-kiosk'
-assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'robert-flo/herdr-terminal-file-manager'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'angel-o.elio'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'persiyanov/herdr-reviewr'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'brew install rust'
@@ -1442,6 +1468,7 @@ test ! -e "$disabled_home/.config/herdr/plugins/config/ez-corp.space-usage/confi
 test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-bar/config.json"
 test ! -e "$disabled_home/.config/herdr/plugins/config/thomasschafer.herdr-kiosk/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
+test ! -e "$disabled_home/.config/herdr/plugins/local/angel-o.elio"
 test ! -e "$disabled_home/.config/herdr-labels/config.toml"
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disabled_home/.config/herdr/config.toml"
 
@@ -1469,6 +1496,7 @@ test -f "$ghostty_home/.config/ghostty/config"
 test ! -e "$ghostty_home/.config/helix"
 test ! -e "$ghostty_home/.warp"
 test ! -e "$ghostty_home/.config/herdr/config.toml"
+test ! -e "$ghostty_home/.config/herdr/plugins/local/angel-o.elio"
 test ! -e "$ghostty_home/.config/opencode/portable.jsonc"
 test ! -e "$ghostty_home/.local/bin/herdr-agent-launch"
 test ! -e "$ghostty_home/.config/opencode/agents"

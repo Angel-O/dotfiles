@@ -52,11 +52,6 @@ source = "jeffarese/herdr-bar"
 branch = "main"
 ref = "b57aa342f88f9db78f3deb20629ccebf162a6f57"
 
-[pins.herdrPlugins.elio]
-source = "robert-flo/herdr-terminal-file-manager"
-branch = "main"
-ref = "851a05c69b0db012b289d1c418f04eb7b29839ee"
-
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
 ref = "v0.36.2"

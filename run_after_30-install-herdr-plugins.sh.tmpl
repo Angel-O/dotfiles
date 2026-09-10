@@ -12,7 +12,7 @@ if ! command -v jq >/dev/null 2>&1; then
   printf 'jq is required before installing Herdr plugins.\n' >&2
   exit 1
 fi
-{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.kiosk .herdrPlugins.elio .herdrPlugins.reviewr }}
+{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.kiosk .herdrPlugins.reviewr }}
 if ! command -v cargo >/dev/null 2>&1; then
   if ! command -v brew >/dev/null 2>&1; then
     printf 'Cargo is required to build selected Herdr plugins.\n' >&2
@@ -79,6 +79,15 @@ fi
 {{- end }}
 {{- end }}
 {{- if .herdrPlugins.elio }}
-ensure_github_plugin robert-flo.elio {{ .pins.herdrPlugins.elio.source | quote }} {{ .pins.herdrPlugins.elio.ref | quote }}
+elio_root="$HOME/.config/herdr/plugins/local/angel-o.elio"
+elio_state=$(herdr plugin list --json)
+elio_kind=$(printf '%s' "$elio_state" | jq -r '.result.plugins[] | select(.plugin_id == "angel-o.elio") | .source.kind // empty')
+elio_plugin_root=$(printf '%s' "$elio_state" | jq -r '.result.plugins[] | select(.plugin_id == "angel-o.elio") | .plugin_root // empty')
+if [ "$elio_kind" != "local" ] || [ "$elio_plugin_root" != "$elio_root" ]; then
+  if [ -n "$elio_kind" ]; then
+    herdr plugin uninstall angel-o.elio
+  fi
+  herdr plugin link --enabled "$HOME/.config/herdr/plugins/local/angel-o.elio"
+fi
 {{- end }}
 {{- end }}
