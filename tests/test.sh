@@ -280,6 +280,13 @@ case "$1 $2" in
   *) printf '{"error":{"code":"unexpected","message":"unexpected command"}}\n'; exit 1 ;;
 esac
 case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
+  busy-once:"agent start")
+    if [[ ! -e "$FAKE_HERDR_BUSY_MARKER" ]]; then
+      : >"$FAKE_HERDR_BUSY_MARKER"
+      printf '{"error":{"code":"agent_pane_busy","message":"pane is not ready"}}\n'
+      exit 1
+    fi
+    ;;
   malformed:"pane current") printf 'not json\n'; exit 0 ;;
   wrong-type:"pane current") jq '.result.type = "wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   missing:"pane split") jq 'del(.result.pane.cwd)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
@@ -359,7 +366,7 @@ EOF
         FAKE_HERDR_SOURCE_REPO="$process_repo" \
         FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
         FAKE_HERDR_TAB="$fake_tab" FAKE_HERDR_PANE="$fake_pane" FAKE_HERDR_CWD="$fake_cwd" \
-        FAKE_HERDR_TAB_CWD="$fake_tab_cwd" \
+        FAKE_HERDR_TAB_CWD="$fake_tab_cwd" FAKE_HERDR_BUSY_MARKER="$test_dir/busy-marker" \
         bash "$launcher" "${launcher_args[@]}"
     )
   }
@@ -381,6 +388,10 @@ EOF
   jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $delivery_worktree --label worker --no-focus"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --agent worker'
+
+  rm -f "$test_dir/busy-marker"
+  FAKE_HERDR_FAILURE=busy-once metadata=$(run_launcher worker tab worker "$delivery_worktree")
+  test "$(grep -Fc 'agent start ' "$log")" -eq 2
 
   : >"$log"
   if FAKE_HERDR_FAILURE=wrong-label run_launcher worker tab worker >/dev/null 2>&1; then exit 1; fi
