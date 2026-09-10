@@ -56,7 +56,12 @@ herdr_call() {
   local required=$2
   shift 2
   if ! response=$(herdr "$@" 2>&1); then
-    fail "$* failed: $response"
+    if [[ "$1 $2" == "agent start" && "$response" == *'"code":"agent_pane_busy"'* ]]; then
+      sleep 0.1
+      response=$(herdr "$@" 2>&1) || fail "$* failed: $response"
+    else
+      fail "$* failed: $response"
+    fi
   fi
   printf '%s\n' "$response" | jq -e --arg expected "$expected_type" \
     'type == "object" and (.result | type == "object") and .result.type == $expected and ('"$required"')' \
