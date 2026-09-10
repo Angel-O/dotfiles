@@ -87,7 +87,7 @@ if [ "$elio_kind" != "local" ] || [ "$elio_plugin_root" != "$elio_root" ]; then
   if [ -n "$elio_kind" ]; then
     herdr plugin uninstall angel-o.elio
   fi
-  herdr plugin link --enabled "$HOME/.config/herdr/plugins/local/angel-o.elio"
+  herdr plugin link "$HOME/.config/herdr/plugins/local/angel-o.elio" --enabled
 fi
 {{- end }}
 {{- end }}
