@@ -15,9 +15,16 @@ assert_contains() {
 assert_contains "$command" 'Load the `beads-hub` skill before acting.'
 assert_contains "$command" 'use only `wbd` for Hub operations.'
 assert_contains "$command" 'exactly one positional argument'
+assert_contains "$command" 'Use `history-search` and `read_session` to locate and read the completed architect and planner lane outputs for this repository.'
+assert_contains "$command" 'Do not require those outputs to be retained in the current command context or already separated.'
+assert_contains "$command" 'Require exactly one completed, explicitly approved architect design and its corresponding completed planner decomposition'
 assert_contains "$command" 'Do not launch, ask for, redo, infer, summarize, repair, or alter architecture or planner work.'
-assert_contains "$command" 'Require a non-empty, explicit approved architecture'
-assert_contains "$command" 'Require an already active scope before creating any child; never create or activate a scope.'
+assert_contains "$command" 'Use an explicit title or otherwise the heading/name as the title'
+assert_contains "$command" 'use an explicit description or otherwise the complete slice body as the description.'
+assert_contains "$command" 'Explicit Beads values win; otherwise default type to `task`, priority to `2`, blockers to none'
+assert_contains "$command" "context to the current repository's epic context only after confirming that context belongs to the target epic."
+assert_contains "$command" 'If one active scope exists, add each child to it after validating the child; if no active scope exists, skip scope membership.'
+assert_contains "$command" 'Never create or activate a scope.'
 assert_contains "$command" 'wbd show "$1" --json'
 assert_contains "$command" 'wbd comments "$1" --json'
 assert_contains "$command" 'wbd show "$1" --json --expand-dependencies'
@@ -28,8 +35,10 @@ assert_contains "$command" 'byte-for-byte, as one comment on the epic'
 assert_contains "$command" 'wbd comments add "$1" --file "$architecture_file" --json'
 assert_contains "$command" 'wbd create "$title" --type "$type" --description "$description" --priority "$priority" --context "$context" --json'
 assert_contains "$command" 'wbd scope add "$child_id" --context "$context" --json'
+assert_contains "$command" 'If preflight found no active scope, skip this step.'
 assert_contains "$command" 'operation` equal to `add`, `matched` equal to `1`, and `changed` equal to `1`'
 assert_contains "$command" 'wbd dep add "$child_id" "$1" --type parent-child --json'
+assert_contains "$command" 'The child is the dependent and `$1` is its epic parent'
 assert_contains "$command" 'wbd dep add "$blocked_child_id" "$blocker_child_id" --type blocks --json'
 assert_contains "$command" 'stop immediately'
 assert_contains "$command" 'Do not retry, rollback, delete, claim, close, link, launch workers, or begin implementation.'
@@ -47,7 +56,7 @@ PY
 
 assert_contains "$source_dir/.chezmoiignore" '.config/opencode/commands/materialize-epic.md'
 assert_contains "$source_dir/.chezmoiremove.tmpl" '.config/opencode/commands/materialize-epic.md'
-assert_contains "$source_dir/README.md" '`materialize-epic` command consumes only an already approved architecture'
+assert_contains "$source_dir/README.md" '`materialize-epic` command retrieves the completed approved architect and planner outputs'
 
 work=$(mktemp)
 external=$(mktemp)
