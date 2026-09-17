@@ -100,6 +100,32 @@ assert_not_contains() {
   fi
 }
 
+assert_viewer_board_config() {
+  local source_config="$source_dir/dot_config/bv/config.yaml"
+  test -f "$source_config"
+  assert_contains "$source_config" 'board:'
+  assert_contains "$source_config" 'hide_empty_columns: true'
+
+  for name in personal-with-beads work beads-integration-disabled external-opencode-beads legacy-beads; do
+    apply_fixture "$name"
+    target_config="$root/$name/home/.config/bv/config.yaml"
+    test -f "$target_config"
+    cmp -s "$source_config" "$target_config"
+    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --include files)
+    printf '%s\n' "$managed" | grep -Fxq '.config/bv/config.yaml'
+  done
+
+  for name in personal ghostty-only helix-only warp-only shell-only herdr-disabled-plugins; do
+    apply_fixture "$name"
+    test ! -e "$root/$name/home/.config/bv/config.yaml"
+    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --include files)
+    ! printf '%s\n' "$managed" | grep -Fxq '.config/bv/config.yaml'
+  done
+}
+
+assert_viewer_board_config
+[[ "${TEST_SCOPE:-}" != viewer-config ]] || exit 0
+
 assert_orchestration_reuse_contract() {
   local file=$1
   assert_contains "$file" 'Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners.'

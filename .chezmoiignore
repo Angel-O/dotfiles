@@ -52,6 +52,10 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/herdr/plugins/config/angel-o.hub-viewer/**
 {{- end }}
 
+{{- if not .modules.beads }}
+.config/bv/**
+{{- end }}
+
 {{- if not .modules.opencode }}
 .config/opencode/*
 !.config/opencode/AGENTS.md
