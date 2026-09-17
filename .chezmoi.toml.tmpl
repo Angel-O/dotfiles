@@ -18,6 +18,7 @@
 {{- $bar := false -}}
 {{- $kiosk := false -}}
 {{- $elio := false -}}
+{{- $hubViewer := false -}}
 {{- $reviewr := false -}}
 {{- $beads = promptBool "Enable the Beads module" (dig "modules" "beads" false .) -}}
 {{- if $beads -}}
@@ -35,6 +36,7 @@
 {{- $bar = promptBoolOnce . "herdrPlugins.bar" "Enable the Herdr Bar plugin" true -}}
 {{- $kiosk = promptBoolOnce . "herdrPlugins.kiosk" "Enable the Herdr Kiosk plugin" true -}}
 {{- $elio = promptBoolOnce . "herdrPlugins.elio" "Enable the Herdr Elio plugin" false -}}
+{{- $hubViewer = promptBoolOnce . "herdrPlugins.hubViewer" "Enable the Herdr Hub Viewer plugin" false -}}
 {{- $reviewr = promptBoolOnce . "herdrPlugins.reviewr" "Enable the Herdr Reviewr plugin" true -}}
 {{- end -}}
 
@@ -69,4 +71,5 @@ spaceUsage = {{ $spaceUsage }}
 bar = {{ $bar }}
 kiosk = {{ $kiosk }}
 elio = {{ $elio }}
+hubViewer = {{ $hubViewer }}
 reviewr = {{ $reviewr }}

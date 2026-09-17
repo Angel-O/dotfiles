@@ -90,4 +90,16 @@ if [ "$elio_kind" != "local" ] || [ "$elio_plugin_root" != "$elio_root" ]; then
   herdr plugin link "$HOME/.config/herdr/plugins/local/angel-o.elio" --enabled
 fi
 {{- end }}
+{{- if .herdrPlugins.hubViewer }}
+hub_viewer_root="$HOME/.config/herdr/plugins/local/angel-o.hub-viewer"
+hub_viewer_state=$(herdr plugin list --json)
+hub_viewer_kind=$(printf '%s' "$hub_viewer_state" | jq -r '.result.plugins[] | select(.plugin_id == "angel-o.hub-viewer") | .source.kind // empty')
+hub_viewer_plugin_root=$(printf '%s' "$hub_viewer_state" | jq -r '.result.plugins[] | select(.plugin_id == "angel-o.hub-viewer") | .plugin_root // empty')
+if [ "$hub_viewer_kind" != "local" ] || [ "$hub_viewer_plugin_root" != "$hub_viewer_root" ]; then
+  if [ -n "$hub_viewer_kind" ]; then
+    herdr plugin uninstall angel-o.hub-viewer
+  fi
+  herdr plugin link "$hub_viewer_root" --enabled
+fi
+{{- end }}
 {{- end }}

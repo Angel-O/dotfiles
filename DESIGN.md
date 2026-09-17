@@ -26,6 +26,7 @@ spaceUsage = true
 bar = true
 kiosk = true
 elio = false
+hubViewer = false
 reviewr = true
 ```
 
@@ -39,7 +40,7 @@ The data file generated on each machine remains local. Public source templates m
 | Module | Independently selected tool configuration | Ghostty, Helix, Warp, Herdr, OpenCode, Starship, Zsh, Git |
 | Role | Broad personal/work differences | Personal-only local AI; Reviewr source policy |
 | Feature | Independently enabled optional capabilities | Node development and JVM development |
-| Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Kiosk, Elio, Reviewr |
+| Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Kiosk, Elio, Hub Viewer, Reviewr |
 | Machine | Device-specific paths or architecture | Workspace root, ARM64 package behavior |
 | Local secret | Values never stored in Git | Credentials, company endpoints, API keys |
 | Runtime | Application-owned mutable state | Sessions, logs, caches, databases |
@@ -106,6 +107,7 @@ Private work launcher values live in ignored `~/.config/opencode/env.local` and 
 | OpenCode Herdr integration | Regenerate using Herdr's integration installer |
 | Herdr GitHub plugin | Idempotently install from pinned source data when selected locally |
 | Local Elio Herdr plugin | Link the vendored source when selected locally |
+| Local Hub Viewer Herdr plugin | Link the vendored source when selected locally |
 | Reviewr on personal machine | Keep the existing local development link |
 | Reviewr on work machine | Install a pinned GitHub release |
 | Oh My Zsh third-party plugin | Use a pinned chezmoi external or installation script |

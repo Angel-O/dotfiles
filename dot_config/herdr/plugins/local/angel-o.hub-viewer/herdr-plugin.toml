@@ -1,0 +1,24 @@
+id = "angel-o.hub-viewer"
+name = "Hub Viewer"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Open the Beads Hub Viewer in a herdr pane"
+platforms = ["linux", "macos", "windows"]
+
+[[panes]]
+id = "viewer"
+title = "hub-viewer"
+placement = "split"
+command = ["bash", "-c", "exec wbv --hub"]
+
+[[actions]]
+id = "open"
+title = "Open Hub Viewer"
+contexts = ["workspace"]
+command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement split"]
+
+[[actions]]
+id = "open-tab"
+title = "Open Hub Viewer (new tab)"
+contexts = ["workspace"]
+command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement tab"]
