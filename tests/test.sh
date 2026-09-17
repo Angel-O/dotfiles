@@ -567,14 +567,98 @@ assert_hub_viewer_plugin() {
   python3 -c 'from pathlib import Path; import sys; assert {str(path.relative_to(sys.argv[1])) for path in Path(sys.argv[1]).rglob("*") if path.is_file()} == {"herdr-plugin.toml"}' "$hub_source"
   assert_contains "$hub_source/herdr-plugin.toml" 'id = "angel-o.hub-viewer"'
   assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec wbv --hub"]'
+  assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement split"]'
   assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement split'
   assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement tab'
+  assert_contains "$hub_source/herdr-plugin.toml" 'opened=$(\"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement tab);'
+  assert_contains "$hub_source/herdr-plugin.toml" 'tab=$(printf '\''%s'\'' \"$opened\" | jq -r '\''.result.plugin_pane.pane.tab_id // empty'\'')'
+  assert_contains "$hub_source/herdr-plugin.toml" 'HERDR_PLUGIN_CONFIG_DIR:-'
+  assert_contains "$hub_source/herdr-plugin.toml" 'dasel query --in toml --out json --compact '\''tab_label'\'''
+  assert_contains "$hub_source/herdr-plugin.toml" 'jq -er '\''select(type == \"string\" and length > 0)'\'''
+  assert_contains "$hub_source/herdr-plugin.toml" '\"${HERDR_BIN_PATH:-herdr}\" tab rename \"$tab\" \"$label\"'
+  assert_not_contains "$hub_source/herdr-plugin.toml" 'python3'
   assert_not_contains "$hub_source/herdr-plugin.toml" 'cargo install'
+
+  local action="$root/herdr-hub-viewer/action.sh"
+  local fake_bin="$root/herdr-hub-viewer/bin"
+  local log="$root/herdr-hub-viewer/herdr.log"
+  local config_dir="$root/herdr-hub-viewer/config"
+  mkdir -p "$fake_bin" "$config_dir"
+  python3 -c 'import sys,tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["actions"][1]["command"][2])' \
+    "$hub_source/herdr-plugin.toml" >"$action"
+  cat >"$fake_bin/herdr" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$1 $2" in
+  "plugin pane") printf '%s\n' '{"result":{"plugin_pane":{"pane":{"tab_id":"w1:t99"}}}}' ;;
+  "tab rename") printf '%s\n' "$*" >>"$FAKE_HERDR_LOG" ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$fake_bin/herdr"
+  cat >"$fake_bin/dasel" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+test "$*" = "query --in toml --out json --compact tab_label"
+config=$(cat)
+case "$config" in
+  *'tab_label = ""'*) printf '%s\n' '""' ;;
+  *'tab_label = "custom board"'*) printf '%s\n' '"custom board"' ;;
+  *'tab_label = 42'*) printf '%s\n' '42' ;;
+  *'malformed = true'*) printf '%s\n' 'not-json' ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$fake_bin/dasel"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir/missing" \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
+  assert_contains "$log" 'tab rename w1:t99 hub viewer'
+  : >"$log"
+  printf 'other = true\n' >"$config_dir/config.toml"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir" \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
+  assert_contains "$log" 'tab rename w1:t99 hub viewer'
+  : >"$log"
+  printf 'tab_label = ""\n' >"$config_dir/config.toml"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir" \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
+  assert_contains "$log" 'tab rename w1:t99 hub viewer'
+  : >"$log"
+  printf 'tab_label = 42\n' >"$config_dir/config.toml"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir" \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
+  assert_contains "$log" 'tab rename w1:t99 hub viewer'
+  : >"$log"
+  printf 'malformed = true\n' >"$config_dir/config.toml"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir" \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
+  assert_contains "$log" 'tab rename w1:t99 hub viewer'
+  : >"$log"
+  printf 'tab_label = "custom board"\n' >"$config_dir/config.toml"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir" \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
+  assert_contains "$log" 'tab rename w1:t99 custom board'
 }
 
 assert_hub_viewer_plugin
 
 if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
+  personal_brewfile="$root/herdr-hub-viewer/personal.Brewfile"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+    <"$source_dir/.chezmoitemplates/Brewfile.tmpl" >"$personal_brewfile"
+  assert_contains "$personal_brewfile" 'brew "dasel"'
+  work_brewfile="$root/herdr-hub-viewer/work.Brewfile"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
+    <"$source_dir/.chezmoitemplates/Brewfile.tmpl" >"$work_brewfile"
+  assert_not_contains "$work_brewfile" 'brew "dasel"'
+  disabled_brewfile="$root/herdr-hub-viewer/disabled.Brewfile"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/herdr-disabled-plugins.toml" \
+    <"$source_dir/.chezmoitemplates/Brewfile.tmpl" >"$disabled_brewfile"
+  assert_not_contains "$disabled_brewfile" 'brew "dasel"'
+  herdr_disabled_preference_brewfile="$root/herdr-hub-viewer/herdr-disabled-preference.Brewfile"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/herdr-disabled-hub-viewer.toml" \
+    <"$source_dir/.chezmoitemplates/Brewfile.tmpl" >"$herdr_disabled_preference_brewfile"
+  assert_not_contains "$herdr_disabled_preference_brewfile" 'brew "dasel"'
   hub_config="$root/herdr-hub-viewer/config.toml"
   mkdir -p "${hub_config%/*}"
   chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
@@ -597,10 +681,14 @@ if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
   assert_not_contains "$disabled_installer" 'angel-o.hub-viewer'
   apply_fixture personal
   test -f "$root/personal/home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
+  test -f "$root/personal/home/.config/herdr/plugins/config/angel-o.hub-viewer/config.toml"
+  python3 -c 'import sys,tomllib; assert tomllib.load(open(sys.argv[1], "rb")) == {"tab_label": "hub viewer"}' \
+    "$root/personal/home/.config/herdr/plugins/config/angel-o.hub-viewer/config.toml"
   assert_contains "$root/personal/home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open"'
   assert_contains "$root/personal/home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
   apply_fixture herdr-disabled-plugins
   test ! -e "$root/herdr-disabled-plugins/home/.config/herdr/plugins/local/angel-o.hub-viewer"
+  test ! -e "$root/herdr-disabled-plugins/home/.config/herdr/plugins/config/angel-o.hub-viewer"
   assert_not_contains "$root/herdr-disabled-plugins/home/.config/herdr/config.toml" 'angel-o.hub-viewer'
   exit 0
 fi

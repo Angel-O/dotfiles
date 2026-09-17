@@ -49,6 +49,7 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- end }}
 {{- if or (not .modules.herdr) (not .herdrPlugins.hubViewer) }}
 .config/herdr/plugins/local/angel-o.hub-viewer/**
+.config/herdr/plugins/config/angel-o.hub-viewer/**
 {{- end }}
 
 {{- if not .modules.opencode }}

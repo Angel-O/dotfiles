@@ -21,4 +21,5 @@ command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --p
 id = "open-tab"
 title = "Open Hub Viewer (new tab)"
 contexts = ["workspace"]
-command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement tab"]
+# wbv --hub bypasses ambient lifecycle labeling, so label the created tab explicitly.
+command = ["bash", "-c", "opened=$(\"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement tab); tab=$(printf '%s' \"$opened\" | jq -r '.result.plugin_pane.pane.tab_id // empty'); label='hub viewer'; if [ -f \"${HERDR_PLUGIN_CONFIG_DIR:-}/config.toml\" ]; then if raw_label=$(dasel query --in toml --out json --compact 'tab_label' <\"${HERDR_PLUGIN_CONFIG_DIR:-}/config.toml\" 2>/dev/null); then label=$(printf '%s' \"$raw_label\" | jq -er 'select(type == \"string\" and length > 0)' 2>/dev/null) || label='hub viewer'; fi; fi; [ -n \"$tab\" ] && \"${HERDR_BIN_PATH:-herdr}\" tab rename \"$tab\" \"$label\" >/dev/null"]
