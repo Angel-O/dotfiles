@@ -1,0 +1,3 @@
+# Start interactive boards with empty columns hidden; `e` remains session-only.
+board:
+  hide_empty_columns: true
