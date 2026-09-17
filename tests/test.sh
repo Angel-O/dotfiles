@@ -567,8 +567,12 @@ assert_hub_viewer_plugin() {
   python3 -c 'from pathlib import Path; import sys; assert {str(path.relative_to(sys.argv[1])) for path in Path(sys.argv[1]).rglob("*") if path.is_file()} == {"herdr-plugin.toml"}' "$hub_source"
   assert_contains "$hub_source/herdr-plugin.toml" 'id = "angel-o.hub-viewer"'
   assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec wbv --hub"]'
+  assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement split"]'
   assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement split'
   assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement tab'
+  assert_contains "$hub_source/herdr-plugin.toml" 'opened=$(\"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement tab);'
+  assert_contains "$hub_source/herdr-plugin.toml" 'tab=$(printf '\''%s'\'' \"$opened\" | jq -r '\''.result.plugin_pane.pane.tab_id // empty'\'')'
+  assert_contains "$hub_source/herdr-plugin.toml" '\"${HERDR_BIN_PATH:-herdr}\" tab rename \"$tab\" \"ai board\"'
   assert_not_contains "$hub_source/herdr-plugin.toml" 'cargo install'
 }
 
