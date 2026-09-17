@@ -7,6 +7,9 @@ brew "go"
 {{- if or .modules.beads .modules.herdr }}
 brew "jq"
 {{- end }}
+{{- if and .modules.herdr .herdrPlugins.hubViewer }}
+brew "dasel"
+{{- end }}
 {{- if .modules.ghostty }}
 cask "ghostty"
 cask "font-hack"
