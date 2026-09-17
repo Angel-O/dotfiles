@@ -27,4 +27,5 @@ spaceUsage = true
 bar = true
 kiosk = true
 elio = true
+hubViewer = true
 reviewr = true

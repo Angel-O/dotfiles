@@ -24,4 +24,5 @@ spaceUsage = false
 bar = false
 kiosk = false
 elio = false
+hubViewer = false
 reviewr = false

@@ -558,6 +558,53 @@ test "$(HERDR_PLUGIN_CONTEXT_JSON='{"focused_pane_cwd":"/focused","workspace_cwd
 test "$(HERDR_PLUGIN_CONTEXT_JSON='{"focused_pane_cwd":"","workspace_cwd":"/workspace"}' bash "$elio_source/bin/executable_resolve-dir.sh")" = /workspace
 test "$(HERDR_PLUGIN_CONTEXT_JSON='not-json' bash -c 'cd /tmp && exec bash "$1"' _ "$elio_source/bin/executable_resolve-dir.sh")" = /tmp
 
+assert_hub_viewer_plugin() {
+  local hub_source="$source_dir/dot_config/herdr/plugins/local/angel-o.hub-viewer"
+  test -f "$hub_source/herdr-plugin.toml"
+  test ! -e "$hub_source/README.md"
+  test ! -e "$hub_source/assets"
+  test ! -e "$hub_source/.git"
+  python3 -c 'from pathlib import Path; import sys; assert {str(path.relative_to(sys.argv[1])) for path in Path(sys.argv[1]).rglob("*") if path.is_file()} == {"herdr-plugin.toml"}' "$hub_source"
+  assert_contains "$hub_source/herdr-plugin.toml" 'id = "angel-o.hub-viewer"'
+  assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec wbv --hub"]'
+  assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement split'
+  assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement tab'
+  assert_not_contains "$hub_source/herdr-plugin.toml" 'cargo install'
+}
+
+assert_hub_viewer_plugin
+
+if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
+  hub_config="$root/herdr-hub-viewer/config.toml"
+  mkdir -p "${hub_config%/*}"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+    <"$source_dir/dot_config/herdr/config.toml.tmpl" >"$hub_config"
+  assert_contains "$hub_config" 'split_vertical = ["prefix+v", "alt+s"]'
+  assert_contains "$hub_config" 'key = "prefix+m"'
+  assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open"'
+  assert_contains "$hub_config" 'key = "prefix+shift+m"'
+  assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open-tab"'
+  personal_installer="$root/herdr-hub-viewer/personal-installer.sh"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+    <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$personal_installer"
+  sh -n "$personal_installer"
+  assert_contains "$personal_installer" 'herdr plugin link "$hub_viewer_root" --enabled'
+  assert_contains "$personal_installer" 'hub_viewer_root="$HOME/.config/herdr/plugins/local/angel-o.hub-viewer"'
+  disabled_installer="$root/herdr-hub-viewer/disabled-installer.sh"
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/herdr-disabled-plugins.toml" \
+    <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$disabled_installer"
+  sh -n "$disabled_installer"
+  assert_not_contains "$disabled_installer" 'angel-o.hub-viewer'
+  apply_fixture personal
+  test -f "$root/personal/home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
+  assert_contains "$root/personal/home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open"'
+  assert_contains "$root/personal/home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
+  apply_fixture herdr-disabled-plugins
+  test ! -e "$root/herdr-disabled-plugins/home/.config/herdr/plugins/local/angel-o.hub-viewer"
+  assert_not_contains "$root/herdr-disabled-plugins/home/.config/herdr/config.toml" 'angel-o.hub-viewer'
+  exit 0
+fi
+
 for orchestration_file in \
   "$source_dir/dot_config/opencode/agents/orchestrator.md" \
   "$source_dir/dot_config/opencode/commands/orchestrate.md" \
@@ -927,9 +974,13 @@ test -x "$personal_home/.config/herdr/plugins/local/angel-o.elio/bin/resolve-dir
 test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/README.md"
 test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/assets"
 test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/.git"
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+m"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
+test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
 
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
-assert_not_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
 assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" && ${HERDR_ENV:-} != 1 ]]'
@@ -1194,7 +1245,7 @@ cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$work_ho
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.elio.open'
-assert_not_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.hub-viewer'
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
@@ -1454,13 +1505,13 @@ assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'jeffarese/herdr-bar'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'thomasschafer/herdr-kiosk'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'angel-o.elio'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'angel-o.hub-viewer'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'persiyanov/herdr-reviewr'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'brew install rust'
 apply_fixture herdr-disabled-plugins
 test ! -e "$disabled_home/.warp"
 assert_not_contains "$disabled_home/.config/herdr/config.toml" 'plugin_action'
-assert_not_contains "$disabled_home/.config/herdr/config.toml" 'key = "prefix+m"'
 assert_not_contains "$disabled_home/.config/herdr/config.toml" '"$usage"'
 assert_not_contains "$disabled_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 test ! -e "$disabled_home/.config/herdr/reviewr-toggle-tab.sh"
@@ -1469,6 +1520,7 @@ test ! -e "$disabled_home/.config/herdr/plugins/config/herdr-bar/config.json"
 test ! -e "$disabled_home/.config/herdr/plugins/config/thomasschafer.herdr-kiosk/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
 test ! -e "$disabled_home/.config/herdr/plugins/local/angel-o.elio"
+test ! -e "$disabled_home/.config/herdr/plugins/local/angel-o.hub-viewer"
 test ! -e "$disabled_home/.config/herdr-labels/config.toml"
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$disabled_home/.config/herdr/config.toml"
 

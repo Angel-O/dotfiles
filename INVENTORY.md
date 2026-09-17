@@ -76,6 +76,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Plugin ID | Source | Default | Approved treatment |
 | --- | --- | --- | --- |
 | `angel-o.elio` | Vendored under the chezmoi source | Off | Link locally when selected; distinct from the shared CLI |
+| `angel-o.hub-viewer` | Vendored under the chezmoi source | Off | Link locally when selected; launches `wbv --hub` |
 
 ## Herdr Machine-Specific Plugin Installation
 
@@ -83,7 +84,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | --- | --- | --- | --- |
 | `persiyanov.reviewr` | Release tag | Permanent local source checkout | Default on; keep local link personally and install the pinned release at work when selected |
 
-Every managed plugin is a machine-local selection independent of role. `prefix+m` remains unassigned by managed config. Disabling a selection stops installation, config management, and managed bindings without uninstalling the live plugin. The Herdr Elio plugin remains distinct from the shared Homebrew-installed `elio` executable.
+Every managed plugin is a machine-local selection independent of role. Disabling a selection stops installation, config management, and managed bindings without uninstalling the live plugin. The Herdr Elio plugin remains distinct from the shared Homebrew-installed `elio` executable, and Hub Viewer uses the separately selected `wbv --hub` command.
 
 ## OpenCode Core
 

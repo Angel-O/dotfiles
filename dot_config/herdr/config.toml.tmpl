@@ -120,6 +120,22 @@ command = "angel-o.elio.open"
 description = "open Elio"
 {{- end }}
 
+{{- if .herdrPlugins.hubViewer }}
+######################### Hub Viewer keybindings
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "angel-o.hub-viewer.open"
+description = "open Hub Viewer"
+
+[[keys.command]]
+key = "prefix+shift+m"
+type = "plugin_action"
+command = "angel-o.hub-viewer.open-tab"
+description = "open Hub Viewer in a new tab"
+{{- end }}
+
 {{- if .herdrPlugins.agentResume }}
 ######################### agent resume keybindings
 
