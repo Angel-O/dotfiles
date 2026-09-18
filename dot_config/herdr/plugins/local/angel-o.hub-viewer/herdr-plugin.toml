@@ -9,7 +9,8 @@ platforms = ["linux", "macos", "windows"]
 id = "viewer"
 title = "hub-viewer"
 placement = "split"
-command = ["bash", "-c", "exec wbv --hub"]
+# Let Herdr close the pane after wbv exits so it owns the pane.closed event.
+command = ["bash", "-c", "wbv --hub; exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane close \"$HERDR_PANE_ID\""]
 
 [[actions]]
 id = "open"
