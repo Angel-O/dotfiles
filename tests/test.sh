@@ -592,7 +592,8 @@ assert_hub_viewer_plugin() {
   test ! -e "$hub_source/.git"
   python3 -c 'from pathlib import Path; import sys; assert {str(path.relative_to(sys.argv[1])) for path in Path(sys.argv[1]).rglob("*") if path.is_file()} == {"herdr-plugin.toml"}' "$hub_source"
   assert_contains "$hub_source/herdr-plugin.toml" 'id = "angel-o.hub-viewer"'
-  assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec wbv --hub"]'
+  assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "wbv --hub; exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane close \"$HERDR_PANE_ID\""]'
+  assert_not_contains "$hub_source/herdr-plugin.toml" 'exec wbv --hub'
   assert_contains "$hub_source/herdr-plugin.toml" 'command = ["bash", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin angel-o.hub-viewer --entrypoint viewer --placement split"]'
   assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement split'
   assert_contains "$hub_source/herdr-plugin.toml" '--plugin angel-o.hub-viewer --entrypoint viewer --placement tab'
@@ -616,12 +617,24 @@ assert_hub_viewer_plugin() {
 #!/usr/bin/env bash
 set -euo pipefail
 case "$1 $2" in
-  "plugin pane") printf '%s\n' '{"result":{"plugin_pane":{"pane":{"tab_id":"w1:t99"}}}}' ;;
+  "plugin pane")
+    case "$3" in
+      open) printf '%s\n' '{"result":{"plugin_pane":{"pane":{"tab_id":"w1:t99"}}}}' ;;
+      close) printf '%s\n' "$*" >>"$FAKE_HERDR_LOG" ;;
+      *) exit 1 ;;
+    esac
+    ;;
   "tab rename") printf '%s\n' "$*" >>"$FAKE_HERDR_LOG" ;;
   *) exit 1 ;;
 esac
 EOF
   chmod +x "$fake_bin/herdr"
+  cat >"$fake_bin/wbv" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'wbv %s\n' "$*" >>"$FAKE_HERDR_LOG"
+EOF
+  chmod +x "$fake_bin/wbv"
   cat >"$fake_bin/dasel" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -636,6 +649,13 @@ case "$config" in
 esac
 EOF
   chmod +x "$fake_bin/dasel"
+  local pane_command="$root/herdr-hub-viewer/pane.sh"
+  python3 -c 'import sys,tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["panes"][0]["command"][2])' \
+    "$hub_source/herdr-plugin.toml" >"$pane_command"
+  HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PANE_ID=w1:p42 \
+    FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$pane_command"
+  python3 -c 'import sys; assert open(sys.argv[1]).read() == "wbv --hub\nplugin pane close w1:p42\n"' "$log"
+  : >"$log"
   HERDR_BIN_PATH="$fake_bin/herdr" HERDR_PLUGIN_CONFIG_DIR="$config_dir/missing" \
     FAKE_HERDR_LOG="$log" PATH="$fake_bin:$PATH" bash "$action"
   assert_contains "$log" 'tab rename w1:t99 hub viewer'
