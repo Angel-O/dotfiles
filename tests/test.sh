@@ -1115,8 +1115,11 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.h
 test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
 
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"bd": "ai board", "bv": "ai board", "wbd": "ai board", "wbv": "ai board"}' "$personal_home/.config/herdr-labels/config.toml"
 assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" && ${HERDR_ENV:-} != 1 ]]'
 assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROMPT=''"
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
@@ -1274,9 +1277,11 @@ assert_reference_branch_contract "$personal_beads_home/.config/opencode/commands
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"bv": "ai board", "wbv": "ai board"}' "$personal_beads_home/.config/herdr-labels/config.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"bd": "ai board", "bv": "ai board", "wbd": "ai board", "wbv": "ai board"}' "$personal_beads_home/.config/herdr-labels/config.toml"
 apply_fixture personal-with-beads
 personal_beads_diff=$(chezmoi diff \
   --source "$source_dir" \
@@ -1351,9 +1356,11 @@ assert_contains "$work_home/.zshrc" 'portable chezmoi early setup'
 assert_contains "$work_home/.zshrc" 'portable chezmoi setup'
 assert_contains "$work_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 assert_contains "$work_home/.config/zsh/herdr-labels.zsh" 'angel-o.labels-*/shell/hook.zsh'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
 assert_contains "$work_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
 assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"bv": "ai board", "wbv": "ai board"}' "$work_home/.config/herdr-labels/config.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["process_aliases"] == {"bd": "ai board", "bv": "ai board", "wbd": "ai board", "wbv": "ai board"}' "$work_home/.config/herdr-labels/config.toml"
 assert_not_contains "$work_home/.config/zsh/herdr.zsh" 'hook.zsh'
 assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'

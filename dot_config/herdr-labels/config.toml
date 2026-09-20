@@ -1,3 +1,6 @@
 [process_aliases]
+# Keep Beads and Hub Viewer commands grouped under the AI board label.
+bd = "ai board"
 bv = "ai board"
+wbd = "ai board"
 wbv = "ai board"
