@@ -1097,7 +1097,7 @@ assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'ram_display = "absolute"'
 assert_contains "$personal_home/.config/herdr/plugins/config/ez-corp.space-usage/config.toml" 'icons = "nerdfont"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'window_title = "{hostname}: {workspace}"'
-assert_contains "$personal_home/.config/herdr/config.toml" 'rows = [["state_icon", "workspace", "agent"], ["state_text", { token = "tab", dim = false }]]'
+assert_contains "$personal_home/.config/herdr/config.toml" 'rows = [["state_icon", "workspace", { token = "agent", dim = true }], ["state_text", { token = "tab", dim = false }]]'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "thomasschafer.herdr-kiosk.open-picker"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+o"'
 assert_not_contains "$personal_home/.config/herdr/config.toml" 'herdr-zoxide.browse'
