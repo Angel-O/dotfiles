@@ -35,7 +35,7 @@ ref = "v0.2.10"
 [pins.herdrPlugins.recentNavigator]
 source = "beyondlex/herdr-recent-navigator"
 branch = "main"
-ref = "646c70c0448cb15d24c0d6f3728c6aad8b77ac90"
+ref = "30a2a7198535460436529bfc20caa57f4f0b478c"
 
 [pins.herdrPlugins.spaceUsage]
 source = "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"
