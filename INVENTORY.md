@@ -80,9 +80,9 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 
 ## Herdr Machine-Specific Plugin Installation
 
-| Plugin ID | Pin policy | Current personal source | Approved treatment |
+| Plugin ID | Pin policy | Current source | Approved treatment |
 | --- | --- | --- | --- |
-| `persiyanov.reviewr` | Release tag | Permanent local source checkout | Default on; keep local link personally and install the pinned release at work when selected |
+| `persiyanov.reviewr` | Release tag | Shared GitHub source/ref pin | Default on; install the pinned release on either role when selected |
 
 Every managed plugin is a machine-local selection independent of role. Disabling a selection stops installation, config management, and managed bindings without uninstalling the live plugin. The Herdr Elio plugin remains distinct from the shared Homebrew-installed `elio` executable, and Hub Viewer uses the separately selected `wbv --hub` command.
 

@@ -38,7 +38,7 @@ The data file generated on each machine remains local. Public source templates m
 | --- | --- | --- |
 | Shared | Portable behavior used by selected modules | Themes, aliases, keybindings, Git worktree helpers |
 | Module | Independently selected tool configuration | Ghostty, Helix, Warp, Herdr, OpenCode, Starship, Zsh, Git |
-| Role | Broad personal/work differences | Personal-only local AI; Reviewr source policy |
+| Role | Broad personal/work differences | Personal-only local AI |
 | Feature | Independently enabled optional capabilities | Node development and JVM development |
 | Plugin | Machine-local Herdr selections | Agent Resume, Labels, Recent Navigator, Space Usage, Bar, Kiosk, Elio, Hub Viewer, Reviewr |
 | Machine | Device-specific paths or architecture | Workspace root, ARM64 package behavior |
@@ -108,8 +108,7 @@ Private work launcher values live in ignored `~/.config/opencode/env.local` and 
 | Herdr GitHub plugin | Idempotently install from pinned source data when selected locally |
 | Local Elio Herdr plugin | Link the vendored source when selected locally |
 | Local Hub Viewer Herdr plugin | Link the vendored source when selected locally |
-| Reviewr on personal machine | Keep the existing local development link |
-| Reviewr on work machine | Install a pinned GitHub release |
+| Reviewr on either machine | Install the configured pinned GitHub release |
 | Oh My Zsh third-party plugin | Use a pinned chezmoi external or installation script |
 
 Generated plugin checkouts and compiled outputs should not be committed.

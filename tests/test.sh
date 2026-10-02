@@ -774,6 +774,8 @@ assert_contains "$source_dir/README.md" 'Disabling the module stops future insta
 python3 -c 'import json,tomllib,sys; source=sys.argv[1]; pins=tomllib.load(open(source+"/.chezmoidata.toml", "rb"))["pins"]; config=json.load(open(source+"/renovate.json")); managers=config["customManagers"]; assert "elio" not in pins["herdrPlugins"]; assert pins["beads"]["branch"] == "feat/bulk-history-read"; assert pins["beadsViewer"]["branch"] == "feature/repository-aware-correlations"; runtime=[manager for manager in managers if manager.get("depTypeTemplate") == "beads-runtime" and manager.get("datasourceTemplate") == "git-refs"]; assert len(runtime) == 2; assert any(rule.get("groupName") == "Beads runtime" for rule in config["packageRules"])' "$source_dir"
 beads_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beads"]["ref"])' "$source_dir/.chezmoidata.toml")
 beads_viewer_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["beadsViewer"]["ref"])' "$source_dir/.chezmoidata.toml")
+reviewr_source=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["reviewr"]["source"])' "$source_dir/.chezmoidata.toml")
+reviewr_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["reviewr"]["ref"])' "$source_dir/.chezmoidata.toml")
 ponytail_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["ponytailSkill"])' "$source_dir/.chezmoidata.toml")
 
 assert_warp_policy() {
@@ -1059,7 +1061,8 @@ assert_not_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin ez-corp.space-usage "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'herdr plugin link "$HOME/.config/herdr/plugins/local/angel-o.elio" --enabled'
 assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'elio_root="$HOME/.config/herdr/plugins/local/angel-o.elio"'
-assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root="$HOME/workspace/source/herdr-reviewr"'
+assert_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" "ensure_github_plugin persiyanov.reviewr \"$reviewr_source\" \"$reviewr_ref\""
+assert_not_contains "$root/personal/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 assert_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'herdr integration install opencode'
 assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'herdr integration status'
 assert_not_contains "$root/personal/rendered/run_after_40-install-herdr-integrations.sh.tmpl" 'codex completion'
@@ -1312,7 +1315,8 @@ assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.t
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
-assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin persiyanov.reviewr "persiyanov/herdr-reviewr"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" "ensure_github_plugin persiyanov.reviewr \"$reviewr_source\" \"$reviewr_ref\""
+assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 mkdir -p "$work_home/.config/opencode" "$work_home/.warp"
 cat >"$work_home/.zshrc" <<'EOF'
 ZSH_THEME="agnoster"

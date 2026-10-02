@@ -59,24 +59,7 @@ ensure_github_plugin thomasschafer.herdr-kiosk {{ .pins.herdrPlugins.kiosk.sourc
 {{- end }}
 
 {{- if .herdrPlugins.reviewr }}
-{{- if eq .role "work" }}
 ensure_github_plugin persiyanov.reviewr {{ .pins.herdrPlugins.reviewr.source | quote }} {{ .pins.herdrPlugins.reviewr.ref | quote }}
-{{- else }}
-reviewr_root="$HOME/workspace/source/herdr-reviewr"
-reviewr_state=$(herdr plugin list --json)
-reviewr_kind=$(printf '%s' "$reviewr_state" | jq -r '.result.plugins[] | select(.plugin_id == "persiyanov.reviewr") | .source.kind // empty')
-reviewr_plugin_root=$(printf '%s' "$reviewr_state" | jq -r '.result.plugins[] | select(.plugin_id == "persiyanov.reviewr") | .plugin_root // empty')
-if [ "$reviewr_kind" != "local" ] || [ "$reviewr_plugin_root" != "$reviewr_root" ]; then
-  if [ -n "$reviewr_kind" ]; then
-    herdr plugin uninstall persiyanov.reviewr
-  fi
-  if [ ! -d "$reviewr_root/.git" ]; then
-    mkdir -p "$(dirname "$reviewr_root")"
-    git clone https://github.com/persiyanov/herdr-reviewr.git "$reviewr_root"
-  fi
-  herdr plugin link --enabled "$reviewr_root"
-fi
-{{- end }}
 {{- end }}
 {{- if .herdrPlugins.elio }}
 elio_root="$HOME/.config/herdr/plugins/local/angel-o.elio"
