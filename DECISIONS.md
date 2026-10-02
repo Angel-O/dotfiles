@@ -49,7 +49,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Plugin registry, downloaded trees, sessions, histories, logs, backups, and release notes | Regenerate where needed and exclude from Git |
 | Herdr application | Use official stable installer when missing |
 | All managed Herdr plugins | Select independently per machine and install from pinned sources when selected |
-| Reviewr | Link local development checkout personally; install pinned GitHub release at work when selected |
+| Reviewr | Install the configured pinned GitHub release on either role when selected |
 | Elio executable | Install whenever Herdr is enabled |
 | Elio GitHub plugin | Optional machine-local selection independent of the executable |
 
@@ -128,7 +128,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | Ghostty reads XDG first and macOS Application Support later | Manage XDG and use a one-time post-apply migration to archive the old file outside recognized config filenames |
 | Ghostty uses Tokyo Night themes and Hack, not the stale Cyberdream/JetBrains configuration | Font and theme restoration must follow the live file |
 | The Herdr Elio adapter was initially linked from a temporary checkout | It is now a pinned, optional machine-local plugin independent of the shared `elio` executable |
-| The Herdr Reviewr plugin is locally linked from a permanent source checkout | Restoration needs either clone-and-link or GitHub installation |
+| The Herdr Reviewr plugin may have been locally linked from a permanent source checkout | The installer replaces a selected local Reviewr registration with the configured pinned GitHub release |
 
 ## Accepted Implementation Directions
 
