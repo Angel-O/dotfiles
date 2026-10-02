@@ -1117,7 +1117,8 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
 test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
 
-assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
+assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
+assert_not_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
@@ -1394,6 +1395,7 @@ cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work
 assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.hub-viewer'
+assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
