@@ -1,9 +1,9 @@
 ---
 description: Primary delivery controller for scoped delegated work.
 mode: primary
-model: openai/gpt-5.6-terra
+model: openai/gpt-6.1-sol
 options:
-  reasoningEffort: high
+  reasoningEffort: medium
 permission:
   "*": deny
   external_directory: allow

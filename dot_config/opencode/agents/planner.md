@@ -1,7 +1,7 @@
 ---
 description: Read-only decomposer for approved architecture and implementation scope.
 mode: subagent
-model: openai/gpt-5.6-terra
+model: openai/gpt-6.1-sol
 options:
   reasoningEffort: medium
 permission:
