@@ -123,6 +123,36 @@ assert_viewer_board_config() {
   done
 }
 
+assert_reviewr_config() {
+  local source_config="$source_dir/dot_config/herdr/plugins/config/persiyanov.reviewr/config.toml.tmpl"
+  test -f "$source_config"
+  python3 - "$source_config" <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as config_file:
+    assert tomllib.load(config_file) == {
+        "navigator_position": "left",
+        "theme": "dracula",
+        "toggle_placement": "split",
+        "auto_open": False,
+        "markdown_view": "rendered",
+        "editor": "hx",
+    }
+PY
+
+  for name in personal work; do
+    apply_fixture "$name"
+    target_config="$root/$name/home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
+    test -f "$target_config"
+    cmp -s "$source_config" "$target_config"
+    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --include files)
+    printf '%s\n' "$managed" | grep -Fxq '.config/herdr/plugins/config/persiyanov.reviewr/config.toml'
+  done
+}
+
+assert_reviewr_config
+[[ "${TEST_SCOPE:-}" != reviewr-config ]] || exit 0
 assert_viewer_board_config
 [[ "${TEST_SCOPE:-}" != viewer-config ]] || exit 0
 
