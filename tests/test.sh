@@ -286,7 +286,7 @@ contracts = {
     "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
     "architect": ("primary", "openai/gpt-6.1-sol", "high", {"question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
-    "planner": ("subagent", "openai/gpt-6.1-sol", "medium", {"read", "glob", "grep", "lsp", "skill"}),
+    "planner": ("subagent", "openai/gpt-6.1-sol", "medium", {"bash", "read", "glob", "grep", "lsp", "skill"}),
 }
 
 for name, (mode, model, effort, allowed) in contracts.items():
@@ -319,7 +319,7 @@ for name, forbidden in {
     "reviewer": {"orchestrator", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
     "worker": {"orchestrator", "reviewer", "planner", "architect", "orchestration", "routing", "delegate"},
     "architect": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
-    "planner": {"orchestrator", "reviewer", "worker", "architect", "orchestration", "routing", "delegate"},
+    "planner": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
 }.items():
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
     assert not forbidden.intersection(identity), (name, forbidden.intersection(identity))
@@ -333,6 +333,11 @@ assert 'Every primary Architect launch must use `~/.local/bin/herdr-agent-launch
 assert "Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation." in orchestrator
 architect = (directory / "architect.md").read_text()
 assert '  task:\n    "*": deny\n    planner: allow' in architect
+planner = (directory / "planner.md").read_text()
+assert re.search(r'^  bash:\n    "\*": deny\n    "wbd show \*": allow\n    "wbd scope list\*": allow\n    "wbd create \*": allow\n    "wbd scope add \*": allow\n    "wbd dep add \*": allow$', planner.split("---", 2)[1], re.MULTILINE)
+assert '    "*": deny' in planner
+assert '    "wbd create *": allow' in planner and '    "wbd dep add *": allow' in planner
+assert '    "wbd bootstrap' not in planner and '    "wbd scope activate' not in planner
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):
@@ -793,7 +798,7 @@ assert_worker_liveness_contract "$source_dir/docs/opencode-agent-orchestration.m
 
 [[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
-bash "$source_dir/tests/test-materialize-epic.sh"
+bash "$source_dir/tests/test-bead-contracts.sh"
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
@@ -1385,8 +1390,13 @@ cat >"$work_home/.warp/settings.toml" <<'EOF'
 telemetry = false
 EOF
 cp "$work_home/.warp/settings.toml" "$root/work/warp-settings.before"
+mkdir -p "$work_home/.config/opencode/commands"
+printf '%s\n' 'stale retired command' >"$work_home/.config/opencode/commands/materialize-epic.md"
+printf '%s\n' 'unrelated user command' >"$work_home/.config/opencode/commands/personal.md"
 
 apply_fixture work
+test ! -e "$work_home/.config/opencode/commands/materialize-epic.md"
+assert_contains "$work_home/.config/opencode/commands/personal.md" 'unrelated user command'
 assert_contains "$work_home/.zshrc" 'ZSH_THEME="agnoster"'
 assert_contains "$work_home/.zshrc" 'direnv hook zsh'
 assert_contains "$work_home/.zshrc" 'portable chezmoi early setup'
@@ -1513,12 +1523,16 @@ chezmoi managed \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
-.config/opencode/commands/materialize-epic.md
 .config/opencode/commands/orchestrate-bead.md
 EOF
 cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
 
+mkdir -p "$external_home/.config/opencode/commands"
+printf '%s\n' 'stale retired command' >"$external_home/.config/opencode/commands/materialize-epic.md"
+printf '%s\n' 'unrelated user command' >"$external_home/.config/opencode/commands/personal.md"
 apply_fixture external-opencode-beads
+test ! -e "$external_home/.config/opencode/commands/materialize-epic.md"
+assert_contains "$external_home/.config/opencode/commands/personal.md" 'unrelated user command'
 test ! -e "$external_home/.local/bin/wbd"
 test ! -e "$external_home/.local/bin/wbv"
 test ! -e "$external_home/.config/opencode/skills/beads-hub/SKILL.md"

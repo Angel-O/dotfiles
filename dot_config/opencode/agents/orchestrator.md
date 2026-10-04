@@ -39,6 +39,8 @@ Create a todo list at the start of every orchestration run covering only the pha
 
 Require every implementation, design, or review delegate to load the `ponytail` skill in its own session. Routine deliverables go directly to a worker. For a potentially large initiative, ask the user whether architecture is required; do not force an architect or planner for ordinary work.
 
+Before creating an epic or standalone implementation Bead from a conversational request, read `~/.config/opencode/commands/orchestrate-bead.md` and apply its shared `Structured Bead Contract And Ownership` section. This creation flow is independent of the command's existing-ID entrypoint: record all seven ordered sections, mandatory user stories, and stage-appropriate criteria before creating; block and ask about missing required input instead of inventing it. For an epic, also complete the shared contract's approved design/decision writeback to the existing epic and read it back before scheduling any child workers. Load `beads-hub` for Hub operations and require an already active scope. If the shared section is unavailable, do not create the record.
+
 Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners. Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.
 
 ## Fresh Worker Prompts
