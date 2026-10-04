@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+{{- if and .modules.beads (dig "integrations" "opencodeBeads" false .) }}
+exit 0
+{{- else }}
+
+target=$HOME/.config/opencode/skills/write-bead/SKILL.md
+[ -f "$target" ] || exit 0
+
+expected=$(mktemp)
+trap 'rm -f "$expected"' EXIT HUP INT TERM
+cat >"$expected" <<'WRITE_BEAD_EOF'
+{{ template "write-bead.md" . -}}
+WRITE_BEAD_EOF
+
+if cmp -s "$target" "$expected"; then
+  rm -f "$target"
+  rmdir "${target%/*}" 2>/dev/null || true
+fi
+{{- end }}
