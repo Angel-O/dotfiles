@@ -285,8 +285,8 @@ contracts = {
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
-    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"bash", "question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
+    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"bash", "read", "glob", "grep", "lsp", "skill"}),
 }
 
 for name, (mode, model, effort, allowed) in contracts.items():
@@ -319,7 +319,7 @@ for name, forbidden in {
     "reviewer": {"orchestrator", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
     "worker": {"orchestrator", "reviewer", "planner", "architect", "orchestration", "routing", "delegate"},
     "architect": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
-    "planner": {"orchestrator", "reviewer", "worker", "architect", "orchestration", "routing", "delegate"},
+    "planner": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
 }.items():
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
     assert not forbidden.intersection(identity), (name, forbidden.intersection(identity))
@@ -793,7 +793,7 @@ assert_worker_liveness_contract "$source_dir/docs/opencode-agent-orchestration.m
 
 [[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
-bash "$source_dir/tests/test-materialize-epic.sh"
+bash "$source_dir/tests/test-write-bead.sh"
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
@@ -1232,6 +1232,7 @@ grep -Fxq preserved-wbv "$personal_home/.local/bin/wbv"
 grep -Fxq preserved-migration "$personal_home/.local/libexec/beads-viewer/migrate-beads-hub-prefix.sh"
 test ! -e "$personal_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$personal_home/.config/opencode/skills/beads-hub/SKILL.md"
+test ! -e "$personal_home/.config/opencode/skills/write-bead/SKILL.md"
 test ! -e "$personal_home/.config/opencode/commands/orchestrate-bead.md"
 test -L "$personal_home/.config/starship/current.toml"
 test -f "$personal_home/.config/zsh/portable.zsh"
@@ -1276,6 +1277,7 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
+cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$personal_beads_home/.config/opencode/skills/write-bead/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
 assert_fresh_worker_prompt_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" bead
 assert_authorized_loop_simulation "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
@@ -1416,6 +1418,7 @@ test ! -e "$work_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$work_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$work_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$work_home/.config/opencode/skills/work-beads/SKILL.md"
+cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$work_home/.config/opencode/skills/write-bead/SKILL.md"
 cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
@@ -1513,8 +1516,8 @@ chezmoi managed \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
-.config/opencode/commands/materialize-epic.md
 .config/opencode/commands/orchestrate-bead.md
+.config/opencode/skills/write-bead/SKILL.md
 EOF
 cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
 
@@ -1525,6 +1528,7 @@ test ! -e "$external_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$external_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$external_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$external_home/.config/opencode/skills/work-beads/SKILL.md"
+cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$external_home/.config/opencode/skills/write-bead/SKILL.md"
 test ! -e "$external_home/.config/opencode/portable.jsonc"
 test ! -e "$external_home/.config/opencode/plugins/env-protection.js"
 test ! -e "$external_home/.config/opencode/plugins/plan-diagrams.js"
@@ -1615,6 +1619,7 @@ chezmoi apply \
   --force
 test ! -e "$transition_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$transition_home/.config/opencode/skills/beads-hub/SKILL.md"
+cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$transition_home/.config/opencode/skills/write-bead/SKILL.md"
 assert_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-beads-hub:start'
 assert_not_contains "$transition_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
 mkdir -p "$transition_home/.config/opencode/skills/beads-hub"
@@ -1634,6 +1639,11 @@ test ! -e "$transition_home/.config/opencode/skills/work-beads/SKILL.md"
 test ! -e "$transition_home/.config/opencode/skills/beads-hub/SKILL.md"
 test ! -e "$transition_home/.config/opencode/skills/beads-hub-closeout/SKILL.md"
 test ! -e "$transition_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
+cleanup_script="$transition_root/remove-write-bead.sh"
+chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" \
+  <"$source_dir/run_before_04-remove-disabled-write-bead.sh.tmpl" >"$cleanup_script"
+HOME="$transition_home" sh "$cleanup_script"
+test ! -e "$transition_home/.config/opencode/skills/write-bead/SKILL.md"
 test ! -e "$transition_home/.local/bin/wbd"
 test ! -e "$transition_home/.local/bin/wbv"
 assert_contains "$transition_home/.config/opencode/AGENTS.md" 'Preserve transition guidance.'
