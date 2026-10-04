@@ -280,13 +280,13 @@ from pathlib import Path
 
 directory = Path(sys.argv[1])
 contracts = {
-    "orchestrator": ("primary", "openai/gpt-6.1-sol", "medium", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
-    "integration": ("subagent", "openai/gpt-6-luna", "low", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
-    "investigator": ("subagent", "openai/gpt-6.1-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
+    "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
+    "integration": ("subagent", "openai/gpt-5.6-luna", "medium", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
+    "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
-    "worker": ("primary", "openai/gpt-6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-6.1-sol", "high", {"question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
-    "planner": ("subagent", "openai/gpt-6.1-sol", "medium", {"read", "glob", "grep", "lsp", "skill"}),
+    "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
+    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"read", "glob", "grep", "lsp", "skill"}),
 }
 
 for name, (mode, model, effort, allowed) in contracts.items():
@@ -1244,7 +1244,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-6-luna") and (.agent.title.options.reasoningEffort == "low")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
@@ -1429,7 +1429,7 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
-jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-6-luna") and (.agent.title.options.reasoningEffort == "low")' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
 HOME="$work_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; ! alias warpconf >/dev/null 2>&1'
