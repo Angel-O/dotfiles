@@ -742,18 +742,22 @@ if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
   assert_contains "$hub_config" 'split_vertical = ["prefix+v", "alt+s"]'
   assert_contains "$hub_config" 'key = "prefix+m"'
   assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open"'
-  assert_contains "$hub_config" 'key = "prefix+shift+m"'
-  assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open-tab"'
+   assert_contains "$hub_config" 'key = "prefix+shift+m"'
+   assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open-tab"'
+   assert_contains "$hub_config" 'key = "prefix+ctrl+o"'
+   assert_contains "$hub_config" 'command = "annotate.last-newest"'
   personal_installer="$root/herdr-hub-viewer/personal-installer.sh"
   chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
     <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$personal_installer"
-  sh -n "$personal_installer"
+   sh -n "$personal_installer"
+   assert_contains "$personal_installer" 'ensure_github_plugin annotate "plannotator/herdr-annotate" "cbba4732229191347ff5128e3da71f64474a6a49"'
   assert_contains "$personal_installer" 'herdr plugin link "$hub_viewer_root" --enabled'
   assert_contains "$personal_installer" 'hub_viewer_root="$HOME/.config/herdr/plugins/local/angel-o.hub-viewer"'
   disabled_installer="$root/herdr-hub-viewer/disabled-installer.sh"
   chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/herdr-disabled-plugins.toml" \
     <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$disabled_installer"
-  sh -n "$disabled_installer"
+   sh -n "$disabled_installer"
+   assert_not_contains "$disabled_installer" 'plannotator/herdr-annotate'
   assert_not_contains "$disabled_installer" 'angel-o.hub-viewer'
   apply_fixture personal
   test -f "$root/personal/home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
@@ -1146,6 +1150,8 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.h
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+m"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
 test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+ctrl+o"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'command = "annotate.last-newest"'
 
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
 assert_not_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
@@ -1245,7 +1251,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.plugin | index("@plannotator/opencode@0.28.2")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
@@ -1348,6 +1354,7 @@ assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.t
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin annotate "plannotator/herdr-annotate" "cbba4732229191347ff5128e3da71f64474a6a49"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" "ensure_github_plugin persiyanov.reviewr \"$reviewr_source\" \"$reviewr_ref\""
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 mkdir -p "$work_home/.config/opencode" "$work_home/.warp"
@@ -1428,11 +1435,13 @@ cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work
 assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.hub-viewer'
+assert_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+ctrl+o"'
+assert_contains "$work_home/.config/herdr/config.toml" 'command = "annotate.last-newest"'
 assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
-jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.plugin | index("@plannotator/opencode@0.28.2")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
 HOME="$work_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; ! alias warpconf >/dev/null 2>&1'
@@ -1697,11 +1706,13 @@ assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'angel-o.elio'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'angel-o.hub-viewer'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'persiyanov/herdr-reviewr'
+assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'plannotator/herdr-annotate'
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 assert_not_contains "$root/herdr-disabled-plugins/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'brew install rust'
 apply_fixture herdr-disabled-plugins
 test ! -e "$disabled_home/.warp"
 assert_not_contains "$disabled_home/.config/herdr/config.toml" 'plugin_action'
+assert_not_contains "$disabled_home/.config/herdr/config.toml" 'annotate.last-newest'
 assert_not_contains "$disabled_home/.config/herdr/config.toml" '"$usage"'
 assert_not_contains "$disabled_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 test ! -e "$disabled_home/.config/herdr/reviewr-toggle-tab.sh"

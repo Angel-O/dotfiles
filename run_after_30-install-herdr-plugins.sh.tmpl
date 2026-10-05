@@ -42,6 +42,9 @@ ensure_github_plugin() {
 {{- if .herdrPlugins.agentResume }}
 ensure_github_plugin angel-o.agent-resume {{ .pins.herdrPlugins.agentResume.source | quote }} {{ .pins.herdrPlugins.agentResume.ref | quote }}
 {{- end }}
+{{- if .herdrPlugins.annotate }}
+ensure_github_plugin annotate {{ .pins.herdrPlugins.annotate.source | quote }} {{ .pins.herdrPlugins.annotate.ref | quote }}
+{{- end }}
 {{- if .herdrPlugins.labels }}
 ensure_github_plugin angel-o.labels {{ .pins.herdrPlugins.labels.source | quote }} {{ .pins.herdrPlugins.labels.ref | quote }}
 {{- end }}

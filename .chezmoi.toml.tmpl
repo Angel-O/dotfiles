@@ -12,6 +12,7 @@
 {{- $nodeDevelopment := false -}}
 {{- $jvmDevelopment := false -}}
 {{- $agentResume := false -}}
+{{- $annotate := false -}}
 {{- $labels := false -}}
 {{- $recentNavigator := false -}}
 {{- $spaceUsage := false -}}
@@ -30,6 +31,7 @@
 {{- end -}}
 {{- if $herdr -}}
 {{- $agentResume = promptBoolOnce . "herdrPlugins.agentResume" "Enable the Herdr Agent Resume plugin" true -}}
+{{- $annotate = promptBoolOnce . "herdrPlugins.annotate" "Enable the Plannotator Herdr plugin" true -}}
 {{- $labels = promptBoolOnce . "herdrPlugins.labels" "Enable the Herdr Labels plugin" true -}}
 {{- $recentNavigator = promptBoolOnce . "herdrPlugins.recentNavigator" "Enable the Herdr Recent Navigator plugin" true -}}
 {{- $spaceUsage = promptBoolOnce . "herdrPlugins.spaceUsage" "Enable the Herdr Space Usage plugin" true -}}
@@ -65,6 +67,7 @@ jvmDevelopment = {{ $jvmDevelopment }}
 
 [data.herdrPlugins]
 agentResume = {{ $agentResume }}
+annotate = {{ $annotate }}
 labels = {{ $labels }}
 recentNavigator = {{ $recentNavigator }}
 spaceUsage = {{ $spaceUsage }}

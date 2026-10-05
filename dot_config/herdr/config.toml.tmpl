@@ -152,5 +152,15 @@ command = "angel-o.agent-resume.copy-resume"
 description = "copy agent resume command"
 {{- end }}
 
+{{- if .herdrPlugins.annotate }}
+######################### Plannotator keybinding
+
+[[keys.command]]
+key = "prefix+ctrl+o"
+type = "plugin_action"
+command = "annotate.last-newest"
+description = "review agent newest message"
+{{- end }}
+
 [update]
 channel = "stable"

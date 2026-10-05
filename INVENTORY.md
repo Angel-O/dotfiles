@@ -65,6 +65,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Plugin ID | Pin policy | Default | Approved treatment |
 | --- | --- | --- | --- |
 | `angel-o.agent-resume` | Default branch commit | On | Install pinned when selected |
+| `annotate` (`plannotator/herdr-annotate`) | Default branch commit | On | Install pinned when selected; bind `prefix+ctrl+o` to `annotate.last-newest` |
 | `angel-o.labels` | Release tag | On | Install pinned and load its Zsh hook when selected |
 | `beyondlex.herdr-recent-navigator` | Default branch commit | On | Install pinned when selected |
 | `ez-corp.space-usage` | Default branch commit | On | Install pinned and manage config when selected |
@@ -113,6 +114,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `opencode-lmstudio@1.0.0-rc.2` | Pinned | Personal-only local AI | Install LM Studio if missing personally; omit all integration at work |
 | `opencode-history-search` | Unpinned | Shared | Select and pin a version; keep history databases local |
 | `opencode-mermaid-renderer@0.0.1` | Pinned | Shared | Render compact Mermaid diagrams in terminal chat |
+| `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |
 
 ## OpenCode Local Plugins, Commands, and Skills
 

@@ -20,6 +20,7 @@ quota = "3.11.2"
 handoff = "0.5.0"
 historySearch = "1.4.1"
 mermaidRenderer = "0.0.1"
+plannotator = "0.28.2"
 warp = "0.1.5"
 lmStudio = "1.0.0-rc.2"
 
@@ -27,6 +28,11 @@ lmStudio = "1.0.0-rc.2"
 source = "Angel-O/herdr-agent-resume"
 branch = "main"
 ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
+
+[pins.herdrPlugins.annotate]
+source = "plannotator/herdr-annotate"
+branch = "main"
+ref = "cbba4732229191347ff5128e3da71f64474a6a49"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
