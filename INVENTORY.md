@@ -113,6 +113,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `opencode-lmstudio@1.0.0-rc.2` | Pinned | Personal-only local AI | Install LM Studio if missing personally; omit all integration at work |
 | `opencode-history-search` | Unpinned | Shared | Select and pin a version; keep history databases local |
 | `opencode-mermaid-renderer@0.0.1` | Pinned | Shared | Render compact Mermaid diagrams in terminal chat |
+| `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |
 
 ## OpenCode Local Plugins, Commands, and Skills
 
