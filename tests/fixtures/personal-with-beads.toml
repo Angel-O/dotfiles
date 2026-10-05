@@ -21,6 +21,7 @@ jvmDevelopment = false
 
 [data.herdrPlugins]
 agentResume = false
+annotate = false
 labels = true
 recentNavigator = false
 spaceUsage = false

@@ -29,6 +29,11 @@ source = "Angel-O/herdr-agent-resume"
 branch = "main"
 ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
 
+[pins.herdrPlugins.annotate]
+source = "plannotator/herdr-annotate"
+branch = "main"
+ref = "cbba4732229191347ff5128e3da71f64474a6a49"
+
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
 ref = "v0.2.10"

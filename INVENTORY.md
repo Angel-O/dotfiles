@@ -65,6 +65,7 @@ This is a snapshot of the currently verified personal-machine setup. The treatme
 | Plugin ID | Pin policy | Default | Approved treatment |
 | --- | --- | --- | --- |
 | `angel-o.agent-resume` | Default branch commit | On | Install pinned when selected |
+| `annotate` (`plannotator/herdr-annotate`) | Default branch commit | On | Install pinned when selected; bind `prefix+ctrl+o` to `annotate.last-newest` |
 | `angel-o.labels` | Release tag | On | Install pinned and load its Zsh hook when selected |
 | `beyondlex.herdr-recent-navigator` | Default branch commit | On | Install pinned when selected |
 | `ez-corp.space-usage` | Default branch commit | On | Install pinned and manage config when selected |
