@@ -56,8 +56,8 @@ ref = "459e884f6dc0542224df7bf5f2d974e1bab8c737"
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "0250955e090c5f76d61093026e580d5d3b7ffa51"
+ref = "d1343fc3ca475d631fe1096636ab722db24f4e7a"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
-ref = "v0.45.0"
+ref = "v0.46.0"
