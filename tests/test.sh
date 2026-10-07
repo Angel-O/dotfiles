@@ -750,7 +750,7 @@ if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
   chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
     <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$personal_installer"
    sh -n "$personal_installer"
-   assert_contains "$personal_installer" 'ensure_github_plugin annotate "plannotator/herdr-annotate" "cbba4732229191347ff5128e3da71f64474a6a49"'
+   assert_contains "$personal_installer" 'ensure_github_plugin annotate "plannotator/herdr-annotate" "e3ca7e88ada0c77baf5714c006a5abe36798349c"'
   assert_contains "$personal_installer" 'herdr plugin link "$hub_viewer_root" --enabled'
   assert_contains "$personal_installer" 'hub_viewer_root="$HOME/.config/herdr/plugins/local/angel-o.hub-viewer"'
   disabled_installer="$root/herdr-hub-viewer/disabled-installer.sh"
@@ -1354,7 +1354,7 @@ assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.t
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" 'viewer_source_repo="Angel-O/beads_viewer"'
 assert_contains "$root/work/rendered/run_after_15-install-beads-viewer-fork.sh.tmpl" "viewer_wanted_ref=\"$beads_viewer_ref\""
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin thomasschafer.herdr-kiosk "thomasschafer/herdr-kiosk"'
-assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin annotate "plannotator/herdr-annotate" "cbba4732229191347ff5128e3da71f64474a6a49"'
+assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'ensure_github_plugin annotate "plannotator/herdr-annotate" "e3ca7e88ada0c77baf5714c006a5abe36798349c"'
 assert_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" "ensure_github_plugin persiyanov.reviewr \"$reviewr_source\" \"$reviewr_ref\""
 assert_not_contains "$root/work/rendered/run_after_30-install-herdr-plugins.sh.tmpl" 'reviewr_root='
 mkdir -p "$work_home/.config/opencode" "$work_home/.warp"
