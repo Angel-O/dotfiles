@@ -30,3 +30,4 @@ kiosk = true
 elio = false
 hubViewer = false
 reviewr = true
+memex = true

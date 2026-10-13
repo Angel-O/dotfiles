@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+{{- if not .modules.opencode }}
+exit 0
+{{- else }}
+if ! command -v memex >/dev/null 2>&1; then
+  printf 'Memex is required before installing the shared search skill.\n' >&2
+  exit 1
+fi
+
+if ! skill_status=$(memex skill status --target shared --non-interactive --no-update-check 2>/dev/null); then
+  printf 'Unable to determine the shared Memex skill status.\n' >&2
+  exit 1
+fi
+case "$skill_status" in
+  "shared: current ("*) ;;
+  "shared: not installed ("*) memex skill install --target shared ;;
+  "shared: outdated or locally modified ("*) memex skill update --target shared ;;
+  *)
+    printf 'Unexpected shared Memex skill status: %s\n' "$skill_status" >&2
+    exit 1
+    ;;
+esac
+{{- end }}

@@ -281,7 +281,7 @@ from pathlib import Path
 
 directory = Path(sys.argv[1])
 contracts = {
-    "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session", "history-search"}),
+    "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session"}),
     "integration": ("subagent", "openai/gpt-5.6-luna", "medium", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
@@ -773,6 +773,9 @@ if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
   assert_not_contains "$root/herdr-disabled-plugins/home/.config/herdr/config.toml" 'angel-o.hub-viewer'
   exit 0
 fi
+
+bash "$source_dir/tests/test-memex.sh"
+[[ "${TEST_SCOPE:-}" != memex ]] || exit 0
 
 for orchestration_file in \
   "$source_dir/dot_config/opencode/agents/orchestrator.md" \

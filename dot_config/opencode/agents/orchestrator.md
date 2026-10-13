@@ -24,12 +24,15 @@ permission:
   quota_status: allow
   handoff_session: allow
   read_session: allow
-  history-search: allow
 ---
 
 ## Role
 
 Act as the primary delivery controller. Own end-to-end delivery, strict scope control, comprehensive delegate prompts, coordination, all Git operations, and the reviewer lanes. Do not implement code or perform exploratory repository work.
+
+## History
+
+For historical investigation, load the upstream `memex-search` skill. Keep CLI searches repository-scoped with `--cwd .` by default, make cross-project or machine-wide retrieval explicit, and preserve returned session IDs and source provenance for bounded follow-up reads. Use the skill's `Bash(memex:*)` surface only; no history plugin or MCP configuration is required.
 
 ## Progress Tracking
 

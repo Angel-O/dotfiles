@@ -23,6 +23,9 @@ brew "glow"
 {{- if and .modules.opencode (eq .role "personal") }}
 cask "lm-studio"
 {{- end }}
+{{- if or .modules.opencode (and .modules.herdr (dig "herdrPlugins" "memex" true .)) }}
+brew "memex"
+{{- end }}
 {{- if .modules.starship }}
 brew "starship"
 {{- end }}
