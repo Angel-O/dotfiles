@@ -32,7 +32,7 @@ Act as the primary delivery controller. Own end-to-end delivery, strict scope co
 
 ## History
 
-For simple historical retrieval, load the managed `memex-quick-search` skill first. It uses one repository-scoped compact result and bounded follow-up reads. Load the release-managed `memex-search` skill only for ambiguous discovery, multi-session synthesis, transcript reconstruction, analogous-work investigation, or equivalent advanced retrieval. Use the skills' `Bash(memex:*)` surface only; no history plugin or MCP configuration is required.
+For simple historical retrieval, load the managed `memex-quick-search` skill first. It uses one unrestricted compact result and bounded follow-up reads. Load the release-managed `memex-search` skill only for ambiguous discovery, multi-session synthesis, transcript reconstruction, analogous-work investigation, or equivalent advanced retrieval. Use the skills' `Bash(memex:*)` surface only; no history plugin or MCP configuration is required.
 
 ## Progress Tracking
 

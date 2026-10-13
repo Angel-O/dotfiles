@@ -47,8 +47,9 @@ skill="$source_dir/dot_config/opencode/skills/memex-quick-search/SKILL.md"
 test -f "$skill"
 assert_contains "$skill" 'name: memex-quick-search'
 assert_contains "$skill" 'allowed-tools: Bash(memex:*)'
-assert_contains "$skill" 'memex search "<one query>" --cwd . --unique-session --limit 1 --fields session_id,ts,role,snippet --format toon --non-interactive'
-assert_contains "$skill" 'memex search "<one query>" --cwd . --unique-session --limit 1 --fields session_id,ts,role,snippet,record_id,machine --format toon --non-interactive'
+assert_contains "$skill" 'memex search "<one query>" --unique-session --limit 1 --fields session_id,ts,role,snippet --format toon --non-interactive'
+assert_contains "$skill" 'memex search "<one query>" --unique-session --limit 1 --fields session_id,ts,role,snippet,record_id,machine --format toon --non-interactive'
+assert_not_contains "$skill" '--cwd .'
 assert_contains "$skill" 'Only when verification or surrounding context is needed'
 assert_contains "$skill" 'query with identifiers included:'
 assert_contains "$skill" 'Use the returned `record_id` and `machine` for bounded follow-up.'

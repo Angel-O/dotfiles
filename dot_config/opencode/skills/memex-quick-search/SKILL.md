@@ -8,10 +8,10 @@ allowed-tools: Bash(memex:*)
 
 Use this skill as the default entry point for a simple historical lookup.
 
-Run one repository-scoped query:
+Run one unrestricted query:
 
 ```bash
-memex search "<one query>" --cwd . --unique-session --limit 1 --fields session_id,ts,role,snippet --format toon --non-interactive
+memex search "<one query>" --unique-session --limit 1 --fields session_id,ts,role,snippet --format toon --non-interactive
 ```
 
 Stop when the result is direct and unambiguous. Preserve its `session_id`,
@@ -22,7 +22,7 @@ Only when verification or surrounding context is needed, rerun the same narrow
 query with identifiers included:
 
 ```bash
-memex search "<one query>" --cwd . --unique-session --limit 1 --fields session_id,ts,role,snippet,record_id,machine --format toon --non-interactive
+memex search "<one query>" --unique-session --limit 1 --fields session_id,ts,role,snippet,record_id,machine --format toon --non-interactive
 ```
 
 Use the returned `record_id` and `machine` for bounded follow-up. For
