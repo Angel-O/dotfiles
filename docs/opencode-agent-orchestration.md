@@ -16,7 +16,7 @@ Status: active. This specification is additive: it defines custom agents and lea
 
 Permissions deny all unspecified tools. Custom agent files are installed under the managed OpenCode configuration directory; this feature does not add or alter any built-in agent definition. `~/.local/bin/herdr-agent-launch` is the only managed command-level launcher for primary agents.
 
-Historical investigation uses the release-matched shared `memex-search` skill. Its CLI calls stay repository-scoped with `--cwd .` unless cross-project or machine-wide history is explicitly requested; follow-up reads remain bounded and retain session IDs and source provenance. The skill authorizes only `Bash(memex:*)`, and this setup does not configure Memex MCP.
+Simple historical retrieval starts with the managed `memex-quick-search` skill: one repository-scoped compact result followed by bounded reads only when needed. Load the release-matched shared `memex-search` skill only for ambiguous discovery, multi-session synthesis, transcript reconstruction, analogous-work investigation, or equivalent advanced retrieval. Both skills authorize only `Bash(memex:*)`, and this setup does not configure Memex MCP.
 
 ## Lifecycle
 

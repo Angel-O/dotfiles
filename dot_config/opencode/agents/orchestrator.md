@@ -32,7 +32,7 @@ Act as the primary delivery controller. Own end-to-end delivery, strict scope co
 
 ## History
 
-For historical investigation, load the upstream `memex-search` skill. Keep CLI searches repository-scoped with `--cwd .` by default, make cross-project or machine-wide retrieval explicit, and preserve returned session IDs and source provenance for bounded follow-up reads. Use the skill's `Bash(memex:*)` surface only; no history plugin or MCP configuration is required.
+For simple historical retrieval, load the managed `memex-quick-search` skill first. It uses one repository-scoped compact result and bounded follow-up reads. Load the release-managed `memex-search` skill only for ambiguous discovery, multi-session synthesis, transcript reconstruction, analogous-work investigation, or equivalent advanced retrieval. Use the skills' `Bash(memex:*)` surface only; no history plugin or MCP configuration is required.
 
 ## Progress Tracking
 

@@ -112,7 +112,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `@slkiser/opencode-quota@latest` | Floating | Shared | Replace `latest` with a pinned version |
 | `opencode-handoff` | Unpinned | Shared | Select and pin a version |
 | `opencode-lmstudio@1.0.0-rc.2` | Pinned | Personal-only local AI | Install LM Studio if missing personally; omit all integration at work |
-| Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the shared skill from the installed release; keep history data local |
+| Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the release-managed skill; keep history data local; use it for advanced retrieval |
 | `nicosuave.memex` Herdr plugin | Upstream release | v0.28.0 | Shared/selected | Install when selected and bind `prefix+ctrl+m` to the session palette |
 | `opencode-mermaid-renderer@0.0.1` | Pinned | Shared | Render compact Mermaid diagrams in terminal chat |
 | `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |
@@ -135,6 +135,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `herdr-agent-name` | `~/.config/opencode/skills/` | Renames the current OpenCode agent in Herdr | Track | Shared |
 | `plan-diagrams` | `~/.config/opencode/skills/` | Adds a concise diagram to final implementation plans and delegates reusable rules | Track with global deny and Plan-agent allow | Shared/Plan-only |
 | `terminal-mermaid` | `~/.config/opencode/skills/` | Reusable renderer-compatible diagram selection, syntax, and terminal viewport guidance | Track unrestricted | Shared |
+| `memex-quick-search` | `~/.config/opencode/skills/` | Compact default Memex lookup with bounded escalation | Track | Shared |
 | `demo-gif` | `~/.config/opencode/skills/` | Demo GIF and recording workflow | Exclude | Out of scope |
 
 ## OpenCode Private and Runtime State
