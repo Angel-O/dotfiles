@@ -86,8 +86,8 @@ assert_not_contains "$root/disabled/herdr.toml" 'nicosuave.memex'
 grep -Fxq 'exit 0' "$root/disabled/skill.sh"
 
 render herdr-missing-memex "$root/missing-memex"
-assert_not_contains "$root/missing-memex/Brewfile" 'brew "memex"'
-assert_not_contains "$root/missing-memex/herdr.sh" 'nicosuave.memex'
-assert_not_contains "$root/missing-memex/herdr.toml" 'nicosuave.memex'
+assert_contains "$root/missing-memex/Brewfile" 'brew "memex"'
+assert_contains "$root/missing-memex/herdr.sh" 'nicosuave.memex'
+assert_contains "$root/missing-memex/herdr.toml" 'command = "nicosuave.memex.palette"'
 
 printf 'Memex focused contract tests passed.\n'
