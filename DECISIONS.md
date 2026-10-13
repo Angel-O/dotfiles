@@ -70,7 +70,7 @@ This log records discussion outcomes. Proposed items remain explicitly marked an
 | npm manifest, lock file, `node_modules`, backups, cache, and runtime state | Exclude and regenerate where needed |
 | OpenCode application | Assume preinstalled |
 | Warp plugin | Personal-only |
-| Codex Auth, Quota, Handoff, and History Search plugins | Install shared and pin versions |
+| Codex Auth, Quota, Handoff, and Memex CLI history integration | Install shared; use the release-matched shared search skill and managed Herdr plugin |
 | LM Studio application, plugin, and environment | Personal-only; install application if missing personally |
 | Environment Protection and Plan Diagrams local plugins | Track as shared |
 | Herdr state integration | Regenerate on both machines |

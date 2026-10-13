@@ -18,7 +18,6 @@ ref = "5437102814a7cd3d5f638faacb24531098ec5e53"
 codexAuth = "4.4.0"
 quota = "3.11.2"
 handoff = "0.5.0"
-historySearch = "1.4.1"
 mermaidRenderer = "0.0.1"
 plannotator = "0.28.2"
 warp = "0.1.5"
@@ -28,6 +27,10 @@ lmStudio = "1.0.0-rc.2"
 source = "Angel-O/herdr-agent-resume"
 branch = "main"
 ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
+
+[pins.herdrPlugins.memex]
+source = "nicosuave/memex"
+ref = "v0.28.0"
 
 [pins.herdrPlugins.annotate]
 source = "plannotator/herdr-annotate"

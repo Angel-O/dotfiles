@@ -6,7 +6,7 @@ Status: active. This specification is additive: it defines custom agents and lea
 
 | Agent | Mode | Model | Reasoning | Tools | Responsibility |
 | --- | --- | --- | --- | --- | --- |
-| `orchestrator` | primary | `openai/gpt-5.6-terra` | high | question, bash, read, glob, grep, task, webfetch, todowrite, skill, apply_patch, lsp, quota_status, handoff_session, read_session, history-search | Owns structured Bead creation, delivery, scope, delegate prompts, coordination, Git operations, and the reviewer lanes. It does not code or explore, and cannot task the planner. |
+| `orchestrator` | primary | `openai/gpt-5.6-terra` | high | question, bash, read, glob, grep, task, webfetch, todowrite, skill, apply_patch, lsp, quota_status, handoff_session, read_session | Owns structured Bead creation, delivery, scope, delegate prompts, coordination, Git operations, and the reviewer lanes. It does not code or explore, and cannot task the planner. |
 | `integration` | subagent | `openai/gpt-5.6-luna` | medium | bash, external_directory, read, glob, grep, skill (diagramming denied) | Runs supplied repository-wide integration commands without editing files or modifying Git state and reports exact results. |
 | `investigator` | subagent | `openai/gpt-5.6-sol` | medium | bash, external_directory (ask), read, glob, grep, webfetch, skill | Performs bounded read-only discovery and bug verification with a fixed model and evidence-oriented report. |
 | `reviewer` | subagent | `openai/gpt-5.6-sol` | medium | bash, external_directory, read, glob, grep, lsp, skill (diagramming denied) | Reads canonical Bead scope for Bead-backed static review; otherwise checks supplied functional requirements, bugs, and regressions. It reports findings, uses only read-only Git commands, and cannot edit or delegate. |
@@ -15,6 +15,8 @@ Status: active. This specification is additive: it defines custom agents and lea
 | `planner` | subagent | `openai/gpt-5.6-terra` | medium | narrowly allowed `wbd` read/create/scope/dependency operations, read, glob, grep, lsp, skill | Reads an approved canonical epic, decomposes without redesign, and publishes structured children with genuine relationships. Normal non-Bead use still reports an execution decomposition. |
 
 Permissions deny all unspecified tools. Custom agent files are installed under the managed OpenCode configuration directory; this feature does not add or alter any built-in agent definition. `~/.local/bin/herdr-agent-launch` is the only managed command-level launcher for primary agents.
+
+Historical investigation uses the release-matched shared `memex-search` skill. Its CLI calls stay repository-scoped with `--cwd .` unless cross-project or machine-wide history is explicitly requested; follow-up reads remain bounded and retain session IDs and source provenance. The skill authorizes only `Bash(memex:*)`, and this setup does not configure Memex MCP.
 
 ## Lifecycle
 

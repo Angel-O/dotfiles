@@ -21,6 +21,7 @@
 {{- $elio := false -}}
 {{- $hubViewer := false -}}
 {{- $reviewr := false -}}
+{{- $memex := false -}}
 {{- $beads = promptBool "Enable the Beads module" (dig "modules" "beads" false .) -}}
 {{- if $beads -}}
 {{- $opencodeBeads = promptBool "Enable the OpenCode Beads integration" (dig "integrations" "opencodeBeads" true .) -}}
@@ -40,6 +41,7 @@
 {{- $elio = promptBoolOnce . "herdrPlugins.elio" "Enable the Herdr Elio plugin" false -}}
 {{- $hubViewer = promptBoolOnce . "herdrPlugins.hubViewer" "Enable the Herdr Hub Viewer plugin" false -}}
 {{- $reviewr = promptBoolOnce . "herdrPlugins.reviewr" "Enable the Herdr Reviewr plugin" true -}}
+{{- $memex = promptBoolOnce . "herdrPlugins.memex" "Enable the Herdr Memex plugin" true -}}
 {{- end -}}
 
 sourceDir = {{ .chezmoi.sourceDir | quote }}
@@ -76,3 +78,4 @@ kiosk = {{ $kiosk }}
 elio = {{ $elio }}
 hubViewer = {{ $hubViewer }}
 reviewr = {{ $reviewr }}
+memex = {{ $memex }}

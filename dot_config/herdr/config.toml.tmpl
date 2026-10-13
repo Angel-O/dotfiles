@@ -1,4 +1,5 @@
 onboarding = false
+{{- $memex := dig "herdrPlugins" "memex" false . }}
 
 [worktrees]
 directory = "~/workspace/worktrees"
@@ -150,6 +151,16 @@ key = "prefix+shift+a"
 type = "plugin_action"
 command = "angel-o.agent-resume.copy-resume"
 description = "copy agent resume command"
+{{- end }}
+
+{{- if $memex }}
+######################### Memex keybinding
+
+[[keys.command]]
+key = "prefix+ctrl+m"
+type = "plugin_action"
+command = "nicosuave.memex.palette"
+description = "open Memex session palette"
 {{- end }}
 
 {{- if .herdrPlugins.annotate }}
