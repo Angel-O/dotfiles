@@ -99,7 +99,9 @@ assert "The nine fields provide operational context and must not copy or replace
 
 events = [
     "Inspect existing direct relationships",
-    "stop before mutation if any direct `parent-child` child already exists",
+    "require explicit user authorization for additive publication",
+    "preserve every existing child unchanged",
+    "stop before mutation if any proposed slice overlaps or conflicts with one",
     "completely preflight distinct concrete slices, valid slice references",
     "create each structured concrete child",
     "required create-then-show flow",
