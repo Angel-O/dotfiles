@@ -103,11 +103,12 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | Backups | OpenCode config directory | Historical | Exclude | Runtime | May contain old provider settings |
 | OpenCode application | Homebrew formula | V2 | Assume preinstalled | External prerequisite | Upgrade through OpenCode's built-in major-upgrade command |
 
-## OpenCode Published Plugins
+## OpenCode Managed Plugins
 
 | Declaration | Version state | Approved scope | Approved treatment |
 | --- | --- | --- | --- |
 | `@slkiser/opencode-quota@5.0.2` | Pinned | Shared | V2-compatible quota display |
+| `../../.local/share/opencode/opencode-todo/src` | Pinned Git checkout | Shared | Todo-list tools, RPC, and TUI from one source entry; restore the checkout under `~/.local/share/opencode/` |
 | Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the release-managed skill; keep history data local; use it for advanced retrieval |
 | `nicosuave.memex` Herdr plugin | Upstream release | v0.28.0 | Shared/selected | Install when selected and bind `prefix+ctrl+m` to the session palette |
 | `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |

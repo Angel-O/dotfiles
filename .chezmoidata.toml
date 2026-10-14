@@ -18,6 +18,10 @@ ref = "5437102814a7cd3d5f638faacb24531098ec5e53"
 quota = "5.0.2"
 plannotator = "0.28.2"
 
+[pins.openCodePlugins.todo]
+source = "https://github.com/afriemann/opencode-todo.git"
+ref = "9f84740dad686f9206d537da1ec3b6eac7a2b8b6"
+
 [pins.herdrPlugins.agentResume]
 source = "Angel-O/herdr-agent-resume"
 branch = "main"
