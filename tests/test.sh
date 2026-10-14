@@ -1169,9 +1169,9 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} 
 assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROMPT=''"
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
 test -f "$personal_home/.config/opencode/portable.jsonc"
-test -f "$personal_home/.config/opencode/tui.jsonc"
+test -f "$personal_home/.config/opencode/cli.json"
 test -x "$personal_home/.local/bin/herdr-agent-launch"
-assert_contains "$personal_home/.config/opencode/tui.jsonc" '"./herdr-tui-session.js"'
+assert_contains "$personal_home/.config/opencode/cli.json" '"./herdr-tui-session.js"'
 assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator integration investigator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
@@ -1232,8 +1232,6 @@ assert_orchestration_reuse_contract "$source_dir/docs/opencode-agent-orchestrati
 assert_reference_branch_contract "$source_dir/docs/opencode-agent-orchestration.md"
 assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'For each concurrently active worker lane, the orchestrator creates one distinct reviewer session.'
 assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
-cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$personal_home/.config/opencode/plugins/plan-diagrams.js"
-cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$personal_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 assert_contains "$personal_home/.config/opencode/AGENTS.md" 'Keep this personal instruction.'
 assert_not_contains "$personal_home/.config/opencode/AGENTS.md" 'portable-work-beads:start'
@@ -1255,9 +1253,10 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '.provider.openai and (.plugin | index("opencode-lmstudio@1.0.0-rc.2")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.plugin | index("@plannotator/opencode@0.28.2")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "@plannotator/opencode@0.28.2"]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
-printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
+printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
+! printf '%s\n' "$personal_managed" | grep -Fq 'plan-diagrams'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
 printf '%s\n' "$personal_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/herdr-plugin.toml'
@@ -1417,6 +1416,8 @@ assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
+test -f "$work_home/.config/opencode/cli.json"
+assert_contains "$work_home/.config/opencode/cli.json" '"./herdr-tui-session.js"'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
 test -f "$work_home/.config/helix/config.toml"
 assert_contains "$work_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
@@ -1433,8 +1434,6 @@ cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$work_home/.config/opencod
 cmp -s "$root/work/warp-settings.before" "$work_home/.warp/settings.toml"
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" '"provider"'
 assert_not_contains "$work_home/.config/opencode/portable.jsonc" 'opencode-lmstudio'
-cmp -s "$source_dir/dot_config/opencode/plugins/plan-diagrams.js" "$work_home/.config/opencode/plugins/plan-diagrams.js"
-cmp -s "$source_dir/dot_config/opencode/skills/plan-diagrams/SKILL.md" "$work_home/.config/opencode/skills/plan-diagrams/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.elio.open'
@@ -1445,7 +1444,7 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
-jq -e '(.plugin | index("opencode-handoff@0.5.0")) and (.plugin | index("opencode-mermaid-renderer@0.0.1")) and (.plugin | index("@plannotator/opencode@0.28.2")) and (.permission.skill == {"plan-diagrams": "deny"}) and (.agent.plan.permission.skill == {"plan-diagrams": "allow"}) and (.agent.title.model == "openai/gpt-5.6-luna")' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "@plannotator/opencode@0.28.2"]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
 HOME="$work_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; ! alias warpconf >/dev/null 2>&1'
@@ -1481,8 +1480,8 @@ test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
 work_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" --include files)
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
-printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/plugins/plan-diagrams.js'
-printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/plan-diagrams/SKILL.md'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/cli.json'
+! printf '%s\n' "$work_managed" | grep -Fq 'plan-diagrams'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
 printf '%s\n' "$work_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-bead.md'

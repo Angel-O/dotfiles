@@ -93,7 +93,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | --- | --- | --- | --- | --- | --- |
 | Existing global configuration | `~/.config/opencode/opencode.jsonc` | Active | Leave unmanaged | Local superset | Private work provider/model settings remain authoritative and outside public source |
 | Portable configuration layer | `~/.config/opencode/portable.jsonc` | Implemented in source state | Role-aware template loaded through `OPENCODE_CONFIG` | Shared plus personal additions | Work rendering omits provider/model and ordinary array-valued keys |
-| TUI configuration | `~/.config/opencode/tui.jsonc` | Active | Manage personally; preserve work file | Personal/local work | Work TUI is ignored so its superset remains untouched |
+| CLI configuration | `~/.config/opencode/cli.json` | Active | Manage shared V2 settings | Shared | Replaces the V1 `tui.jsonc` configuration |
 | Launcher | `~/.local/bin/opencode-env` | Active executable via shell alias | Shared template plus local env | Shared with local extension | Share non-sensitive behavior; source ignored local values when needed |
 | Shell alias | `~/.zshrc` | Routes `opencode` through the launcher | Track in Zsh fragment | Shared | Required for launcher behavior to take effect |
 | Local environment file | Not currently established | Proposed only | Local and excluded | Secret/machine | Add only for a concrete need; mode 0600 and never commit |
@@ -101,20 +101,15 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | npm lock file | `~/.config/opencode/package-lock.json` | Present | Exclude and regenerate | Generated | Do not import initially |
 | Installed npm tree | `~/.config/opencode/node_modules/` | Generated | Exclude | Runtime | Recreate through OpenCode/plugin installation |
 | Backups | OpenCode config directory | Historical | Exclude | Runtime | May contain old provider settings |
-| OpenCode application | Homebrew formula | Version 1.18.15 observed | Assume preinstalled | External prerequisite | Do not provision as part of this setup |
+| OpenCode application | Homebrew formula | V2 | Assume preinstalled | External prerequisite | Upgrade through OpenCode's built-in major-upgrade command |
 
 ## OpenCode Published Plugins
 
 | Declaration | Version state | Approved scope | Approved treatment |
 | --- | --- | --- | --- |
-| `@warp-dot-dev/opencode-warp@0.1.5` | Pinned | Personal-only | Install personally only |
-| `opencode-openai-codex-auth` | Unpinned | Shared | Select and pin a version; authenticate locally |
-| `@slkiser/opencode-quota@latest` | Floating | Shared | Replace `latest` with a pinned version |
-| `opencode-handoff` | Unpinned | Shared | Select and pin a version |
-| `opencode-lmstudio@1.0.0-rc.2` | Pinned | Personal-only local AI | Install LM Studio if missing personally; omit all integration at work |
+| `@slkiser/opencode-quota@5.0.2` | Pinned | Shared | V2-compatible quota display |
 | Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the release-managed skill; keep history data local; use it for advanced retrieval |
 | `nicosuave.memex` Herdr plugin | Upstream release | v0.28.0 | Shared/selected | Install when selected and bind `prefix+ctrl+m` to the session palette |
-| `opencode-mermaid-renderer@0.0.1` | Pinned | Shared | Render compact Mermaid diagrams in terminal chat |
 | `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |
 
 ## OpenCode Local Plugins, Commands, and Skills
@@ -122,7 +117,6 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | Artifact | Current location | Purpose | Approved treatment | Scope |
 | --- | --- | --- | --- | --- |
 | `env-protection.js` | `~/.config/opencode/plugins/` | Prevent OpenCode from reading `.env` paths | Track | Shared |
-| `plan-diagrams.js` | `~/.config/opencode/plugins/` | Tells the Plan agent to load diagram guidance only when it is ready to draft | Track | Shared |
 | `herdr-agent-state.js` | `~/.config/opencode/plugins/` | Reports OpenCode session state to Herdr | Regenerate through Herdr integration | Shared/generated |
 | `herdr-name.md` | `~/.config/opencode/command/` | Global command for naming the active Herdr agent | Track | Shared |
 | `orchestrate-bead.md` | `~/.config/opencode/commands/` | Starts fixed custom workers through Herdr for private Bead work | Track when Herdr, Beads, and the OpenCode Beads integration are enabled | Shared/conditional |
@@ -133,8 +127,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `ponytail` | `~/.config/opencode/skills/` | Minimal, YAGNI-first coding workflow | Install from pinned source | Shared |
 | `write-bead` | `~/.config/opencode/skills/` | Structured epic and concrete Bead authoring contract | Track when Beads and the OpenCode Beads integration are enabled | Shared/conditional |
 | `herdr-agent-name` | `~/.config/opencode/skills/` | Renames the current OpenCode agent in Herdr | Track | Shared |
-| `plan-diagrams` | `~/.config/opencode/skills/` | Adds a concise diagram to final implementation plans and delegates reusable rules | Track with global deny and Plan-agent allow | Shared/Plan-only |
-| `terminal-mermaid` | `~/.config/opencode/skills/` | Reusable renderer-compatible diagram selection, syntax, and terminal viewport guidance | Track unrestricted | Shared |
+| `terminal-mermaid` | `~/.config/opencode/skills/` | Reusable native diagram selection, syntax, and terminal viewport guidance | Track unrestricted | Shared |
 | `memex-quick-search` | `~/.config/opencode/skills/` | Compact default Memex lookup with bounded escalation | Track | Shared |
 | `demo-gif` | `~/.config/opencode/skills/` | Demo GIF and recording workflow | Exclude | Out of scope |
 
