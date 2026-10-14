@@ -71,6 +71,11 @@ run_once_after_25-migrate-ghostty-config.sh
 !.config/opencode/skills/write-bead/**
 {{- end }}
 
+# V2 evaluation assets are rendered only into the disposable runtime.
+.config/opencode/portable-v2.jsonc
+.config/opencode/tui-v2.jsonc
+.config/opencode/plugins-v2/**
+
 {{- if or (not .modules.beads) (not (dig "integrations" "opencodeBeads" false .)) }}
 .config/opencode/skills/write-bead
 .config/opencode/skills/write-bead/**

@@ -452,7 +452,7 @@ PY
 
 usage() {
   cat <<'EOF'
-Usage: scripts/opencode-v2-evaluation.sh <install|prepare|convert-cli|diagnose|run|check>
+Usage: scripts/opencode-v2-evaluation.sh <install|prepare|configure-v2|convert-cli|diagnose|run|check>
 
 The wrapper only launches a candidate inside OPENCODE_EVAL_ROOT, which must be
 under TMPDIR/opencode. prepare uses SQLite's online backup API for the live
@@ -465,6 +465,13 @@ shift || true
 case "$command" in
   install) install_candidate ;;
   prepare) prepare ;;
+  configure-v2)
+    source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
+    SOURCE_DIR="$source_dir" \
+      OPENCODE_V2_CONFIG_DIR="$config_dir" \
+      OPENCODE_V2_ROLE="${OPENCODE_V2_ROLE:-work}" \
+      bash "$source_dir/scripts/opencode-v2-config.sh"
+    ;;
   convert-cli) convert_cli ;;
   diagnose) diagnose ;;
   run)

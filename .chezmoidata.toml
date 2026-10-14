@@ -17,6 +17,7 @@ ref = "5437102814a7cd3d5f638faacb24531098ec5e53"
 [pins.openCodePlugins]
 codexAuth = "4.4.0"
 quota = "3.11.2"
+quotaV2 = "5.0.2"
 handoff = "0.5.0"
 mermaidRenderer = "0.0.1"
 plannotator = "0.28.2"

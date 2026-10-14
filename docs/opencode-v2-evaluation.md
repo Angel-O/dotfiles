@@ -16,6 +16,7 @@ wrapper="./scripts/opencode-v2-evaluation.sh"
 
 bash "$wrapper" install
 bash "$wrapper" prepare
+bash "$wrapper" configure-v2
 bash "$wrapper" diagnose
 bash "$wrapper" convert-cli       # explicit sandbox-only conversion
 bash "$wrapper" run auth login    # authenticate in the disposable runtime
@@ -39,10 +40,13 @@ migrated. `convert-cli` then performs the explicit sandbox-only conversion;
 its output is evidence and never authorizes a production rewrite. The
 authenticated turn proves provider access and model selection in isolation.
 
-Copied V1 plugin declarations exposed V2-contract failures. Plugin
-compatibility or removal is deferred to the existing next migration child;
-this evaluation does not qualify third-party plugin behavior or implement
-plugin fixes.
+`configure-v2` replaces only the disposable copy with the V2-specific
+configuration. Its canonical package declarations retain Quota `5.0.2` and
+Plannotator `0.28.2`; generated Herdr integration remains in the TUI
+declaration. V2 discovers the owned environment plugin from `plugins/`, where
+it uses the V2 module shape and denies `.env` reads. Mermaid, Codex auth, LM
+Studio, Warp, plan-diagrams, Handoff, and the old Quota declaration are not
+copied into this runtime. The V1 templates and runtime are untouched.
 
 ## Evidence and rollback
 
@@ -63,4 +67,10 @@ The focused wrapper contract test is:
 
 ```sh
 bash tests/test-opencode-v2-evaluation.sh
+```
+
+The focused V2 configuration and environment-protection test is:
+
+```sh
+bash tests/test-opencode-v2-config.sh
 ```

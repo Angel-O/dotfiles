@@ -42,8 +42,9 @@ cat >"$candidate" <<'EOF'
 #!/usr/bin/env bash
 set -eu
 case "$*" in
-  "--version") printf '%s\n' "${FAKE_VERSION:-2.0.28}"; [[ "${FAIL_VERSION:-0}" != 1 ]] || exit 7 ;;
+  "--version") test "${OPENCODE_CONFIG_DIR:?}" = "${OPENCODE_CONFIG%/*}"; printf '%s\n' "${FAKE_VERSION:-2.0.28}"; [[ "${FAIL_VERSION:-0}" != 1 ]] || exit 7 ;;
   "debug paths")
+    test "${OPENCODE_CONFIG_DIR:?}" = "${OPENCODE_CONFIG%/*}"
     printf 'home %s\ndata %s\ncache %s\nconfig %s\nstate %s\ntmp %s\n' "$HOME" "$XDG_DATA_HOME/opencode" "$XDG_CACHE_HOME/opencode" "$OPENCODE_CONFIG_DIR" "$XDG_STATE_HOME/opencode" "$TMPDIR"
     ;;
   "debug config") printf '{"ok":true}\n' ;;
@@ -70,6 +71,8 @@ env TMPDIR=/tmp OPENCODE_EVAL_ROOT="$eval_root" OPENCODE_V1_HOME="$root/source" 
   bash "$wrapper" prepare
 test ! -e "$eval_root/xdg-config/opencode/cli.json"
 test ! -e "$eval_root/evidence/automatic-cli-check.json"
+env TMPDIR=/tmp OPENCODE_EVAL_ROOT="$eval_root" OPENCODE_V1_HOME="$root/source" \
+  SOURCE_DIR="$source_dir" bash "$wrapper" configure-v2
 env TMPDIR=/tmp OPENCODE_EVAL_ROOT="$eval_root" OPENCODE_V1_HOME="$root/source" \
   bash "$wrapper" diagnose
 grep -Fq '"after_diagnostic": true' "$eval_root/evidence/automatic-cli-check.json"
