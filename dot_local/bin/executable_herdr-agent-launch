@@ -43,6 +43,7 @@ fi
   fail 'Herdr caller context is incomplete'
 command -v herdr >/dev/null 2>&1 || fail 'herdr is not installed'
 command -v jq >/dev/null 2>&1 || fail 'jq is not installed'
+command -v opencode >/dev/null 2>&1 || fail 'opencode is not installed'
 if [[ "$role/$topology" == worker/worktree ]]; then
   # The launcher process selects the repository; pane cwd is placement metadata.
   if ! source_repo=$(git rev-parse --show-toplevel 2>/dev/null); then
@@ -91,7 +92,7 @@ check_agent() {
     '.result.agent.name == $name and .result.agent.agent == "opencode" and
      .result.agent.workspace_id == $workspace and .result.agent.tab_id == $tab and
      .result.agent.pane_id == $pane and .result.agent.cwd == $cwd and
-     .result.agent.focused == false' <<<"$response" >/dev/null ||
+     .result.agent.focused == false and .result.agent.interactive_ready == true' <<<"$response" >/dev/null ||
     fail "agent identity or placement mismatch: $response"
 }
 
@@ -183,16 +184,26 @@ esac
 agent_cwd=$caller_cwd
 [[ "$role/$topology" == worker/worktree ]] && agent_cwd=$worktree_path
 [[ "$role/$topology" == worker/tab && -n "$worker_cwd" ]] && agent_cwd=$worker_cwd
+session_request=$(jq -cn --arg agent "$role" --arg directory "$agent_cwd" \
+  '{agent:$agent, location:{directory:$directory}}')
+if ! session_response=$(opencode api session.create --data "$session_request" 2>&1); then
+  fail "opencode session creation failed: $session_response"
+fi
+session_id=$(jq -er --arg role "$role" --arg cwd "$agent_cwd" \
+  '.data | select(.agent == $role and .location.directory == $cwd) | .id |
+   select(type == "string" and startswith("ses") and length > 3)' \
+  <<<"$session_response") || fail "opencode session creation returned malformed or unexpected JSON: $session_response"
 herdr_call agent_started \
   '.result | (.agent | type == "object") and (.argv | type == "array") and
    (.agent.name | type == "string") and (.agent.agent | type == "string") and
    (.agent.workspace_id | type == "string") and (.agent.tab_id | type == "string") and
-   (.agent.pane_id | type == "string") and (.agent.cwd | type == "string") and
-   (.agent.focused | type == "boolean")' \
-  agent start "$agent_name" --kind opencode --pane "$pane_id" -- --agent "$role"
-jq -e --arg name "$agent_name" --arg role "$role" \
-  '.result.argv == ["opencode", "--agent", $role] and
-   .result.agent.name == $name and .result.agent.agent == "opencode"' \
+    (.agent.pane_id | type == "string") and (.agent.cwd | type == "string") and
+    (.agent.focused | type == "boolean") and (.agent.launch_pending == false) and
+    (.agent.interactive_ready == true)' \
+  agent start "$agent_name" --kind opencode --pane "$pane_id" -- --session "$session_id"
+jq -e --arg name "$agent_name" --arg session "$session_id" \
+  '.result.argv == ["opencode", "--session", $session] and
+    .result.agent.name == $name and .result.agent.agent == "opencode"' \
   <<<"$response" >/dev/null || fail "agent argv mismatch: $response"
 check_agent "$workspace_id" "$tab_id" "$pane_id" "$agent_cwd"
 
