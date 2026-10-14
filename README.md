@@ -15,6 +15,7 @@ The source state is modular: Ghostty, Helix, Warp, Herdr, OpenCode, Starship, Zs
 | [WORKFLOW.md](WORKFLOW.md) | Adoption, restoration, and synchronization workflow |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Remaining rollout and validation questions |
 | [docs/opencode-agent-orchestration.md](docs/opencode-agent-orchestration.md) | Custom OpenCode agent roles and lifecycle |
+| [docs/opencode-v2-evaluation.md](docs/opencode-v2-evaluation.md) | Isolated V2 migration mechanics and evidence |
 
 ## Current Phase
 
