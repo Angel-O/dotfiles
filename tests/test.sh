@@ -5,6 +5,8 @@ trap 'status=$?; printf "test failure at line %s: %s (status %s)\n" "$LINENO" "$
 
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 annotate_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["annotate"]["ref"])' "$source_dir/.chezmoidata.toml")
+todo_source=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["todo"]["source"])' "$source_dir/.chezmoidata.toml")
+todo_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["todo"]["ref"])' "$source_dir/.chezmoidata.toml")
 root=/tmp/dotfiles-test
 rm -rf "$root"
 mkdir -p "$root"
@@ -99,6 +101,20 @@ assert_not_contains() {
     printf 'expected %s not to contain: %s\n' "$file" "$text" >&2
     exit 1
   fi
+}
+
+assert_todo_installer() {
+  local file=$1
+  assert_contains "$file" 'git clone --filter=blob:none --no-checkout "$url" "$path"'
+  assert_contains "$file" 'exists but is not a Git checkout; refusing to overwrite it.'
+  assert_contains "$file" 'has local changes; refusing to move it to pinned commit'
+  assert_contains "$file" 'git -C "$path" fetch --depth 1 origin "$wanted_ref"'
+  assert_contains "$file" 'resolved_ref=$(git -C "$path" rev-parse FETCH_HEAD)'
+  assert_contains "$file" 'if [ "$resolved_ref" != "$wanted_ref" ]; then'
+  assert_contains "$file" 'git -C "$path" checkout --detach "$resolved_ref"'
+  assert_contains "$file" "  \"$todo_source\" \\"
+  assert_contains "$file" '  "$HOME/.local/share/opencode/opencode-todo" \'
+  assert_contains "$file" "  \"$todo_ref\""
 }
 
 assert_viewer_board_config() {
@@ -1112,6 +1128,7 @@ python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb"))["data
 
 personal_home="$root/personal/home"
 render_scripts personal
+assert_todo_installer "$root/personal/rendered/run_before_06-install-opencode-todo.sh.tmpl"
 assert_ponytail_external "$root/personal/rendered/externals.toml"
 assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub/SKILL.md'
 assert_not_contains "$root/personal/rendered/externals.toml" '.config/opencode/skills/beads-hub-closeout/SKILL.md'
@@ -1288,7 +1305,8 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "@plannotator/opencode@0.28.2"]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
 ! printf '%s\n' "$personal_managed" | grep -Fq 'plan-diagrams'
@@ -1376,6 +1394,7 @@ test -z "$personal_beads_diff"
 
 work_home="$root/work/home"
 render_scripts work
+assert_todo_installer "$root/work/rendered/run_before_06-install-opencode-todo.sh.tmpl"
 assert_ponytail_external "$root/work/rendered/externals.toml"
 assert_beads_viewer_externals "$root/work/rendered/externals.toml"
 assert_contains "$root/work/rendered/Brewfile" 'brew "eza"'
@@ -1479,7 +1498,8 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
-jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "@plannotator/opencode@0.28.2"]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+assert_not_contains "$work_home/.config/opencode/cli.json" 'opencode-todo'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
 HOME="$work_home" zsh -dfc 'source "$HOME/.config/zsh/opencode.zsh"; alias opencode >/dev/null; ! alias warpconf >/dev/null 2>&1'
@@ -1724,6 +1744,7 @@ bash "$source_dir/tests/test-beads.sh" "$source_dir" "$root"
 shell_home="$root/shell-only/home"
 render_scripts shell-only
 assert_contains "$root/shell-only/rendered/Brewfile" 'brew "elio"'
+assert_not_contains "$root/shell-only/rendered/run_before_06-install-opencode-todo.sh.tmpl" 'opencode-todo'
 apply_fixture shell-only
 test -f "$shell_home/.config/zsh/early.zsh"
 test ! -e "$shell_home/.warp"
