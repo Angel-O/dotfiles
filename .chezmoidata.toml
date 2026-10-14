@@ -15,13 +15,8 @@ branch = "feature/repository-aware-correlations"
 ref = "5437102814a7cd3d5f638faacb24531098ec5e53"
 
 [pins.openCodePlugins]
-codexAuth = "4.4.0"
-quota = "3.11.2"
-handoff = "0.5.0"
-mermaidRenderer = "0.0.1"
+quota = "5.0.2"
 plannotator = "0.28.2"
-warp = "0.1.5"
-lmStudio = "1.0.0-rc.2"
 
 [pins.herdrPlugins.agentResume]
 source = "Angel-O/herdr-agent-resume"

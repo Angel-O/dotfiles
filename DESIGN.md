@@ -90,11 +90,11 @@ Chezmoi should manage only the approved shared Git subset: worktree aliases, glo
 
 ## OpenCode Superset Layer
 
-The existing global `~/.config/opencode/opencode.jsonc` remains unmanaged. The launcher sets `OPENCODE_CONFIG=~/.config/opencode/portable.jsonc`, which OpenCode merges after the global layer. Work rendering omits provider and default-model settings, while the portable layer fixes models for shared agents, including the built-in title agent. Plugin declarations are safe because OpenCode explicitly accumulates and de-duplicates plugins across config sources.
+The existing global `~/.config/opencode/opencode.jsonc` remains unmanaged and contains only machine-local settings. The launcher sets `OPENCODE_CONFIG=~/.config/opencode/portable.jsonc`, which OpenCode merges after the global layer. Work rendering omits provider and default-model settings, while the portable layer fixes models for shared agents, including the built-in title agent. Published plugins are declared only in the portable layer to avoid duplicate V2 loading.
 
 Custom orchestration agents are additive Markdown files under `~/.config/opencode/agents/`. They use their own fixed models, reasoning efforts, and deny-by-default tool permissions without redefining built-in agents. The manual orchestration command selects the custom orchestrator, while the Bead command starts the fixed custom worker automatically.
 
-Plan diagram guidance is loaded lazily rather than injected into every Plan message. The local Plan plugin adds a minimal instruction to load `plan-diagrams` only when drafting begins; portable permissions hide that skill globally and allow it for the built-in Plan agent on both roles. `plan-diagrams` delegates common renderer syntax, diagram selection, and terminal viewport constraints to the unrestricted `terminal-mermaid` skill so any agent can reuse that guidance when a diagram is requested.
+OpenCode V2 renders Mermaid natively. The unrestricted `terminal-mermaid` skill retains concise diagram selection, syntax, and terminal viewport guidance without a renderer or Plan-only trigger plugin.
 
 Private work launcher values live in ignored `~/.config/opencode/env.local` and are sourced before OpenCode starts.
 

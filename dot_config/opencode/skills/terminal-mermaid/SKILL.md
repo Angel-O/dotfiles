@@ -5,7 +5,7 @@ description: Create compact Mermaid diagrams rendered as terminal-friendly visua
 
 # Terminal Mermaid
 
-Create concise Mermaid diagrams that `opencode-mermaid-renderer` can visualize in the chat.
+Create concise Mermaid diagrams that OpenCode V2 can render natively in the chat.
 
 Use only supported diagram categories:
 
@@ -23,7 +23,7 @@ Choose the category that best matches the information:
 - Use a class diagram for static types and structural relationships.
 - Use an ER diagram for entities and data relationships.
 
-Always emit the diagram in a fenced `mermaid` code block. Do not draw the rendered ASCII diagram yourself; `opencode-mermaid-renderer` uses the Mermaid source to visualize it in the chat.
+Always emit the diagram in a fenced `mermaid` code block. Do not draw the rendered ASCII diagram yourself; OpenCode renders the Mermaid source natively.
 
 Optimize every diagram for a terminal chat viewport:
 

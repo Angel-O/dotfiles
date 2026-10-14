@@ -80,10 +80,6 @@ run_once_after_25-migrate-ghostty-config.sh
 .local/bin/herdr-agent-launch
 {{- end }}
 
-{{- if eq .role "work" }}
-.config/opencode/tui.jsonc
-{{- end }}
-
 {{- if or (not .modules.opencode) (not .modules.herdr) }}
 .config/opencode/commands/herdr-name.md
 .config/opencode/skills/herdr-agent-name/**

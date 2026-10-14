@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "theme": {
+    "name": "tokyonight"
+  },
+  "diffs": {
+    "wrap": "word",
+    "tree": true,
+    "single": false,
+    "view": "unified"
+  },
+  "session": {
+    "sidebar": "auto",
+    "scrollbar": false,
+    "thinking": "show"
+  },
+  "animations": true{{ if .modules.herdr }},
+  "plugin": ["./herdr-tui-session.js"]{{ end }}
+}
