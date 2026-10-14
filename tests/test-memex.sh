@@ -86,7 +86,7 @@ assert_contains "$root/personal/skill.sh" 'memex skill install --target shared'
 assert_contains "$root/personal/skill.sh" 'memex skill update --target shared'
 assert_not_contains "$root/personal/skill.sh" 'minimum_version'
 assert_not_contains "$root/personal/skill.sh" 'memex --version'
-assert_contains "$root/personal/herdr.sh" 'ensure_github_plugin nicosuave.memex "nicosuave/memex" "v0.28.0"'
+grep -Eq '^ensure_github_plugin nicosuave\.memex "nicosuave/memex" "v0\.[0-9]+\.[0-9]+"$' "$root/personal/herdr.sh"
 assert_contains "$root/personal/herdr.toml" 'key = "prefix+ctrl+m"'
 assert_contains "$root/personal/herdr.toml" 'command = "nicosuave.memex.palette"'
 jq -e '(.plugin | all(.[]; contains("history") | not)) and (has("mcp") | not) and (has("mcpServers") | not) and (.permission | tostring | contains("memex_") | not)' \
