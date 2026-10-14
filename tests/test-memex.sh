@@ -43,6 +43,39 @@ render() {
 }
 
 render personal "$root/personal"
+skill="$source_dir/dot_config/opencode/skills/memex-quick-search/SKILL.md"
+test -f "$skill"
+assert_contains "$skill" 'name: memex-quick-search'
+assert_contains "$skill" 'allowed-tools: Bash(memex:*)'
+assert_contains "$skill" 'memex search "<one query>" --unique-session --limit 1 --fields session_id,ts,role,snippet --format toon --non-interactive'
+assert_contains "$skill" 'memex search "<one query>" --unique-session --limit 1 --fields session_id,ts,role,snippet,record_id,machine --format toon --non-interactive'
+assert_not_contains "$skill" '--cwd .'
+assert_contains "$skill" 'Only when verification or surrounding context is needed'
+assert_contains "$skill" 'query with identifiers included:'
+assert_contains "$skill" 'Use the returned `record_id` and `machine` for bounded follow-up.'
+assert_contains "$skill" 'Stop when the result is direct and unambiguous.'
+assert_contains "$skill" 'memex show --record-id <record_id> --machine <machine_id> --non-interactive'
+assert_contains "$skill" 'memex context --record-id <record_id> --machine <machine_id> --before 1 --after 1 --max-chars 4000 --non-interactive'
+assert_contains "$skill" 'Do not use `memex session` for ordinary lookup or read a full session.'
+assert_contains "$skill" 'ambiguous discovery'
+assert_contains "$skill" 'multi-session synthesis'
+assert_contains "$skill" 'transcript reconstruction'
+assert_contains "$skill" 'analogous-work'
+assert_contains "$skill" 'investigation'
+managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --exclude externals --include files)
+printf '%s\n' "$managed" | grep -Fxq '.config/opencode/skills/memex-quick-search/SKILL.md'
+
+coexist_home="$root/coexist-home"
+mkdir -p "$coexist_home/.agents/skills/memex-search"
+printf '%s\n' 'release-managed upstream skill' >"$coexist_home/.agents/skills/memex-search/SKILL.md"
+chezmoi apply --source "$source_dir" --destination "$coexist_home" \
+  --config "$source_dir/tests/fixtures/personal.toml" \
+  --cache "$root/coexist-cache" --persistent-state "$root/coexist-state.boltdb" \
+  --exclude scripts,externals --force
+test -f "$coexist_home/.agents/skills/memex-search/SKILL.md"
+assert_contains "$coexist_home/.agents/skills/memex-search/SKILL.md" 'release-managed upstream skill'
+cmp -s "$skill" "$coexist_home/.config/opencode/skills/memex-quick-search/SKILL.md"
+
 assert_contains "$root/personal/Brewfile" 'brew "memex"'
 assert_not_contains "$root/personal/Brewfile" 'version:'
 assert_contains "$root/personal/packages.sh" 'brew bundle check'
