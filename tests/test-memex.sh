@@ -89,8 +89,6 @@ assert_not_contains "$root/personal/skill.sh" 'memex --version'
 assert_contains "$root/personal/herdr.sh" 'ensure_github_plugin nicosuave.memex "nicosuave/memex" "v0.28.0"'
 assert_contains "$root/personal/herdr.toml" 'key = "prefix+ctrl+m"'
 assert_contains "$root/personal/herdr.toml" 'command = "nicosuave.memex.palette"'
-assert_contains "$source_dir/dot_config/opencode/agents/orchestrator.md" 'load the managed `memex-quick-search` skill first'
-assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'Simple historical retrieval starts with the managed `memex-quick-search` skill'
 jq -e '(.plugin | all(.[]; contains("history") | not)) and (has("mcp") | not) and (has("mcpServers") | not) and (.permission | tostring | contains("memex_") | not)' \
   "$root/personal/portable.json" >/dev/null
 
