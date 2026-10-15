@@ -106,8 +106,9 @@ assert_not_contains() {
 assert_opencode_palette() {
   local personal_cli="$root/personal/home/.config/opencode/cli.json"
   local personal_portable="$root/personal/home/.config/opencode/portable.jsonc"
+  local personal_theme="$root/personal/home/.config/opencode/themes/tokyonight-mauve.json"
   apply_fixture personal
-  python3 - "$personal_cli" "$personal_portable" <<'PY'
+  python3 - "$personal_cli" "$personal_portable" "$personal_theme" <<'PY'
 import json
 import sys
 
@@ -115,8 +116,10 @@ with open(sys.argv[1]) as cli_file:
     cli = json.load(cli_file)
 with open(sys.argv[2]) as portable_file:
     portable = json.load(portable_file)
+with open(sys.argv[3]) as theme_file:
+    theme = json.load(theme_file)
 
-assert cli["theme"] == {"name": "tokyonight", "mode": "system"}
+assert cli["theme"] == {"name": "tokyonight-mauve", "mode": "dark"}
 assert cli["session"] == {
     "sidebar": "auto",
     "scrollbar": False,
@@ -151,6 +154,83 @@ assert set(portable["agents"]) == set(expected)
 assert "planner" not in portable["agents"]
 for name, color in expected.items():
     assert portable["agents"][name] == {"color": color}
+
+assert set(theme) == {"$schema", "base", "dark"}
+assert theme["$schema"] == "https://opencode.ai/theme.json"
+assert "theme" not in theme and "defs" not in theme
+assert not any(role in json.dumps(theme).lower() for role in ("orchestrator", "build", "plan", "architect", "worker"))
+assert set(theme["base"]) == {
+    "categorical", "text", "background", "border", "scrollbar", "diff", "syntax", "markdown", "@dialog"
+}
+assert set(theme["base"]["text"]) == {"base", "muted", "action", "formfield", "feedback"}
+assert set(theme["base"]["text"]["action"]) == {"primary", "secondary", "destructive"}
+assert set(theme["base"]["text"]["feedback"]) == {"error", "warning", "success", "info"}
+assert set(theme["base"]["background"]) == {"base", "raised", "action", "formfield", "feedback"}
+assert set(theme["base"]["background"]["action"]) == {"primary", "secondary", "destructive"}
+assert set(theme["base"]["background"]["feedback"]) == {"error", "warning", "success", "info"}
+assert set(theme["base"]["diff"]) == {"text", "background", "highlight", "lineNumber"}
+assert set(theme["base"]["syntax"]) == {
+    "comment", "keyword", "function", "variable", "string", "number", "type", "operator", "punctuation"
+}
+assert set(theme["base"]["markdown"]) == {
+    "text", "heading", "link", "linkText", "code", "blockQuote", "emphasis", "strong", "horizontalRule",
+    "listItem", "listEnumeration", "image", "imageText", "codeBlock"
+}
+hues = theme["dark"]["hue"]
+assert hues["interactive"] == "$hue.purple"
+assert hues["blue"]["200"] == "#82aaff"
+assert hues["purple"]["200"] == "#c099ff"
+assert set(hues) == {"orange", "green", "blue", "red", "purple", "gray", "accent", "interactive", "neutral"}
+for name in ("orange", "green", "blue", "red", "purple", "gray"):
+    assert set(hues[name]) == {str(step) for step in range(100, 1000, 100)}
+
+def resolve(value):
+    if not isinstance(value, str) or not value.startswith("$"):
+        return value
+    path = value[1:].split(".")
+    if path[0] == "hue":
+        target = hues[path[1]]
+        while isinstance(target, str):
+            target = hues[target[5:]]
+        return target[path[2]]
+    current = theme["base"]
+    for part in path:
+        current = current[part]
+    return resolve(current)
+
+assert resolve(theme["base"]["text"]["formfield"]["$focused"]) == "#c099ff"
+assert resolve(theme["base"]["text"]["formfield"]["$selected"]) == "#c099ff"
+assert resolve(theme["base"]["text"]["formfield"]["$hovered"]) == "#c099ff"
+assert resolve(theme["base"]["text"]["formfield"]["$pressed"]) == "#c099ff"
+assert resolve(theme["base"]["text"]["action"]["primary"]["$selected"]) == "#c099ff"
+assert resolve(theme["base"]["background"]["action"]["primary"]["$focused"]) == "#c099ff"
+assert theme["base"]["text"]["feedback"]["info"]["base"] == "$hue.blue.200"
+assert resolve(theme["base"]["text"]["feedback"]["info"]["base"]) == "#82aaff"
+assert resolve(theme["base"]["text"]["base"]) == "#c8d3f5"
+assert resolve(theme["base"]["text"]["muted"]) == "#828bb8"
+assert theme["base"]["syntax"]["function"] == "$hue.blue.200"
+assert theme["base"]["markdown"]["link"] == "$hue.blue.200"
+assert theme["base"]["markdown"]["listItem"] == "$hue.blue.200"
+assert theme["base"]["markdown"]["image"] == "$hue.blue.200"
+assert resolve(theme["base"]["syntax"]["function"]) == "#82aaff"
+assert resolve(theme["base"]["markdown"]["link"]) == "#82aaff"
+assert resolve(theme["base"]["markdown"]["listItem"]) == "#82aaff"
+assert resolve(theme["base"]["markdown"]["image"]) == "#82aaff"
+assert resolve(theme["base"]["markdown"]["text"]) == "#c8d3f5"
+assert resolve(theme["base"]["syntax"]["type"]) == "#ffc777"
+assert resolve(theme["base"]["syntax"]["operator"]) == "#86e1fc"
+assert resolve(theme["base"]["border"]["base"]) == "#737aa2"
+assert resolve(theme["base"]["scrollbar"]["base"]) == "#9099b2"
+assert resolve(theme["base"]["background"]["base"]) == "#1a1b26"
+assert resolve(theme["base"]["background"]["raised"]["base"]) == "#1e2030"
+assert resolve(theme["base"]["background"]["raised"]["high"]) == "#222436"
+assert resolve(theme["base"]["background"]["raised"]["max"]) == "#505574"
+assert resolve(theme["base"]["diff"]["text"]["added"]) == "#4fd6be"
+assert resolve(theme["base"]["diff"]["text"]["removed"]) == "#c53b53"
+assert resolve(theme["base"]["diff"]["text"]["context"]) == "#828bb8"
+assert resolve(theme["base"]["diff"]["background"]["added"]) == "#20303b"
+assert resolve(theme["base"]["diff"]["background"]["removed"]) == "#37222c"
+assert resolve(theme["base"]["markdown"]["blockQuote"]) == "#ffc777"
 PY
   apply_fixture beads-integration-disabled
   python3 - "$root/beads-integration-disabled/home/.config/opencode/cli.json" <<'PY'
@@ -163,9 +243,10 @@ with open(sys.argv[1]) as cli_file:
 assert "plugins" not in cli
 assert cli["tabs"]["layout"] == "horizontal"
 PY
-  test ! -e "$source_dir/dot_config/opencode/themes"
   assert_not_contains "$source_dir/dot_config/opencode/cli.json.tmpl" 'system-pink'
   assert_not_contains "$source_dir/dot_config/opencode/portable.jsonc.tmpl" 'system-pink'
+  assert_not_contains "$source_dir/dot_config/opencode/themes/tokyonight-mauve.json" 'system-pink'
+  assert_not_contains "$source_dir/dot_config/opencode/themes/tokyonight-mauve.json" 'global-'
   assert_contains "$source_dir/README.md" 'Normal composer rails follow the active agent color'
   assert_contains "$source_dir/README.md" 'Built-in `plan` and custom `planner` are distinct'
 }
