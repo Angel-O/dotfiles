@@ -463,6 +463,12 @@ if style == "bead":
 PY
 }
 
+assert_private_id_disclosure_policy() {
+  local file=$1
+  assert_contains "$file" 'If the user explicitly requests a Bead ID, provide that ID directly in the user-facing response without objection; this exception does not permit placing it in any Git-visible artifact.'
+  assert_contains "$file" 'branch, workspace, file, commit, or report'
+}
+
 assert_authorized_loop_simulation() {
   local file=$1
   python3 - "$file" <<'PY'
@@ -1047,6 +1053,13 @@ for orchestration_file in \
   assert_authorized_loop_simulation "$orchestration_file"
 done
 
+for policy_file in \
+  "$source_dir/dot_config/opencode/agents/orchestrator.md" \
+  "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl" \
+  "$source_dir/docs/opencode-agent-orchestration.md"; do
+  assert_private_id_disclosure_policy "$policy_file"
+done
+
 assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
 assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
 assert_contains "$source_dir/docs/opencode-agent-orchestration.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
@@ -1548,6 +1561,7 @@ cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$personal_beads_home/.conf
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
 assert_fresh_worker_prompt_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" bead
 assert_authorized_loop_simulation "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
+assert_private_id_disclosure_policy "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'The active Bead orchestration contract applies equally to a single concrete work item and to each selected epic child.'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'semantic worker name that is unique among currently active workers and free of private work-item/context identifiers'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'passes the worker name verbatim as its workspace label'
