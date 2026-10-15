@@ -116,7 +116,7 @@ with open(sys.argv[1]) as cli_file:
 with open(sys.argv[2]) as portable_file:
     portable = json.load(portable_file)
 
-assert cli["theme"] == {"name": "tokyonight", "mode": "dark"}
+assert cli["theme"] == {"name": "tokyonight", "mode": "system"}
 assert cli["session"] == {
     "sidebar": "auto",
     "scrollbar": False,
@@ -127,7 +127,7 @@ assert cli["session"] == {
     "image_preview": False,
 }
 assert cli["animations"] is True
-assert cli["plugin"] == ["./herdr-tui-session.js"]
+assert "plugin" not in cli
 assert cli["plugins"] == ["./herdr-opencode"]
 assert cli["tabs"] == {
     "layout": "horizontal",
@@ -160,7 +160,6 @@ import sys
 with open(sys.argv[1]) as cli_file:
     cli = json.load(cli_file)
 
-assert "plugin" not in cli
 assert "plugins" not in cli
 assert cli["tabs"]["layout"] == "horizontal"
 PY
@@ -1294,7 +1293,7 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompt
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/cli.json"
 test -x "$personal_home/.local/bin/herdr-agent-launch"
-assert_contains "$personal_home/.config/opencode/cli.json" '"./herdr-tui-session.js"'
+assert_contains "$personal_home/.config/opencode/cli.json" '"./herdr-opencode"'
 assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator integration investigator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
@@ -1542,7 +1541,7 @@ assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
 test -f "$work_home/.config/opencode/cli.json"
-assert_contains "$work_home/.config/opencode/cli.json" '"./herdr-tui-session.js"'
+assert_contains "$work_home/.config/opencode/cli.json" '"./herdr-opencode"'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
 test -f "$work_home/.config/helix/config.toml"
 assert_contains "$work_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
