@@ -16,20 +16,6 @@ Status: active. This specification is additive: it defines custom agents and lea
 
 Permissions deny all unspecified tools. Custom agent files are installed under the managed OpenCode configuration directory; this feature does not add or alter any built-in agent definition. `~/.local/bin/herdr-agent-launch` is the only managed command-level launcher for primary agents; it validates the documented architect and worker arguments and returns only after the requested role is ready in the target directory.
 
-## Composer palette
-
-Normal composer rails follow the active agent color after the agent transition. The portable setup locks the built-in `tokyonight` theme to dark mode and uses these native color-only overrides:
-
-| Agent | Color |
-| --- | --- |
-| `orchestrator` | `#C099FF` |
-| `build` | `#82AAFF` |
-| built-in `plan` | `#FF966C` |
-| `architect` | `#C3E88D` |
-| `worker` | `#FF757F` |
-
-Built-in `plan` and custom `planner` are different agents: only `plan` is overridden. `planner` and all other agents retain their standard colors and behavior.
-
 The setup includes the managed `memex-quick-search` skill for unrestricted compact retrieval and bounded follow-up reads. The release-matched shared `memex-search` skill remains available for ambiguous discovery, multi-session synthesis, transcript reconstruction, analogous-work investigation, or equivalent advanced retrieval. Both skills authorize only `Bash(memex:*)`, and this setup does not configure Memex MCP.
 
 ## Lifecycle

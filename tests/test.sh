@@ -132,8 +132,8 @@ PY
   test ! -e "$source_dir/dot_config/opencode/themes"
   assert_not_contains "$source_dir/dot_config/opencode/cli.json.tmpl" 'system-pink'
   assert_not_contains "$source_dir/dot_config/opencode/portable.jsonc.tmpl" 'system-pink'
-  assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'Normal composer rails follow the active agent color'
-  assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'Built-in `plan` and custom `planner` are different agents'
+  assert_contains "$source_dir/README.md" 'Normal composer rails follow the active agent color'
+  assert_contains "$source_dir/README.md" 'Built-in `plan` and custom `planner` are distinct'
 }
 
 assert_opencode_palette
