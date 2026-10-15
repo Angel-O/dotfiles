@@ -8,18 +8,10 @@ type = "file"
 url = "https://raw.githubusercontent.com/dietrichgebert/ponytail/{{ .pins.ponytailSkill }}/skills/ponytail/SKILL.md"
 {{ end }}
 {{ if and .modules.beads $opencodeBeads }}
-[".config/opencode/skills/beads-hub/SKILL.md"]
-type = "file"
-url = "https://raw.githubusercontent.com/{{ .pins.beadsViewer.source }}/{{ .pins.beadsViewer.ref }}/skills/beads-hub/SKILL.md"
-[".config/opencode/skills/beads-hub-closeout/SKILL.md"]
-type = "file"
-url = "https://raw.githubusercontent.com/{{ .pins.beadsViewer.source }}/{{ .pins.beadsViewer.ref }}/skills/beads-hub-closeout/SKILL.md"
-[".config/opencode/skills/beads-hub-closeout/validate.sh"]
-type = "file"
-url = "https://raw.githubusercontent.com/{{ .pins.beadsViewer.source }}/{{ .pins.beadsViewer.ref }}/skills/beads-hub-closeout/validate.sh"
-executable = true
-[".config/opencode/skills/beads-hub-closeout/closeout.sh"]
-type = "file"
-url = "https://raw.githubusercontent.com/{{ .pins.beadsViewer.source }}/{{ .pins.beadsViewer.ref }}/skills/beads-hub-closeout/closeout.sh"
-executable = true
+["beadsViewerSkills"]
+type = "archive"
+url = "https://github.com/{{ .pins.beadsViewer.source }}/archive/{{ .pins.beadsViewer.ref }}.tar.gz"
+stripComponents = 2
+include = ["*/skills/**"]
+targetPath = ".config/opencode/skills"
 {{ end }}

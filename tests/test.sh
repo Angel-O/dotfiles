@@ -77,6 +77,7 @@ apply_fixture() {
   local home="$root/$name/home"
   local config="$source_dir/tests/fixtures/$name.toml"
   mkdir -p "$home"
+  mkdir -p "$home/.config/opencode/skills"
   chezmoi apply \
     --source "$source_dir" \
     --destination "$home" \
@@ -491,7 +492,7 @@ PY
 
 assert_beads_viewer_externals() {
   local file=$1
-  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; base="https://raw.githubusercontent.com/Angel-O/beads_viewer/" + ref + "/skills/"; assert data[".config/opencode/skills/beads-hub/SKILL.md"] == {"type": "file", "url": base + "beads-hub/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/SKILL.md"] == {"type": "file", "url": base + "beads-hub-closeout/SKILL.md"}; assert data[".config/opencode/skills/beads-hub-closeout/validate.sh"] == {"type": "file", "url": base + "beads-hub-closeout/validate.sh", "executable": True}; assert data[".config/opencode/skills/beads-hub-closeout/closeout.sh"] == {"type": "file", "url": base + "beads-hub-closeout/closeout.sh", "executable": True}' "$file" "$beads_viewer_ref"
+  python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); ref=sys.argv[2]; assert data["beadsViewerSkills"] == {"type": "archive", "url": "https://github.com/Angel-O/beads_viewer/archive/" + ref + ".tar.gz", "stripComponents": 2, "include": ["*/skills/**"], "targetPath": ".config/opencode/skills"}; assert not any("beads-hub" in path for path in data if path != "beadsViewerSkills")' "$file" "$beads_viewer_ref"
 }
 
 assert_ponytail_external() {
@@ -1803,6 +1804,8 @@ chezmoi managed \
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
 .config/opencode/commands/orchestrate-bead.md
+.config/opencode/skills/memex-quick-search/SKILL.md
+.config/opencode/skills/terminal-mermaid/SKILL.md
 .config/opencode/skills/write-bead/SKILL.md
 EOF
 cmp -s "$root/external-opencode-beads/managed.expected" "$external_managed"
@@ -1819,7 +1822,8 @@ test ! -e "$external_home/.config/opencode/portable.jsonc"
 test ! -e "$external_home/.config/opencode/plugins/env-protection.js"
 test ! -e "$external_home/.config/opencode/plugins/plan-diagrams.js"
 test ! -e "$external_home/.config/opencode/skills/plan-diagrams/SKILL.md"
-test ! -e "$external_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/skills/memex-quick-search/SKILL.md" "$external_home/.config/opencode/skills/memex-quick-search/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$external_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
 test ! -e "$external_home/.config/opencode/command/orchestrate-bead.md"
 assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
