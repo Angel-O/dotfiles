@@ -56,19 +56,17 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/bv/**
 {{- end }}
 
+{{- $opencodeBeads := dig "integrations" "opencodeBeads" false . -}}
+
 {{- if not .modules.opencode }}
 .config/opencode/*
 !.config/opencode/AGENTS.md
 .local/bin/opencode-env
 !.config/opencode/commands
 !.config/opencode/skills
+{{- if or (not .modules.beads) (not $opencodeBeads) }}
 .config/opencode/skills/*
-!.config/opencode/skills/beads-hub
-!.config/opencode/skills/beads-hub/**
-!.config/opencode/skills/beads-hub-closeout
-!.config/opencode/skills/beads-hub-closeout/**
-!.config/opencode/skills/write-bead
-!.config/opencode/skills/write-bead/**
+{{- end }}
 {{- end }}
 
 {{- if or (not .modules.beads) (not (dig "integrations" "opencodeBeads" false .)) }}
