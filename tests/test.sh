@@ -117,6 +117,7 @@ with open(sys.argv[2]) as portable_file:
     portable = json.load(portable_file)
 
 assert cli["theme"] == {"name": "tokyonight", "mode": "dark"}
+assert portable["default_agent"] == "orchestrator"
 expected = {
     "orchestrator": "#C099FF",
     "build": "#82AAFF",
