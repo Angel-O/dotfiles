@@ -116,7 +116,29 @@ with open(sys.argv[1]) as cli_file:
 with open(sys.argv[2]) as portable_file:
     portable = json.load(portable_file)
 
-assert cli["theme"] == {"name": "tokyonight", "mode": "dark"}
+assert cli["theme"] == {"name": "tokyonight", "mode": "system"}
+assert cli["session"] == {
+    "sidebar": "auto",
+    "scrollbar": False,
+    "thinking": "show",
+    "markdown": "rendered",
+    "grouping": "auto",
+    "verbosity": "medium",
+    "image_preview": False,
+}
+assert cli["animations"] is True
+assert "plugin" not in cli
+assert cli["plugins"] == ["./herdr-opencode"]
+assert cli["tabs"] == {
+    "layout": "horizontal",
+    "mode": "auto",
+    "indicators": "status",
+}
+assert cli["prompt"] == {"image_preview": False}
+assert cli["scroll"] == {"acceleration": False}
+assert cli["attention"] == {"notifications": False, "sound": False}
+assert cli["terminal"] == {"copy": "select"}
+assert cli["debug"] == {"devtools": True}
 assert portable["default_agent"] == "orchestrator"
 expected = {
     "orchestrator": "#C099FF",
@@ -129,6 +151,17 @@ assert set(portable["agents"]) == set(expected)
 assert "planner" not in portable["agents"]
 for name, color in expected.items():
     assert portable["agents"][name] == {"color": color}
+PY
+  apply_fixture beads-integration-disabled
+  python3 - "$root/beads-integration-disabled/home/.config/opencode/cli.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as cli_file:
+    cli = json.load(cli_file)
+
+assert "plugins" not in cli
+assert cli["tabs"]["layout"] == "horizontal"
 PY
   test ! -e "$source_dir/dot_config/opencode/themes"
   assert_not_contains "$source_dir/dot_config/opencode/cli.json.tmpl" 'system-pink'
@@ -1260,7 +1293,7 @@ assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompt
 test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/cli.json"
 test -x "$personal_home/.local/bin/herdr-agent-launch"
-assert_contains "$personal_home/.config/opencode/cli.json" '"./herdr-tui-session.js"'
+assert_contains "$personal_home/.config/opencode/cli.json" '"./herdr-opencode"'
 assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator integration investigator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
@@ -1508,7 +1541,7 @@ assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
 assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provider'
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
 test -f "$work_home/.config/opencode/cli.json"
-assert_contains "$work_home/.config/opencode/cli.json" '"./herdr-tui-session.js"'
+assert_contains "$work_home/.config/opencode/cli.json" '"./herdr-opencode"'
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
 test -f "$work_home/.config/helix/config.toml"
 assert_contains "$work_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
