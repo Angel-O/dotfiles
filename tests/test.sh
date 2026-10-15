@@ -103,6 +103,42 @@ assert_not_contains() {
   fi
 }
 
+assert_opencode_palette() {
+  local personal_cli="$root/personal/home/.config/opencode/cli.json"
+  local personal_portable="$root/personal/home/.config/opencode/portable.jsonc"
+  apply_fixture personal
+  python3 - "$personal_cli" "$personal_portable" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as cli_file:
+    cli = json.load(cli_file)
+with open(sys.argv[2]) as portable_file:
+    portable = json.load(portable_file)
+
+assert cli["theme"] == {"name": "tokyonight", "mode": "dark"}
+expected = {
+    "orchestrator": "#C099FF",
+    "build": "#82AAFF",
+    "plan": "#FF966C",
+    "architect": "#C3E88D",
+    "worker": "#FF757F",
+}
+assert set(portable["agents"]) == set(expected)
+assert "planner" not in portable["agents"]
+for name, color in expected.items():
+    assert portable["agents"][name] == {"color": color}
+PY
+  test ! -e "$source_dir/dot_config/opencode/themes"
+  assert_not_contains "$source_dir/dot_config/opencode/cli.json.tmpl" 'system-pink'
+  assert_not_contains "$source_dir/dot_config/opencode/portable.jsonc.tmpl" 'system-pink'
+  assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'Normal composer rails follow the active agent color'
+  assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'Built-in `plan` and custom `planner` are different agents'
+}
+
+assert_opencode_palette
+[[ "${TEST_SCOPE:-}" != opencode-palette ]] || exit 0
+
 assert_todo_installer() {
   local file=$1
   assert_contains "$file" 'git clone --filter=blob:none --no-checkout "$url" "$path"'
