@@ -12,7 +12,7 @@ if ! command -v jq >/dev/null 2>&1; then
   printf 'jq is required before installing Herdr plugins.\n' >&2
   exit 1
 fi
-{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.kiosk .herdrPlugins.reviewr }}
+{{- if or .herdrPlugins.agentResume .herdrPlugins.labels .herdrPlugins.recentNavigator .herdrPlugins.spaceUsage .herdrPlugins.bar .herdrPlugins.kiosk .herdrPlugins.reviewr .herdrPlugins.blink }}
 if ! command -v cargo >/dev/null 2>&1; then
   if ! command -v brew >/dev/null 2>&1; then
     printf 'Cargo is required to build selected Herdr plugins.\n' >&2
@@ -47,6 +47,9 @@ ensure_github_plugin nicosuave.memex {{ .pins.herdrPlugins.memex.source | quote 
 {{- end }}
 {{- if .herdrPlugins.annotate }}
 ensure_github_plugin annotate {{ .pins.herdrPlugins.annotate.source | quote }} {{ .pins.herdrPlugins.annotate.ref | quote }}
+{{- end }}
+{{- if .herdrPlugins.blink }}
+ensure_github_plugin dartyuhov.blink {{ .pins.herdrPlugins.blink.source | quote }} {{ .pins.herdrPlugins.blink.ref | quote }}
 {{- end }}
 {{- if .herdrPlugins.labels }}
 ensure_github_plugin angel-o.labels {{ .pins.herdrPlugins.labels.source | quote }} {{ .pins.herdrPlugins.labels.ref | quote }}

@@ -5,6 +5,8 @@ trap 'status=$?; printf "test failure at line %s: %s (status %s)\n" "$LINENO" "$
 
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 annotate_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["annotate"]["ref"])' "$source_dir/.chezmoidata.toml")
+blink_source=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["blink"]["source"])' "$source_dir/.chezmoidata.toml")
+blink_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["blink"]["ref"])' "$source_dir/.chezmoidata.toml")
 todo_source=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["todo"]["source"])' "$source_dir/.chezmoidata.toml")
 todo_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["todo"]["ref"])' "$source_dir/.chezmoidata.toml")
 root=/tmp/dotfiles-test
@@ -102,6 +104,58 @@ assert_not_contains() {
     exit 1
   fi
 }
+
+assert_herdr_blink() {
+  local blink_dir="$root/herdr-blink"
+  local config="$blink_dir/personal-config.toml"
+  local disabled_config="$blink_dir/disabled-config.toml"
+  local installer="$blink_dir/personal-installer.sh"
+  local disabled_installer="$blink_dir/disabled-installer.sh"
+  mkdir -p "$blink_dir"
+
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+    <"$source_dir/dot_config/herdr/config.toml.tmpl" >"$config"
+  python3 - "$config" <<'PY'
+import sys
+import tomllib
+
+commands = tomllib.load(open(sys.argv[1], "rb"))["keys"]["command"]
+blink = [command for command in commands if command.get("key") == "prefix+ctrl+k"]
+assert blink == [{
+    "key": "prefix+ctrl+k",
+    "type": "plugin_action",
+    "command": "dartyuhov.blink.open",
+    "description": "switch agent with blink",
+}]
+PY
+
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/herdr-disabled-plugins.toml" \
+    <"$source_dir/dot_config/herdr/config.toml.tmpl" >"$disabled_config"
+  assert_not_contains "$disabled_config" 'dartyuhov.blink'
+
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+    <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$installer"
+  sh -n "$installer"
+  assert_contains "$installer" "ensure_github_plugin dartyuhov.blink \"$blink_source\" \"$blink_ref\""
+
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/herdr-disabled-plugins.toml" \
+    <"$source_dir/run_after_30-install-herdr-plugins.sh.tmpl" >"$disabled_installer"
+  sh -n "$disabled_installer"
+  assert_not_contains "$disabled_installer" 'dartyuhov.blink'
+
+  apply_fixture personal
+  assert_contains "$root/personal/home/.config/herdr/config.toml" 'key = "prefix+ctrl+k"'
+  assert_contains "$root/personal/home/.config/herdr/config.toml" 'command = "dartyuhov.blink.open"'
+  python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' \
+    "$root/personal/home/.config/herdr/config.toml"
+  managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
+  printf '%s\n' "$managed" | grep -Fxq '.config/herdr/config.toml'
+}
+
+if [[ "${TEST_SCOPE:-}" == herdr-blink ]]; then
+  assert_herdr_blink
+  exit 0
+fi
 
 assert_opencode_palette() {
   local personal_cli="$root/personal/home/.config/opencode/cli.json"

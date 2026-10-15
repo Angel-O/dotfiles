@@ -30,3 +30,4 @@ elio = false
 hubViewer = true
 reviewr = false
 memex = false
+blink = false

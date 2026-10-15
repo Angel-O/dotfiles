@@ -173,5 +173,15 @@ command = "annotate.last-newest"
 description = "review agent newest message"
 {{- end }}
 
+{{- if .herdrPlugins.blink }}
+######################### herdr-blink keybinding
+
+[[keys.command]]
+key = "prefix+ctrl+k"
+type = "plugin_action"
+command = "dartyuhov.blink.open"
+description = "switch agent with blink"
+{{- end }}
+
 [update]
 channel = "stable"

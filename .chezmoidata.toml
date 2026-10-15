@@ -31,6 +31,10 @@ ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
 source = "nicosuave/memex"
 ref = "v0.29.0"
 
+[pins.herdrPlugins.blink]
+source = "dartyuhov/herdr-blink"
+ref = "189b0a75a7dfb86383cd746ab6627d1abba0ce11"
+
 [pins.herdrPlugins.annotate]
 source = "plannotator/herdr-annotate"
 branch = "main"
