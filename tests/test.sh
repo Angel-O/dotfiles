@@ -117,6 +117,28 @@ with open(sys.argv[2]) as portable_file:
     portable = json.load(portable_file)
 
 assert cli["theme"] == {"name": "tokyonight", "mode": "dark"}
+assert cli["session"] == {
+    "sidebar": "auto",
+    "scrollbar": False,
+    "thinking": "show",
+    "markdown": "rendered",
+    "grouping": "auto",
+    "verbosity": "medium",
+    "image_preview": False,
+}
+assert cli["animations"] is True
+assert cli["plugin"] == ["./herdr-tui-session.js"]
+assert cli["plugins"] == ["./herdr-opencode"]
+assert cli["tabs"] == {
+    "layout": "horizontal",
+    "mode": "auto",
+    "indicators": "status",
+}
+assert cli["prompt"] == {"image_preview": False}
+assert cli["scroll"] == {"acceleration": False}
+assert cli["attention"] == {"notifications": False, "sound": False}
+assert cli["terminal"] == {"copy": "select"}
+assert cli["debug"] == {"devtools": True}
 assert portable["default_agent"] == "orchestrator"
 expected = {
     "orchestrator": "#C099FF",
@@ -129,6 +151,18 @@ assert set(portable["agents"]) == set(expected)
 assert "planner" not in portable["agents"]
 for name, color in expected.items():
     assert portable["agents"][name] == {"color": color}
+PY
+  apply_fixture beads-integration-disabled
+  python3 - "$root/beads-integration-disabled/home/.config/opencode/cli.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as cli_file:
+    cli = json.load(cli_file)
+
+assert "plugin" not in cli
+assert "plugins" not in cli
+assert cli["tabs"]["layout"] == "horizontal"
 PY
   test ! -e "$source_dir/dot_config/opencode/themes"
   assert_not_contains "$source_dir/dot_config/opencode/cli.json.tmpl" 'system-pink'

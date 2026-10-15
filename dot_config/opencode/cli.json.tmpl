@@ -13,8 +13,36 @@
   "session": {
     "sidebar": "auto",
     "scrollbar": false,
-    "thinking": "show"
+    "thinking": "show",
+    "markdown": "rendered",
+    "grouping": "auto",
+    "verbosity": "medium",
+    "image_preview": false
   },
   "animations": true{{ if .modules.herdr }},
-  "plugin": ["./herdr-tui-session.js"]{{ end }}
+  "plugin": ["./herdr-tui-session.js"],
+  "plugins": [
+    "./herdr-opencode"
+  ]{{ end }},
+  "tabs": {
+    "layout": "horizontal",
+    "mode": "auto",
+    "indicators": "status"
+  },
+  "prompt": {
+    "image_preview": false
+  },
+  "scroll": {
+    "acceleration": false
+  },
+  "attention": {
+    "notifications": false,
+    "sound": false
+  },
+  "terminal": {
+    "copy": "select"
+  },
+  "debug": {
+    "devtools": true
+  }
 }
