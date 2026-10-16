@@ -62,7 +62,7 @@ ref = "459e884f6dc0542224df7bf5f2d974e1bab8c737"
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "e22455068e26340b6be02cec8a07707fc1f11ae1"
+ref = "10d8467c49463d88553115f916711341b29f069b"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
