@@ -185,7 +185,10 @@ assert cli["session"] == {
     "markdown": "rendered",
     "grouping": "auto",
     "verbosity": "medium",
-    "image_preview": False,
+    "image_preview": True,
+    "tps": True,
+    "new_location": "launch",
+    "permissions": "prompt",
 }
 assert cli["animations"] is True
 assert "plugin" not in cli
@@ -194,9 +197,10 @@ assert cli["tabs"] == {
     "layout": "horizontal",
     "mode": "auto",
     "indicators": "status",
+    "scope": "cwd",
 }
-assert cli["prompt"] == {"image_preview": False}
-assert cli["scroll"] == {"acceleration": False}
+assert cli["prompt"] == {"image_preview": True, "paste": "compact"}
+assert cli["scroll"] == {"acceleration": False, "speed": 3}
 assert cli["attention"] == {"notifications": False, "sound": False}
 assert cli["terminal"] == {"copy": "select"}
 assert cli["debug"] == {"devtools": True}
