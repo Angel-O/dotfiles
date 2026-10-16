@@ -17,7 +17,10 @@
     "markdown": "rendered",
     "grouping": "auto",
     "verbosity": "medium",
-    "image_preview": false
+    "image_preview": true,
+    "tps": true,
+    "new_location": "launch",
+    "permissions": "prompt"
   },
   "animations": true{{ if .modules.herdr }},
   "plugins": [
@@ -26,13 +29,16 @@
   "tabs": {
     "layout": "horizontal",
     "mode": "auto",
-    "indicators": "status"
+    "indicators": "status",
+    "scope": "cwd"
   },
   "prompt": {
-    "image_preview": false
+    "image_preview": true,
+    "paste": "compact"
   },
   "scroll": {
-    "acceleration": false
+    "acceleration": false,
+    "speed": 3
   },
   "attention": {
     "notifications": false,
