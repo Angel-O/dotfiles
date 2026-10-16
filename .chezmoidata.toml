@@ -29,7 +29,7 @@ ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
 
 [pins.herdrPlugins.memex]
 source = "nicosuave/memex"
-ref = "v0.29.0"
+ref = "v0.29.1"
 
 [pins.herdrPlugins.blink]
 source = "dartyuhov/herdr-blink"
@@ -38,7 +38,7 @@ ref = "189b0a75a7dfb86383cd746ab6627d1abba0ce11"
 [pins.herdrPlugins.annotate]
 source = "plannotator/herdr-annotate"
 branch = "main"
-ref = "ceab050b77bea07bbeabdfda5c138be8c9c5c517"
+ref = "c5e565e9bdbb52d152ad15169f38ed8bae31b610"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
@@ -47,7 +47,7 @@ ref = "v0.2.10"
 [pins.herdrPlugins.recentNavigator]
 source = "beyondlex/herdr-recent-navigator"
 branch = "main"
-ref = "507e1f6365d4d392c81d3d2a29aba9049ef949c7"
+ref = "6e5b596e6c46d39f6abbc34d569c1113fc7c63b4"
 
 [pins.herdrPlugins.spaceUsage]
 source = "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"
