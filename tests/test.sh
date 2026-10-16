@@ -27,6 +27,8 @@ fi
 
 bash "$source_dir/tests/test-agents-modifier.sh"
 [[ "${TEST_SCOPE:-}" != agents-modifier ]] || exit 0
+bash "$source_dir/tests/test-env-protection.sh"
+[[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
 
 source_files() {
   if git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
