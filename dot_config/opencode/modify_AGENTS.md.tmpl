@@ -6,9 +6,12 @@ old_start='<!-- portable-work-beads:start -->'
 old_end='<!-- portable-work-beads:end -->'
 start='<!-- portable-beads-hub:start -->'
 end='<!-- portable-beads-hub:end -->'
+repository_heading='## REPOSITORY ROOT'
+repository_line='When locating a named local repository, look under ~/workspace/source/.'
 tmp=$(mktemp)
 clean=$(mktemp)
-trap 'rm -f "$tmp" "$clean"' EXIT
+repository_clean=$(mktemp)
+trap 'rm -f "$tmp" "$clean" "$repository_clean"' EXIT
 cat >"$tmp"
 
 if awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" '
@@ -73,9 +76,20 @@ awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$e
   { print }
 ' "$tmp" >"$clean"
 
-cat "$clean"
+awk -v repository_heading="$repository_heading" -v repository_line="$repository_line" '
+  {
+    line = $0
+    sub(/\r$/, "", line)
+  }
+  line == repository_heading || line == repository_line {
+    next
+  }
+  { print }
+' "$clean" >"$repository_clean"
+
+cat "$repository_clean"
 {{- if and .modules.beads $opencodeBeads }}
-if [ -s "$clean" ] && [ -n "$(tail -c 1 "$clean")" ]; then
+if [ -s "$repository_clean" ] && [ -n "$(tail -c 1 "$repository_clean")" ]; then
   printf '\n'
 fi
 cat <<'BLOCK'
@@ -88,3 +102,7 @@ Commit correlation and Bead closure must not occur during implementation, commit
 <!-- portable-beads-hub:end -->
 BLOCK
 {{- end }}
+if [ -s "$repository_clean" ] && [ -n "$(tail -c 1 "$repository_clean")" ]; then
+  printf '\n'
+fi
+printf '%s\n%s\n' "$repository_heading" "$repository_line"

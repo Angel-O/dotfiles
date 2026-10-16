@@ -25,6 +25,9 @@ if grep -R -E \
   exit 1
 fi
 
+bash "$source_dir/tests/test-agents-modifier.sh"
+[[ "${TEST_SCOPE:-}" != agents-modifier ]] || exit 0
+
 source_files() {
   if git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git -C "$source_dir" ls-files --cached --others --exclude-standard -- \
@@ -1223,6 +1226,10 @@ sh "$agents_modifier_dir/enabled.sh" \
   <"$agents_modifier_dir/balanced.before" >"$agents_modifier_dir/balanced.after"
 assert_contains "$agents_modifier_dir/balanced.after" '# Existing guidance'
 assert_contains "$agents_modifier_dir/balanced.after" 'Preserve this trailing guidance.'
+assert_contains "$agents_modifier_dir/balanced.after" '## REPOSITORY ROOT'
+assert_contains "$agents_modifier_dir/balanced.after" 'When locating a named local repository, look under ~/workspace/source/.'
+test "$(grep -Fxc '## REPOSITORY ROOT' "$agents_modifier_dir/balanced.after")" -eq 1
+test "$(grep -Fxc 'When locating a named local repository, look under ~/workspace/source/.' "$agents_modifier_dir/balanced.after")" -eq 1
 assert_contains "$agents_modifier_dir/balanced.after" 'load the global `beads-hub` skill before acting'
 assert_contains "$agents_modifier_dir/balanced.after" 'use only `wbd` and approved `wbv --robot-*` queries'
 assert_contains "$agents_modifier_dir/balanced.after" 'never raw `bd`, `bv`, or `br`'
@@ -1238,6 +1245,10 @@ sh "$agents_modifier_dir/disabled.sh" \
   <"$agents_modifier_dir/balanced.after" >"$agents_modifier_dir/disabled.after"
 assert_contains "$agents_modifier_dir/disabled.after" '# Existing guidance'
 assert_contains "$agents_modifier_dir/disabled.after" 'Preserve this trailing guidance.'
+assert_contains "$agents_modifier_dir/disabled.after" '## REPOSITORY ROOT'
+assert_contains "$agents_modifier_dir/disabled.after" 'When locating a named local repository, look under ~/workspace/source/.'
+test "$(grep -Fxc '## REPOSITORY ROOT' "$agents_modifier_dir/disabled.after")" -eq 1
+test "$(grep -Fxc 'When locating a named local repository, look under ~/workspace/source/.' "$agents_modifier_dir/disabled.after")" -eq 1
 assert_not_contains "$agents_modifier_dir/disabled.after" 'portable-work-beads:start'
 assert_not_contains "$agents_modifier_dir/disabled.after" 'portable-beads-hub:start'
 assert_not_contains "$agents_modifier_dir/disabled.after" 'beads-hub` skill'
@@ -1313,6 +1324,9 @@ cmp -s "$agents_modifier_dir/crlf.after" "$agents_modifier_dir/crlf.second"
 sh "$agents_modifier_dir/disabled.sh" \
   <"$agents_modifier_dir/crlf.before" >"$agents_modifier_dir/crlf.disabled"
 printf '%s\r\n' 'Preserve CRLF before.' 'Preserve CRLF after.' >"$agents_modifier_dir/crlf.expected"
+printf '%s\n' \
+  '## REPOSITORY ROOT' \
+  'When locating a named local repository, look under ~/workspace/source/.' >>"$agents_modifier_dir/crlf.expected"
 cmp -s "$agents_modifier_dir/crlf.expected" "$agents_modifier_dir/crlf.disabled"
 
 prompt_config_dir="$root/prompt-config"
