@@ -4,22 +4,46 @@ mode: subagent
 model: openai/gpt-5.6-terra
 options:
   reasoningEffort: medium
-permission:
-  "*": deny
-  bash:
-    "*": deny
-    "wbd show * --json": allow
-    "wbd show * --json --expand-dependencies": allow
-    "wbd scope active --json": allow
-    "wbd create * --type * --priority * --context * --description * --json": allow
-    "wbd scope add * --context * --json": allow
-    "wbd dep add * * --type parent-child --json": allow
-    "wbd dep add * * --type blocks --json": allow
-  read: allow
-  glob: allow
-  grep: allow
-  lsp: allow
-  skill: allow
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "wbd show * --json"
+    effect: allow
+  - action: shell
+    resource: "wbd show * --json --expand-dependencies"
+    effect: allow
+  - action: shell
+    resource: "wbd scope active --json"
+    effect: allow
+  - action: shell
+    resource: "wbd create * --type * --priority * --context * --description * --json"
+    effect: allow
+  - action: shell
+    resource: "wbd scope add * --context * --json"
+    effect: allow
+  - action: shell
+    resource: "wbd dep add * * --type parent-child --json"
+    effect: allow
+  - action: shell
+    resource: "wbd dep add * * --type blocks --json"
+    effect: allow
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: skill
+    resource: "*"
+    effect: allow
 ---
 
 Convert approved architecture and scope into implementation-ready slices without redesigning them. Identify ownership boundaries, dependencies, acceptance criteria, validation intent, blockers, and inconsistencies.

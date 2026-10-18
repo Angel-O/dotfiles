@@ -56,9 +56,9 @@ assert_contains "$architect" '    resource: "wbd update * --description * --json
 assert_contains "$planner" 'collective coverage of every epic acceptance criterion'
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
-assert_contains "$planner" '"wbd create * --type * --priority * --context * --description * --json": allow'
-assert_contains "$planner" '"wbd dep add * * --type parent-child --json": allow'
-assert_contains "$planner" '"wbd show * --json --expand-dependencies": allow'
+assert_contains "$planner" '    resource: "wbd create * --type * --priority * --context * --description * --json"'
+assert_contains "$planner" '    resource: "wbd dep add * * --type parent-child --json"'
+assert_contains "$planner" '    resource: "wbd show * --json --expand-dependencies"'
 assert_contains "$worker" 'read the authoritative assigned record by its exact canonical ID'
 assert_contains "$worker" 'nine-field worker prompt as operational context'
 assert_contains "$reviewer" 'same exact canonical ID given to its worker'
@@ -105,7 +105,6 @@ assert rules == [
     ('glob', '"*"', 'allow'),
     ('grep', '"*"', 'allow'),
     ('webfetch', '"*"', 'allow'),
-    ('lsp', '"*"', 'allow'),
     ('skill', '"*"', 'allow'),
     ('subagent', '"*"', 'deny'),
     ('subagent', 'planner', 'allow'),

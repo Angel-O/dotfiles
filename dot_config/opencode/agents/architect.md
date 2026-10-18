@@ -44,9 +44,6 @@ permissions:
   - action: webfetch
     resource: "*"
     effect: allow
-  - action: lsp
-    resource: "*"
-    effect: allow
   - action: skill
     resource: "*"
     effect: allow
