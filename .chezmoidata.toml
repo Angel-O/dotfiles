@@ -42,12 +42,12 @@ ref = "c5e565e9bdbb52d152ad15169f38ed8bae31b610"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
-ref = "v0.2.10"
+ref = "v0.2.11"
 
 [pins.herdrPlugins.recentNavigator]
 source = "beyondlex/herdr-recent-navigator"
 branch = "main"
-ref = "6e5b596e6c46d39f6abbc34d569c1113fc7c63b4"
+ref = "5940b98ed52b8f87404699bda61eb46badd83605"
 
 [pins.herdrPlugins.spaceUsage]
 source = "ezcorp-org/herdr-pc-ram-and-cpu-usage-overlay"
@@ -57,12 +57,12 @@ ref = "9872a499181b5a52472da3f74b9c567d3898069f"
 [pins.herdrPlugins.kiosk]
 source = "thomasschafer/herdr-kiosk"
 branch = "main"
-ref = "459e884f6dc0542224df7bf5f2d974e1bab8c737"
+ref = "542166198caca3741f6de9564d9cd9ed005222cb"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "4d2d9a8904006f15064bd7deebe99c4f4a2ff560"
+ref = "c49cc31cc62e0be18e79637262a572b5dd97f28a"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
