@@ -960,7 +960,8 @@ assert_not_contains "$elio_source/herdr-plugin.toml" 'cargo install'
 assert_not_contains "$elio_source/bin/executable_resolve-dir.sh" 'node -e'
 test "$(HERDR_PLUGIN_CONTEXT_JSON='{"focused_pane_cwd":"/focused","workspace_cwd":"/workspace"}' bash "$elio_source/bin/executable_resolve-dir.sh")" = /focused
 test "$(HERDR_PLUGIN_CONTEXT_JSON='{"focused_pane_cwd":"","workspace_cwd":"/workspace"}' bash "$elio_source/bin/executable_resolve-dir.sh")" = /workspace
-test "$(HERDR_PLUGIN_CONTEXT_JSON='not-json' bash -c 'cd /tmp && exec bash "$1"' _ "$elio_source/bin/executable_resolve-dir.sh")" = /tmp
+# Malformed context intentionally exercises the fallback; jq's parse warning is expected.
+test "$(HERDR_PLUGIN_CONTEXT_JSON='not-json' bash -c 'cd /tmp && exec bash "$1"' _ "$elio_source/bin/executable_resolve-dir.sh" 2>/dev/null)" = /tmp
 
 assert_hub_viewer_plugin() {
   local hub_source="$source_dir/dot_config/herdr/plugins/local/angel-o.hub-viewer"
