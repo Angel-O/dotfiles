@@ -1,5 +1,5 @@
 ---
-description: Review and selectively align managed OpenCode config from live values
+description: Review and selectively align managed OpenCode config from live content
 agent: orchestrator
 ---
 
@@ -7,11 +7,11 @@ Review the managed OpenCode configuration in the current repository and selectiv
 
 ## Assess
 
-1. Compare the managed source/rendering pairs semantically:
+1. Compare the managed source/rendering pairs exactly, including formatting, comments, key ordering, and other content differences that can cause configuration-application drift:
    - source: `dot_config/opencode/portable.jsonc.tmpl` and `dot_config/opencode/cli.json.tmpl` (render them for the current machine when needed);
    - live: `~/.config/opencode/portable.jsonc` and `~/.config/opencode/cli.json`.
-2. Ignore formatting, comments, key ordering, generated/local state, and values that are secrets, authentication, provider-local, or otherwise ineligible for portable source. Do not open, compare, or reconcile unmanaged `~/.config/opencode/opencode.jsonc`.
-3. Assign stable numeric row IDs for this run, then render every eligible semantic discrepancy as a numbered Markdown table with the ID, managed surface/path, portable value, live value, and a concise difference. Keep those IDs unchanged while selecting and confirming; do not invent IDs or silently omit a discrepancy.
+2. Exclude only secrets, authentication, and provider-local content as genuinely ineligible for portable source. Do not open, compare, or reconcile unmanaged `~/.config/opencode/opencode.jsonc`.
+3. Assign stable numeric row IDs for this run, then render every eligible content discrepancy as a numbered Markdown table with the ID, managed surface/path, managed content, live content, and a concise difference. Keep those IDs unchanged while selecting and confirming; do not invent IDs or silently omit a discrepancy.
 
 ## Select
 
@@ -35,4 +35,4 @@ Only after explicit confirmation, load the `herdr` skill and launch the managed 
 herdr agent prompt worker "<bounded alignment contract>" --wait
 ```
 
-Pass the selected table rows as the worker's only evidence. The worker contract must say: import only the selected eligible live values into the matching portable source (`portable.jsonc.tmpl` or `cli.json.tmpl`); preserve the managed/unmanaged boundary; never edit live configuration; never read or use `opencode.jsonc`; never install this project-local command or change portable setup, agents, launchers, plugins, dependencies, secrets, authentication, provider-local data, unselected rows, or any template other than the matching managed config source; and stop and report ambiguity instead of guessing. The worker must make no change before this confirmation and must report its changed files and validation results.
+Pass the selected table rows as the worker's only evidence. The worker contract must say: import only the selected eligible live content into the matching portable source (`portable.jsonc.tmpl` or `cli.json.tmpl`); preserve the managed/unmanaged boundary; never edit live configuration; never read or use `opencode.jsonc`; never install this project-local command; never change separate agent, plugin, launcher, dependency, or other setup files, secrets, authentication, provider-local data, or unselected rows; modify no file outside the two matching managed config templates, and do not reject a selected discrepancy in those templates merely because its setting concerns an agent or plugin; and stop and report ambiguity instead of guessing. The worker must make no change before this confirmation and must report its changed files and validation results.

@@ -17,7 +17,9 @@ required = [
     "dot_config/opencode/cli.json.tmpl",
     "~/.config/opencode/portable.jsonc",
     "~/.config/opencode/cli.json",
-    "semantic",
+    "exactly, including formatting, comments, key ordering",
+    "Exclude only secrets, authentication, and provider-local content",
+    "managed content, live content",
     "numbered Markdown table",
     "question` tool call containing exactly these two questions",
     "`all`, `none`, `inclusions`, or `exclusions`",
@@ -25,8 +27,10 @@ required = [
     "separate explicit confirmation question",
     "~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>",
     "herdr agent prompt worker",
-    "only the selected eligible live values",
+    "only the selected eligible live content",
     "never edit live configuration",
+    "modify no file outside the two matching managed config templates",
+    "do not reject a selected discrepancy in those templates merely because its setting concerns an agent or plugin",
     "no alignment was selected and launch no worker",
 ]
 for phrase in required:
@@ -34,6 +38,9 @@ for phrase in required:
 
 assert text.index("separate explicit confirmation question") < text.index("herdr-agent-launch worker")
 assert "Do not open, compare, or reconcile unmanaged `~/.config/opencode/opencode.jsonc`." in text
+assert "Ignore formatting" not in text
+assert "generated/local state" not in text
+assert "semantic discrepancy" not in text
 assert text.count("`all`") >= 2
 assert text.count("`none`") >= 2
 assert text.count("`inclusions`") >= 2
