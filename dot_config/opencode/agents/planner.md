@@ -8,10 +8,12 @@ permission:
   "*": deny
   bash:
     "*": deny
+    # Exact read-only active-scope preflight command; do not broaden.
+    "wbd context": allow
     "wbd show * --json": allow
     "wbd show * --json --expand-dependencies": allow
     "wbd scope active --json": allow
-    "wbd create * --type * --description * --priority * --context * --json": allow
+    "wbd create * --type * --priority * --context * --description * --json": allow
     "wbd scope add * --context * --json": allow
     "wbd dep add * * --type parent-child --json": allow
     "wbd dep add * * --type blocks --json": allow

@@ -586,7 +586,7 @@ contracts = {
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"bash", "question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"bash", "question", "external_directory", "read", "edit", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"bash", "read", "glob", "grep", "lsp", "skill"}),
 }
 
@@ -606,7 +606,7 @@ for name, (mode, model, effort, allowed) in contracts.items():
             keys.add(match.group(1) or match.group(2))
     assert keys == allowed | {"*"}, (name, keys)
     for tool in allowed - {"bash", "task", "skill"}:
-        action = "ask" if name in {"investigator", "architect"} and tool == "external_directory" else "allow"
+        action = "ask" if (name == "architect" and tool in {"external_directory", "edit"}) or (name == "investigator" and tool == "external_directory") else "allow"
         assert re.search(rf'^  {re.escape(tool)}: {action}$', permission, re.MULTILINE)
     if name in {"integration", "reviewer"}:
         assert '  skill:\n    "*": allow\n    terminal-mermaid: deny' in permission

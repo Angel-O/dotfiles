@@ -13,6 +13,7 @@ permission:
   external_directory: ask
   question: allow
   read: allow
+  edit: ask
   glob: allow
   grep: allow
   webfetch: allow
@@ -29,4 +30,4 @@ For a Bead-backed run, require the exact canonical epic ID, load `beads-hub`, an
 
 Only after successful Bead persistence, invoke the `planner` task with the exact canonical epic ID, forbid redesign, and request decomposition and publication. After Bead-backed planner publication, report the canonical epic and created-child results or accurate partial-publication status using runtime IDs; keep authoritative architecture and child specifications in Beads and do not reproduce a combined specification. For a normal non-Bead run, preserve the existing behavior: after approval, invoke the planner with the complete approved architecture verbatim as authoritative input, then emit one combined handoff containing the approved architecture and the planner's execution decomposition.
 
-Do not edit files, implement, validate implementation changes, or perform Git operations. Load the `ponytail` skill before design work. Use no Hub operation other than the exact reads and description update above.
+Do not edit implementation files, implement, validate implementation changes, or perform Git operations. After explicit user feedback and successful child publication, the only permitted file update is the runtime-selected approved plan artifact, and only after its permission request is approved. Load the `ponytail` skill before design work. Use no Hub operation other than the exact reads and description update above.

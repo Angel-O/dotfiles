@@ -55,9 +55,50 @@ assert_contains "$architect" '"wbd update * --description * --json": allow'
 assert_contains "$planner" 'collective coverage of every epic acceptance criterion'
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
-assert_contains "$planner" '"wbd create * --type * --description * --priority * --context * --json": allow'
+assert_contains "$planner" '"wbd create * --type * --priority * --context * --description * --json": allow'
 assert_contains "$planner" '"wbd dep add * * --type parent-child --json": allow'
 assert_contains "$planner" '"wbd show * --json --expand-dependencies": allow'
+assert_contains "$architect" 'the only permitted file update is the runtime-selected approved plan artifact, and only after its permission request is approved.'
+
+python3 - "$planner" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+frontmatter = Path(sys.argv[1]).read_text().split("---", 2)[1]
+permission = frontmatter.split("permission:", 1)[1]
+match = re.search(r"^  bash:\n(?P<rules>(?:    .*\n)+)  read:", permission, re.MULTILINE)
+assert match, "planner bash permission block missing"
+assert match.group("rules").splitlines() == [
+    '    "*": deny',
+    "    # Exact read-only active-scope preflight command; do not broaden.",
+    '    "wbd context": allow',
+    '    "wbd show * --json": allow',
+    '    "wbd show * --json --expand-dependencies": allow',
+    '    "wbd scope active --json": allow',
+    '    "wbd create * --type * --priority * --context * --description * --json": allow',
+    '    "wbd scope add * --context * --json": allow',
+    '    "wbd dep add * * --type parent-child --json": allow',
+    '    "wbd dep add * * --type blocks --json": allow',
+], match.group("rules")
+assert '  "*": deny' in permission
+PY
+
+python3 - "$architect" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+frontmatter = Path(sys.argv[1]).read_text().split("---", 2)[1]
+permission = frontmatter.split("permission:", 1)[1]
+assert re.search(
+    r'^  external_directory: ask\n  question: allow\n  read: allow\n  edit: ask\n  glob: allow$',
+    permission,
+    re.MULTILINE,
+)
+assert '  "*": deny' in permission
+PY
+
 assert_contains "$worker" 'read the authoritative assigned record by its exact canonical ID'
 assert_contains "$worker" 'nine-field worker prompt as operational context'
 assert_contains "$reviewer" 'same exact canonical ID given to its worker'
