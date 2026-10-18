@@ -55,7 +55,7 @@ assert_contains "$architect" '"wbd update * --description * --json": allow'
 assert_contains "$planner" 'collective coverage of every epic acceptance criterion'
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
-assert_contains "$planner" '"wbd create * --type * --description * --priority * --context * --json": allow'
+assert_contains "$planner" '"wbd create * --type * --priority * --context * --description * --json": allow'
 assert_contains "$planner" '"wbd dep add * * --type parent-child --json": allow'
 assert_contains "$planner" '"wbd show * --json --expand-dependencies": allow'
 assert_contains "$worker" 'read the authoritative assigned record by its exact canonical ID'
@@ -65,6 +65,25 @@ assert_contains "$reviewer" '`met`, `unmet`, or `not verified`'
 assert_contains "$command" 'The nine fields provide operational context and must not copy or replace the canonical specification.'
 assert_contains "$command" 'Completed children alone are insufficient.'
 assert_contains "$command" 'Do not automatically re-review every diff or create another review lane'
+
+# Keep the role permissions portable; local paths and plan artifacts are not configuration.
+python3 - "$architect" "$planner" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+architect, planner = (Path(path).read_text() for path in sys.argv[1:])
+
+for text in (architect, planner):
+    assert "/Users/" not in text
+    assert "/home/" not in text
+    assert not re.search(r'^\s+"/[^"\n]+":\s+(?:allow|deny)\s*$', text, re.MULTILINE)
+    assert not re.search(r'(?i)plan[^\n`]*\.md', text)
+
+assert "  external_directory: ask\n" in architect
+assert "  read: allow\n" in architect
+assert "\n  edit:" not in architect
+PY
 
 python3 - "$orchestrator" "$architect" "$planner" <<'PY'
 from pathlib import Path
