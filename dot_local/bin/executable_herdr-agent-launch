@@ -193,13 +193,15 @@ session_id=$(jq -er --arg role "$role" --arg cwd "$agent_cwd" \
   '.data | select(.agent == $role and .location.directory == $cwd) | .id |
    select(type == "string" and startswith("ses") and length > 3)' \
   <<<"$session_response") || fail "opencode session creation returned malformed or unexpected JSON: $session_response"
+# Herdr omits false-valued launch_pending; accept that current form and explicit false only.
 herdr_call agent_started \
   '.result | (.agent | type == "object") and (.argv | type == "array") and
    (.agent.name | type == "string") and (.agent.agent | type == "string") and
    (.agent.workspace_id | type == "string") and (.agent.tab_id | type == "string") and
     (.agent.pane_id | type == "string") and (.agent.cwd | type == "string") and
-    (.agent.focused | type == "boolean") and (.agent.launch_pending == false) and
-    (.agent.interactive_ready == true)' \
+     (.agent.focused | type == "boolean") and
+     ((.agent | has("launch_pending") | not) or (.agent.launch_pending == false)) and
+     (.agent.interactive_ready == true)' \
   agent start "$agent_name" --kind opencode --pane "$pane_id" -- --session "$session_id"
 jq -e --arg name "$agent_name" --arg session "$session_id" \
   '.result.argv == ["opencode", "--session", $session] and

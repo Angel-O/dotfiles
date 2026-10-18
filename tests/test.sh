@@ -615,7 +615,7 @@ EOF
 {"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker-agent","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"process-repo","repo_name":"process-repo","repo_root":"$process_repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
 EOF
   cat >"$canned/start.json" <<EOF
-{"result":{"type":"agent_started","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"launch_pending":false,"interactive_ready":true,"cwd":"$pane_repo","revision":5},"argv":["opencode","--session","ses_test"]}}
+{"id":"cli:agent:start","result":{"type":"agent_started","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"$pane_repo","revision":5},"argv":["opencode","--session","ses_test"]}}
 EOF
   cat >"$canned/get.json" <<EOF
 {"result":{"type":"agent_info","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"$pane_repo","revision":6}}}
@@ -657,7 +657,11 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   wrong-label:"worktree create") jq '.result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-label:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-argv:"agent start") jq '.result.argv = ["opencode", "--session", "ses_wrong"]' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
-  not-ready:"agent start") jq '.result.agent.launch_pending = true | .result.agent.interactive_ready = false' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  explicit-false:"agent start") jq '.result.agent.launch_pending = false' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  pending:"agent start") jq '.result.agent.launch_pending = true' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  malformed-pending:"agent start") jq '.result.agent.launch_pending = "false"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  not-ready:"agent start") jq '.result.agent.interactive_ready = false' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  missing-ready:"agent start") jq 'del(.result.agent.interactive_ready)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   start-failed:"agent start") printf '{"error":{"code":"agent_start_failed","message":"TUI exited"}}\n'; exit 1 ;;
   wrong-agent-cwd:"agent start"|wrong-agent-cwd:"agent get") ;;
   wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
@@ -762,6 +766,9 @@ EOF
   assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
 
+  metadata=$(FAKE_HERDR_FAILURE=explicit-false run_launcher worker tab worker-agent)
+  jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
+
   metadata=$(run_launcher worker tab worker "$delivery_worktree")
   jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $delivery_worktree --label worker --no-focus"
@@ -853,11 +860,11 @@ EOF
     if FAKE_OPENCODE_FAILURE=$failure run_launcher worker tab worker-agent >/dev/null 2>&1; then exit 1; fi
     assert_not_contains "$log" 'agent start '
   done
-  : >"$log"
-  if FAKE_HERDR_FAILURE=start-failed run_launcher worker tab worker-agent >/dev/null 2>&1; then exit 1; fi
-  : >"$log"
-  if FAKE_HERDR_FAILURE=not-ready run_launcher worker tab worker-agent >/dev/null 2>&1; then exit 1; fi
-  assert_not_contains "$log" 'agent get '
+  for failure in start-failed not-ready missing-ready pending malformed-pending; do
+    : >"$log"
+    if FAKE_HERDR_FAILURE=$failure run_launcher worker tab worker-agent >/dev/null 2>&1; then exit 1; fi
+    assert_not_contains "$log" 'agent get '
+  done
   for failure in wrong-worktree wrong-repository; do
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
