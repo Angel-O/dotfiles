@@ -96,7 +96,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | CLI configuration | `~/.config/opencode/cli.json` | Active | Manage shared V2 settings | Shared | Replaces the V1 `tui.jsonc` configuration |
 | Launcher | `~/.local/bin/opencode-env` | Active executable via shell alias | Shared template plus local env | Shared with local extension | Share non-sensitive behavior; source ignored local values when needed |
 | Shell alias | `~/.zshrc` | Routes `opencode` through the launcher | Track in Zsh fragment | Shared | Required for launcher behavior to take effect |
-| Local environment file | Not currently established | Proposed only | Local and excluded | Secret/machine | Add only for a concrete need; mode 0600 and never commit |
+| Local environment file | `~/.config/opencode/env.local` | Supported by launcher | Local and excluded | Secret/machine | Optional mode-0600 override; `PLANNOTATOR_DATA_DIR` defaults to `~/.local/share/plannotator` when unset |
 | npm manifest | `~/.config/opencode/package.json` | Contains OpenCode plugin API dependency | Exclude and regenerate | Generated | Do not import initially |
 | npm lock file | `~/.config/opencode/package-lock.json` | Present | Exclude and regenerate | Generated | Do not import initially |
 | Installed npm tree | `~/.config/opencode/node_modules/` | Generated | Exclude | Runtime | Recreate through OpenCode/plugin installation |

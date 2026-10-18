@@ -4,26 +4,58 @@ mode: primary
 model: openai/gpt-5.6-terra
 options:
   reasoningEffort: high
-permission:
-  "*": deny
-  external_directory: allow
-  question: allow
-  bash: allow
-  read: allow
-  glob: allow
-  grep: allow
-  task:
-    "*": deny
-    integration: allow
-    investigator: allow
-    reviewer: allow
-  webfetch: allow
-  todowrite: allow
-  skill: allow
-  lsp: allow
-  quota_status: allow
-  handoff_session: allow
-  read_session: allow
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: external_directory
+    resource: "*"
+    effect: allow
+  - action: question
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: integration
+    effect: allow
+  - action: subagent
+    resource: investigator
+    effect: allow
+  - action: subagent
+    resource: reviewer
+    effect: allow
+  - action: webfetch
+    resource: "*"
+    effect: allow
+  - action: todowrite
+    resource: "*"
+    effect: allow
+  - action: skill
+    resource: "*"
+    effect: allow
+  - action: quota_status
+    resource: "*"
+    effect: allow
+  - action: handoff_session
+    resource: "*"
+    effect: allow
+  - action: read_session
+    resource: "*"
+    effect: allow
 ---
 
 ## Role

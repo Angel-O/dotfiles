@@ -13,6 +13,7 @@ if [[ -r "$local_env" ]]; then
   source "$local_env"
 fi
 
+export PLANNOTATOR_DATA_DIR="${PLANNOTATOR_DATA_DIR:-$HOME/.local/share/plannotator}"
 export OPENCODE_CONFIG="$HOME/.config/opencode/portable.jsonc"
 
 if ! command git rev-parse --is-inside-work-tree >/dev/null 2>&1; then

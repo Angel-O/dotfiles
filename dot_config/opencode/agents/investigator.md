@@ -4,15 +4,31 @@ mode: subagent
 model: openai/gpt-5.6-sol
 options:
   reasoningEffort: medium
-permission:
-  "*": deny
-  bash: allow
-  external_directory: ask
-  read: allow
-  glob: allow
-  grep: allow
-  webfetch: allow
-  skill: allow
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: external_directory
+    resource: "*"
+    effect: ask
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: webfetch
+    resource: "*"
+    effect: allow
+  - action: skill
+    resource: "*"
+    effect: allow
 ---
 
 Perform bounded, read-only codebase investigation. Adapt the search to the requested thoroughness: quick, medium, or very thorough. Use glob for broad file discovery, grep for content searches, read for known files, Bash only for read-only inspection, and web fetch when external documentation is required.

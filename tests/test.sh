@@ -581,38 +581,130 @@ from pathlib import Path
 
 directory = Path(sys.argv[1])
 contracts = {
-    "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", {"external_directory", "question", "bash", "read", "glob", "grep", "task", "webfetch", "todowrite", "skill", "lsp", "quota_status", "handoff_session", "read_session"}),
-    "integration": ("subagent", "openai/gpt-5.6-luna", "medium", {"bash", "external_directory", "read", "glob", "grep", "skill"}),
-    "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
-    "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
-    "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"bash", "question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
-    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"bash", "read", "glob", "grep", "lsp", "skill"}),
+    "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", [
+        ('"*"', '"*"', "deny"),
+        ("external_directory", '"*"', "allow"),
+        ("question", '"*"', "allow"),
+        ("shell", '"*"', "allow"),
+        ("read", '"*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("subagent", '"*"', "deny"),
+        ("subagent", "integration", "allow"),
+        ("subagent", "investigator", "allow"),
+        ("subagent", "reviewer", "allow"),
+        ("webfetch", '"*"', "allow"),
+        ("todowrite", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+        ("quota_status", '"*"', "allow"),
+        ("handoff_session", '"*"', "allow"),
+        ("read_session", '"*"', "allow"),
+    ]),
+    "integration": ("subagent", "openai/gpt-5.6-luna", "medium", [
+        ('"*"', '"*"', "deny"),
+        ("shell", '"*"', "allow"),
+        ("external_directory", '"*"', "allow"),
+        ("read", '"*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+        ("skill", "terminal-mermaid", "deny"),
+    ]),
+    "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", [
+        ('"*"', '"*"', "deny"),
+        ("shell", '"*"', "allow"),
+        ("external_directory", '"*"', "ask"),
+        ("read", '"*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("webfetch", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+    ]),
+    "reviewer": ("subagent", "openai/gpt-6-astra", "medium", [
+        ('"*"', '"*"', "deny"),
+        ("shell", '"*"', "allow"),
+        ("external_directory", '"*"', "allow"),
+        ("read", '"*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+        ("skill", "terminal-mermaid", "deny"),
+    ]),
+    "worker": ("primary", "openai/gpt-5.6-luna", "high", [
+        ('"*"', '"*"', "deny"),
+        ("shell", '"*"', "allow"),
+        ("shell", "git", "deny"),
+        ("shell", '"git *"', "deny"),
+        ("shell", '"git diff"', "allow"),
+        ("shell", '"git diff *"', "allow"),
+        ("shell", '"git status"', "allow"),
+        ("shell", '"git status *"', "allow"),
+        ("shell", '"git log"', "allow"),
+        ("shell", '"git log *"', "allow"),
+        ("shell", '"git show"', "allow"),
+        ("shell", '"git show *"', "allow"),
+        ("read", '"*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("webfetch", '"*"', "allow"),
+        ("todowrite", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+        ("edit", '"*"', "allow"),
+    ]),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", [
+        ('"*"', '"*"', "deny"),
+        ("shell", '"*"', "deny"),
+        ("shell", '"wbd show * --json"', "allow"),
+        ("shell", '"wbd update * --description * --json"', "allow"),
+        ("external_directory", '"*"', "ask"),
+        ("external_directory", '"$HOME/.local/share/plannotator/plans/*"', "allow"),
+        ("question", '"*"', "allow"),
+        ("read", '"*"', "allow"),
+        ("read", '"$HOME/.local/share/plannotator/plans/*"', "allow"),
+        ("edit", '"$HOME/.local/share/plannotator/plans/*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("webfetch", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+        ("subagent", '"*"', "deny"),
+        ("subagent", "planner", "allow"),
+    ]),
+    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", [
+        ('"*"', '"*"', "deny"),
+        ("shell", '"*"', "deny"),
+        ("shell", '"wbd show * --json"', "allow"),
+        ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
+        ("shell", '"wbd scope active --json"', "allow"),
+        ("shell", '"wbd create * --type * --priority * --context * --description * --json"', "allow"),
+        ("shell", '"wbd scope add * --context * --json"', "allow"),
+        ("shell", '"wbd dep add * * --type parent-child --json"', "allow"),
+        ("shell", '"wbd dep add * * --type blocks --json"', "allow"),
+        ("read", '"*"', "allow"),
+        ("glob", '"*"', "allow"),
+        ("grep", '"*"', "allow"),
+        ("skill", '"*"', "allow"),
+    ]),
 }
 
-for name, (mode, model, effort, allowed) in contracts.items():
+for name, (mode, model, effort, expected) in contracts.items():
     text = (directory / f"{name}.md").read_text()
     frontmatter = text.split("---", 2)[1]
     assert f"mode: {mode}" in frontmatter
     assert f"model: {model}" in frontmatter
     assert f"reasoningEffort: {effort}" in frontmatter
-    assert '  "*": deny' in frontmatter
-    permission = frontmatter.split("permission:", 1)[1]
-    assert "apply_patch" not in permission
-    keys = set()
-    for line in permission.splitlines():
-        match = re.match(r'^  (?:"([^"]+)"|([A-Za-z_-]+)):', line)
-        if match:
-            keys.add(match.group(1) or match.group(2))
-    assert keys == allowed | {"*"}, (name, keys)
-    for tool in allowed - {"bash", "task", "skill"}:
-        action = "ask" if name in {"investigator", "architect"} and tool == "external_directory" else "allow"
-        assert re.search(rf'^  {re.escape(tool)}: {action}$', permission, re.MULTILINE)
+    permissions = frontmatter.split("permissions:", 1)[1]
+    assert "permission:" not in frontmatter
+    actual = [
+        match.groups()
+        for match in re.finditer(
+            r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+            permissions,
+            re.MULTILINE,
+        )
+    ]
+    assert actual == expected, (name, actual)
     if name in {"integration", "reviewer"}:
-        assert '  skill:\n    "*": allow\n    terminal-mermaid: deny' in permission
         assert "create or include diagrams" in text
-    else:
-        assert re.search(r'^  skill: allow$', permission, re.MULTILINE)
 
 for name, forbidden in {
     "integration": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
@@ -625,15 +717,12 @@ for name, forbidden in {
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
     assert not forbidden.intersection(identity), (name, forbidden.intersection(identity))
 
-read_only_git = r'    "git diff": allow\n    "git diff \*": allow\n    "git status": allow\n    "git status \*": allow\n    "git log": allow\n    "git log \*": allow\n    "git show": allow\n    "git show \*": allow'
-worker = (directory / "worker.md").read_text()
-assert re.search(r'^  bash:\n    "\*": allow\n    git: deny\n    "git \*": deny\n' + read_only_git, worker, re.MULTILINE)
 orchestrator = (directory / "orchestrator.md").read_text()
-assert '  task:\n    "*": deny\n    integration: allow\n    investigator: allow\n    reviewer: allow' in orchestrator
+assert '  - action: subagent\n    resource: "*"\n    effect: deny\n  - action: subagent\n    resource: integration\n    effect: allow\n  - action: subagent\n    resource: investigator\n    effect: allow\n  - action: subagent\n    resource: reviewer\n    effect: allow' in orchestrator
 assert 'Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane.' in orchestrator
 assert "Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation." in orchestrator
 architect = (directory / "architect.md").read_text()
-assert '  task:\n    "*": deny\n    planner: allow' in architect
+assert '  - action: subagent\n    resource: "*"\n    effect: deny\n  - action: subagent\n    resource: planner\n    effect: allow' in architect
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):
