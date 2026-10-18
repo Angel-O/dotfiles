@@ -256,7 +256,14 @@ assert cli["prompt"] == {"image_preview": True, "paste": "compact"}
 assert cli["scroll"] == {"acceleration": False, "speed": 3}
 assert cli["attention"] == {"notifications": False, "sound": False}
 assert cli["terminal"] == {"copy": "select"}
-assert cli["debug"] == {"devtools": True}
+assert cli["diffs"] == {
+    "fullscreen": False,
+    "wrap": "word",
+    "tree": True,
+    "single": False,
+    "view": "unified",
+}
+assert cli["debug"] == {"devtools": True, "timing": False, "turn_tokens": True}
 assert portable["default_agent"] == "orchestrator"
 expected = {
     "orchestrator": "#C099FF",
@@ -415,6 +422,7 @@ import tomllib
 
 with open(sys.argv[1], "rb") as config_file:
     assert tomllib.load(config_file) == {
+        "default_scope": "branch",
         "navigator_position": "left",
         "theme": "dracula",
         "toggle_placement": "split",
@@ -1553,6 +1561,14 @@ test -f "$personal_home/.config/opencode/portable.jsonc"
 test -f "$personal_home/.config/opencode/cli.json"
 test -x "$personal_home/.local/bin/herdr-agent-launch"
 assert_contains "$personal_home/.config/opencode/cli.json" '"./herdr-opencode"'
+python3 - "$personal_home/.config/opencode/cli.json" <<'PY'
+import json
+import sys
+
+cli = json.load(open(sys.argv[1]))
+assert cli["diffs"]["fullscreen"] is False
+assert cli["debug"] == {"devtools": True, "timing": False, "turn_tokens": True}
+PY
 assert_agent_contracts "$personal_home/.config/opencode/agents"
 for agent in orchestrator integration investigator reviewer worker architect planner; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
@@ -1802,6 +1818,14 @@ assert_contains "$work_home/.config/opencode/opencode.jsonc" 'work-private-provi
 assert_contains "$work_home/.config/opencode/tui.jsonc" 'work_private_tui_setting'
 test -f "$work_home/.config/opencode/cli.json"
 assert_contains "$work_home/.config/opencode/cli.json" '"./herdr-opencode"'
+python3 - "$work_home/.config/opencode/cli.json" <<'PY'
+import json
+import sys
+
+cli = json.load(open(sys.argv[1]))
+assert cli["diffs"]["fullscreen"] is False
+assert cli["debug"] == {"devtools": True, "timing": False, "turn_tokens": True}
+PY
 assert_contains "$work_home/.config/opencode/AGENTS.md" 'Preserve this private instruction exactly.'
 test -f "$work_home/.config/helix/config.toml"
 assert_contains "$work_home/.config/helix/config.toml" 'theme = "dracula_at_night"'
