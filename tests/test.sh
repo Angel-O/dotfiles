@@ -12,6 +12,10 @@ todo_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], 
 root=/tmp/dotfiles-test
 rm -rf "$root"
 mkdir -p "$root"
+# Keep fixture homes and persistent state isolated; share only chezmoi's
+# external/download cache so identical archives are fetched once per run.
+cache="$root/chezmoi-cache"
+export CHEZMOI_TEST_CACHE="$cache"
 
 safety_pattern='(/'"Users/|1628"'1580|Opa'"rah|8f84"'64|sk-[A-Za-z0-9]{16,})'
 if grep -R -E \
@@ -87,7 +91,7 @@ apply_fixture() {
     --source "$source_dir" \
     --destination "$home" \
     --config "$config" \
-    --cache "$root/$name/cache" \
+    --cache "$cache" \
     --persistent-state "$root/$name/chezmoistate.boltdb" \
     --exclude scripts,externals \
     --force
@@ -154,7 +158,7 @@ PY
   assert_contains "$root/personal/home/.config/herdr/config.toml" 'command = "dartyuhov.blink.open"'
   python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' \
     "$root/personal/home/.config/herdr/config.toml"
-  managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
+  managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
   printf '%s\n' "$managed" | grep -Fxq '.config/herdr/config.toml'
 }
 
@@ -401,14 +405,14 @@ assert_viewer_board_config() {
     target_config="$root/$name/home/.config/bv/config.yaml"
     test -f "$target_config"
     cmp -s "$source_config" "$target_config"
-    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --include files)
+    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --cache "$cache" --include files)
     printf '%s\n' "$managed" | grep -Fxq '.config/bv/config.yaml'
   done
 
   for name in personal ghostty-only helix-only warp-only shell-only herdr-disabled-plugins; do
     apply_fixture "$name"
     test ! -e "$root/$name/home/.config/bv/config.yaml"
-    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --include files)
+    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --cache "$cache" --include files)
     ! printf '%s\n' "$managed" | grep -Fxq '.config/bv/config.yaml'
   done
 }
@@ -437,7 +441,7 @@ PY
     target_config="$root/$name/home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml"
     test -f "$target_config"
     cmp -s "$source_config" "$target_config"
-    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --include files)
+    managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$name.toml" --cache "$cache" --include files)
     printf '%s\n' "$managed" | grep -Fxq '.config/herdr/plugins/config/persiyanov.reviewr/config.toml'
   done
 }
@@ -1510,7 +1514,7 @@ test -f "$personal_home/.config/ghostty/config"
 launcher_transition_home="$root/launcher-transition/home"
 mkdir -p "$launcher_transition_home"
 chezmoi apply --source "$source_dir" --destination "$launcher_transition_home" \
-  --config "$source_dir/tests/fixtures/personal.toml" --cache "$root/launcher-transition/cache" \
+  --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" \
   --persistent-state "$root/launcher-transition/state.boltdb" --exclude scripts,externals --force
 test -x "$launcher_transition_home/.local/bin/herdr-agent-launch"
 chezmoi execute-template --source "$source_dir" \
@@ -1652,7 +1656,7 @@ test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
 jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
-personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --include files)
+personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
 ! printf '%s\n' "$personal_managed" | grep -Fq 'plan-diagrams'
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
@@ -1733,7 +1737,7 @@ personal_beads_diff=$(chezmoi diff \
   --source "$source_dir" \
   --destination "$personal_beads_home" \
   --config "$source_dir/tests/fixtures/personal-with-beads.toml" \
-  --cache "$root/personal-with-beads/cache" \
+  --cache "$cache" \
   --persistent-state "$root/personal-with-beads/chezmoistate.boltdb" \
   --exclude scripts,externals)
 test -z "$personal_beads_diff"
@@ -1875,7 +1879,7 @@ remaining_diff=$(chezmoi diff \
   --source "$source_dir" \
   --destination "$work_home" \
   --config "$source_dir/tests/fixtures/work.toml" \
-  --cache "$root/work/cache" \
+  --cache "$cache" \
   --persistent-state "$root/work/chezmoistate.boltdb" \
   --exclude scripts,externals)
 test -z "$remaining_diff"
@@ -1887,7 +1891,7 @@ work_line=$(grep -nF 'ZSH_THEME="agnoster"' "$work_home/.zshrc" | cut -d: -f1)
 normal_line=$(grep -nF '# >>> portable chezmoi setup >>>' "$work_home/.zshrc" | cut -d: -f1)
 test "$early_line" -lt "$work_line"
 test "$work_line" -lt "$normal_line"
-work_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" --include files)
+work_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" --cache "$cache" --include files)
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/portable.jsonc'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/cli.json'
 ! printf '%s\n' "$work_managed" | grep -Fq 'plan-diagrams'
@@ -1932,6 +1936,7 @@ external_managed="$root/external-opencode-beads/managed"
 chezmoi managed \
   --source "$source_dir" \
   --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
+  --cache "$cache" \
   --exclude externals \
   --include files \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
@@ -1990,7 +1995,7 @@ external_diff=$(chezmoi diff \
   --source "$source_dir" \
   --destination "$external_home" \
   --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
-  --cache "$root/external-opencode-beads/cache" \
+  --cache "$cache" \
   --persistent-state "$root/external-opencode-beads/chezmoistate.boltdb" \
   --exclude scripts,externals)
 test -z "$external_diff"
@@ -2037,7 +2042,7 @@ chezmoi apply \
   --source "$source_dir" \
   --destination "$transition_home" \
   --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
-  --cache "$transition_root/cache" \
+  --cache "$cache" \
   --persistent-state "$transition_root/chezmoistate.boltdb" \
   --exclude scripts,externals \
   --force
@@ -2055,7 +2060,7 @@ chezmoi apply \
   --source "$source_dir" \
   --destination "$transition_home" \
   --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" \
-  --cache "$transition_root/cache" \
+  --cache "$cache" \
   --persistent-state "$transition_root/chezmoistate.boltdb" \
   --exclude scripts,externals \
   --force
@@ -2186,7 +2191,7 @@ python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); asse
 grep -Fxq 'preserve generated runtime data' "$helix_home/.config/helix/runtime/generated"
 grep -Fxq 'preserve runtime log' "$helix_home/.cache/helix/helix.log"
 test ! -e "$helix_home/.config/ghostty/config"
-helix_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/helix-only.toml" --include files | grep '^\.config/helix')
+helix_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/helix-only.toml" --cache "$cache" --include files | grep '^\.config/helix')
 test "$helix_managed" = '.config/helix/config.toml'
 
 warp_home="$root/warp-only/home"

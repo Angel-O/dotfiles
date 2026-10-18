@@ -3,6 +3,7 @@ set -euo pipefail
 
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 skill=$source_dir/.chezmoitemplates/write-bead.md
+cache=${CHEZMOI_TEST_CACHE:-/tmp/dotfiles-write-bead-cache}
 
 assert_contains() {
   local file=$1 text=$2
@@ -120,11 +121,11 @@ test ! -e "$source_dir/dot_config/opencode/commands/materialize-epic.md.tmpl"
 assert_contains "$source_dir/.chezmoiremove.tmpl" '.config/opencode/commands/materialize-epic.md'
 
 for fixture in work external-opencode-beads; do
-  managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$fixture.toml" --exclude externals --include files)
+  managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/$fixture.toml" --cache "$cache" --exclude externals --include files)
   printf '%s\n' "$managed" | grep -Fxq '.config/opencode/skills/write-bead/SKILL.md'
 done
 
-managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --exclude externals --include files)
+managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --exclude externals --include files)
 ! printf '%s\n' "$managed" | grep -Fxq '.config/opencode/skills/write-bead/SKILL.md'
 
 remove_list=$(chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/external-opencode-beads.toml" <"$source_dir/.chezmoiremove.tmpl")

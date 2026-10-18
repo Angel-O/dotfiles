@@ -4,6 +4,7 @@ set -euo pipefail
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
+cache=${CHEZMOI_TEST_CACHE:-$root/cache}
 
 line='When locating a named local repository, look under ~/workspace/source/.'
 heading='## REPOSITORY ROOT'
@@ -68,7 +69,7 @@ apply_fixture() {
     --source "$source_dir" \
     --destination "$home" \
     --config "$source_dir/tests/fixtures/$name.toml" \
-    --cache "$root/$name/cache" \
+    --cache "$cache" \
     --persistent-state "$root/$name/state.boltdb" \
     --exclude scripts,externals \
     --force

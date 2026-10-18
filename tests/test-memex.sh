@@ -5,6 +5,7 @@ source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 root=/tmp/dotfiles-memex-test
 rm -rf "$root"
 mkdir -p "$root/bin" "$root/home"
+cache=${CHEZMOI_TEST_CACHE:-$root/cache}
 
 assert_contains() {
   local file=$1 text=$2
@@ -62,7 +63,7 @@ assert_contains "$skill" 'multi-session synthesis'
 assert_contains "$skill" 'transcript reconstruction'
 assert_contains "$skill" 'analogous-work'
 assert_contains "$skill" 'investigation'
-managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --exclude externals --include files)
+managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --exclude externals --include files)
 printf '%s\n' "$managed" | grep -Fxq '.config/opencode/skills/memex-quick-search/SKILL.md'
 
 coexist_home="$root/coexist-home"
@@ -70,7 +71,7 @@ mkdir -p "$coexist_home/.agents/skills/memex-search"
 printf '%s\n' 'release-managed upstream skill' >"$coexist_home/.agents/skills/memex-search/SKILL.md"
 chezmoi apply --source "$source_dir" --destination "$coexist_home" \
   --config "$source_dir/tests/fixtures/personal.toml" \
-  --cache "$root/coexist-cache" --persistent-state "$root/coexist-state.boltdb" \
+  --cache "$cache" --persistent-state "$root/coexist-state.boltdb" \
   --exclude scripts,externals --force
 test -f "$coexist_home/.agents/skills/memex-search/SKILL.md"
 assert_contains "$coexist_home/.agents/skills/memex-search/SKILL.md" 'release-managed upstream skill'
