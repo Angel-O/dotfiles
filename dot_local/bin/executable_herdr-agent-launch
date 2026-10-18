@@ -217,6 +217,39 @@ herdr_call agent_info \
   agent get "$agent_name"
 check_agent "$workspace_id" "$tab_id" "$pane_id" "$agent_cwd"
 
+open_reviewr() {
+  local reviewr_response
+  case "$topology" in
+    tab)
+      # Target the worker pane so Herdr keeps its default split orientation.
+      if ! reviewr_response=$(herdr plugin pane open \
+        --plugin persiyanov.reviewr \
+        --entrypoint pane \
+        --placement split \
+        --target-pane "$pane_id" \
+        --cwd "$agent_cwd" \
+        --no-focus 2>&1); then
+        printf 'herdr-agent-launch: Reviewr open failed: %s\n' "$reviewr_response" >&2
+      fi
+      ;;
+    worktree)
+      if ! reviewr_response=$(herdr plugin pane open \
+        --plugin persiyanov.reviewr \
+        --entrypoint pane \
+        --placement tab \
+        --workspace "$workspace_id" \
+        --cwd "$agent_cwd" \
+        --no-focus 2>&1); then
+        printf 'herdr-agent-launch: Reviewr open failed: %s\n' "$reviewr_response" >&2
+      fi
+      ;;
+  esac
+}
+
+if [[ "$role" == worker ]]; then
+  open_reviewr
+fi
+
 if [[ "$role/$topology" == worker/worktree ]]; then
   jq -cn --arg role "$role" --arg topology "$topology" --arg name "$agent_name" \
     --arg kind opencode --arg workspace "$workspace_id" --arg tab "$tab_id" \

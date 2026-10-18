@@ -671,6 +671,9 @@ EOF
   cat >"$canned/get.json" <<EOF
 {"result":{"type":"agent_info","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"$pane_repo","revision":6}}}
 EOF
+  cat >"$canned/plugin.json" <<'EOF'
+{"result":{"type":"plugin_pane_opened","plugin_pane":{"pane":{"pane_id":"w1:p4","focused":false}}}}
+EOF
   cat >"$fake_bin/herdr" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -683,6 +686,7 @@ case "$1 $2" in
   "worktree create"|"worktree open") file=worktree.json ;;
   "agent start") file=start.json ;;
   "agent get") file=get.json ;;
+  "plugin pane") file=plugin.json ;;
   *) printf '{"error":{"code":"unexpected","message":"unexpected command"}}\n'; exit 1 ;;
 esac
 case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
@@ -714,6 +718,7 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   not-ready:"agent start") jq '.result.agent.interactive_ready = false' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   missing-ready:"agent start") jq 'del(.result.agent.interactive_ready)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   start-failed:"agent start") printf '{"error":{"code":"agent_start_failed","message":"TUI exited"}}\n'; exit 1 ;;
+  reviewr-open:"plugin pane") printf '{"error":{"code":"reviewr_open_failed","message":"plugin unavailable"}}\n' >&2; exit 1 ;;
   wrong-agent-cwd:"agent start"|wrong-agent-cwd:"agent get") ;;
   wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
 esac
@@ -811,11 +816,14 @@ EOF
   grep -Fxq 'pane rename w1:p2 architect' "$log"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"architect\",\"location\":{\"directory\":\"$pane_repo\"}}"
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --session ses_test'
+  assert_not_contains "$log" 'plugin pane open'
 
   metadata=$(run_launcher worker tab worker)
   jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
+  assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement split --target-pane w1:p3 --cwd $pane_repo --no-focus"
+  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
 
   metadata=$(FAKE_HERDR_FAILURE=explicit-false run_launcher worker tab worker-agent)
   jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
@@ -829,6 +837,7 @@ EOF
   rm -f "$test_dir/busy-marker"
   FAKE_HERDR_FAILURE=busy-once metadata=$(run_launcher worker tab worker "$delivery_worktree")
   test "$(grep -Fc 'agent start ' "$log")" -eq 2
+  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
 
   : >"$log"
   if FAKE_HERDR_FAILURE=wrong-label run_launcher worker tab worker >/dev/null 2>&1; then exit 1; fi
@@ -842,6 +851,14 @@ EOF
   assert_contains "$log" "worktree create --cwd $process_repo --branch worktree/worker-agent --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$worktree\"}}"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --session ses_test'
+  assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement tab --workspace w2 --cwd $worktree --no-focus"
+  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+
+  reviewr_error="$test_dir/reviewr-error"
+  metadata=$(FAKE_HERDR_FAILURE=reviewr-open run_launcher worker tab worker-agent 2>"$reviewr_error")
+  jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
+  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+  assert_contains "$reviewr_error" 'herdr-agent-launch: Reviewr open failed:'
 
   : >"$log"
   if FAKE_HERDR_FAILURE=wrong-label run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
