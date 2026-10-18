@@ -4,23 +4,58 @@ mode: primary
 model: openai/gpt-5.6-sol
 options:
   reasoningEffort: high
-permission:
-  "*": deny
-  bash:
-    "*": deny
-    "wbd show * --json": allow
-    "wbd update * --description * --json": allow
-  external_directory: ask
-  question: allow
-  read: allow
-  glob: allow
-  grep: allow
-  webfetch: allow
-  lsp: allow
-  skill: allow
-  task:
-    "*": deny
-    planner: allow
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "wbd show * --json"
+    effect: allow
+  - action: shell
+    resource: "wbd update * --description * --json"
+    effect: allow
+  - action: external_directory
+    resource: "*"
+    effect: ask
+  - action: external_directory
+    resource: "$HOME/.local/share/plannotator/plans/*"
+    effect: allow
+  - action: question
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "$HOME/.local/share/plannotator/plans/*"
+    effect: allow
+  - action: edit
+    resource: "$HOME/.local/share/plannotator/plans/*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: webfetch
+    resource: "*"
+    effect: allow
+  - action: lsp
+    resource: "*"
+    effect: allow
+  - action: skill
+    resource: "*"
+    effect: allow
+  - action: subagent
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: planner
+    effect: allow
 ---
 
 Design large cross-service or cross-area initiatives without implementing them. Work interactively with the user until explicit approval. Use the `question` tool for every user question and for the final approval questionnaire; never place a question in a normal response. Revise the design from those answers.
@@ -29,4 +64,4 @@ For a Bead-backed run, require the exact canonical epic ID, load `beads-hub`, an
 
 Only after successful Bead persistence, invoke the `planner` task with the exact canonical epic ID, forbid redesign, and request decomposition and publication. After Bead-backed planner publication, report the canonical epic and created-child results or accurate partial-publication status using runtime IDs; keep authoritative architecture and child specifications in Beads and do not reproduce a combined specification. For a normal non-Bead run, preserve the existing behavior: after approval, invoke the planner with the complete approved architecture verbatim as authoritative input, then emit one combined handoff containing the approved architecture and the planner's execution decomposition.
 
-Do not edit files, implement, validate implementation changes, or perform Git operations. Load the `ponytail` skill before design work. Use no Hub operation other than the exact reads and description update above.
+Do not implement, validate implementation changes, or perform Git operations. After explicit user feedback and successful child publication, the only permitted file update is the approved plan artifact under `$HOME/.local/share/plannotator/plans/*`; never edit implementation files. Load the `ponytail` skill before design work. Use no Hub operation other than the exact reads and description update above.

@@ -586,7 +586,7 @@ contracts = {
     "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", {"bash", "external_directory", "read", "glob", "grep", "webfetch", "skill"}),
     "reviewer": ("subagent", "openai/gpt-6-astra", "medium", {"bash", "external_directory", "read", "glob", "grep", "lsp", "skill"}),
     "worker": ("primary", "openai/gpt-5.6-luna", "high", {"bash", "read", "glob", "grep", "webfetch", "todowrite", "skill", "edit", "lsp"}),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", {"bash", "question", "external_directory", "read", "glob", "grep", "webfetch", "lsp", "skill", "task"}),
+    "architect": ("primary", "openai/gpt-5.6-sol", "high", {'"*"', "shell", "question", "external_directory", "read", "edit", "glob", "grep", "webfetch", "lsp", "skill", "subagent"}),
     "planner": ("subagent", "openai/gpt-5.6-terra", "medium", {"bash", "read", "glob", "grep", "lsp", "skill"}),
 }
 
@@ -596,6 +596,15 @@ for name, (mode, model, effort, allowed) in contracts.items():
     assert f"mode: {mode}" in frontmatter
     assert f"model: {model}" in frontmatter
     assert f"reasoningEffort: {effort}" in frontmatter
+    if name == "architect":
+        permissions = frontmatter.split("permissions:", 1)[1]
+        assert "apply_patch" not in permissions
+        actions = {
+            match.group(1)
+            for match in re.finditer(r'^  - action: (.+)$', permissions, re.MULTILINE)
+        }
+        assert actions == allowed, (name, actions)
+        continue
     assert '  "*": deny' in frontmatter
     permission = frontmatter.split("permission:", 1)[1]
     assert "apply_patch" not in permission
@@ -633,7 +642,7 @@ assert '  task:\n    "*": deny\n    integration: allow\n    investigator: allow\
 assert 'Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane.' in orchestrator
 assert "Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation." in orchestrator
 architect = (directory / "architect.md").read_text()
-assert '  task:\n    "*": deny\n    planner: allow' in architect
+assert '  - action: subagent\n    resource: "*"\n    effect: deny\n  - action: subagent\n    resource: planner\n    effect: allow' in architect
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):

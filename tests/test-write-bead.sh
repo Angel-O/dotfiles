@@ -47,11 +47,12 @@ planner=$source_dir/dot_config/opencode/agents/planner.md
 worker=$source_dir/dot_config/opencode/agents/worker.md
 reviewer=$source_dir/dot_config/opencode/agents/reviewer.md
 command=$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl
+launcher=$source_dir/dot_local/bin/executable_opencode-env.tmpl
 
 assert_contains "$orchestrator" 'load both `write-bead` and `beads-hub`, create the Bead with its structured canonical description'
 assert_contains "$orchestrator" 'before architecture, decomposition, or implementation'
-assert_contains "$architect" '"wbd show * --json": allow'
-assert_contains "$architect" '"wbd update * --description * --json": allow'
+assert_contains "$architect" '    resource: "wbd show * --json"'
+assert_contains "$architect" '    resource: "wbd update * --description * --json"'
 assert_contains "$planner" 'collective coverage of every epic acceptance criterion'
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
@@ -65,24 +66,57 @@ assert_contains "$reviewer" '`met`, `unmet`, or `not verified`'
 assert_contains "$command" 'The nine fields provide operational context and must not copy or replace the canonical specification.'
 assert_contains "$command" 'Completed children alone are insufficient.'
 assert_contains "$command" 'Do not automatically re-review every diff or create another review lane'
+assert_contains "$launcher" 'export PLANNOTATOR_DATA_DIR="${PLANNOTATOR_DATA_DIR:-$HOME/.local/share/plannotator}"'
 
 # Keep the role permissions portable; local paths and plan artifacts are not configuration.
-python3 - "$architect" "$planner" <<'PY'
+python3 - "$architect" "$planner" "$launcher" <<'PY'
 import re
 import sys
 from pathlib import Path
 
-architect, planner = (Path(path).read_text() for path in sys.argv[1:])
+architect, planner, launcher = (Path(path).read_text() for path in sys.argv[1:])
+plan_resource = '$HOME/.local/share/plannotator/plans/*'
 
 for text in (architect, planner):
-    assert "/Users/" not in text
+    assert "/" + "Users/" not in text
     assert "/home/" not in text
     assert not re.search(r'^\s+"/[^"\n]+":\s+(?:allow|deny)\s*$', text, re.MULTILINE)
     assert not re.search(r'(?i)plan[^\n`]*\.md', text)
 
-assert "  external_directory: ask\n" in architect
-assert "  read: allow\n" in architect
-assert "\n  edit:" not in architect
+rules = [
+    tuple(match)
+    for match in re.findall(
+        r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+        architect,
+        re.MULTILINE,
+    )
+]
+assert rules == [
+    ('"*"', '"*"', 'deny'),
+    ('shell', '"*"', 'deny'),
+    ('shell', '"wbd show * --json"', 'allow'),
+    ('shell', '"wbd update * --description * --json"', 'allow'),
+    ('external_directory', '"*"', 'ask'),
+    ('external_directory', f'"{plan_resource}"', 'allow'),
+    ('question', '"*"', 'allow'),
+    ('read', '"*"', 'allow'),
+    ('read', f'"{plan_resource}"', 'allow'),
+    ('edit', f'"{plan_resource}"', 'allow'),
+    ('glob', '"*"', 'allow'),
+    ('grep', '"*"', 'allow'),
+    ('webfetch', '"*"', 'allow'),
+    ('lsp', '"*"', 'allow'),
+    ('skill', '"*"', 'allow'),
+    ('subagent', '"*"', 'deny'),
+    ('subagent', 'planner', 'allow'),
+], rules
+assert plan_resource in architect
+assert plan_resource not in planner
+assert 'plannotator' not in planner.lower()
+assert 'plans/' not in planner.lower()
+assert 'the only permitted file update is the approved plan artifact under `$HOME/.local/share/plannotator/plans/*`' in architect
+assert 'never edit implementation files' in architect
+assert launcher.index('source "$local_env"') < launcher.index('export PLANNOTATOR_DATA_DIR=')
 PY
 
 python3 - "$orchestrator" "$architect" "$planner" <<'PY'
