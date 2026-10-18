@@ -6,6 +6,7 @@ directory = "~/workspace/worktrees"
 
 [keys]
 # macOS terminal-style direct shortcuts with Herdr's native prefix bindings retained.
+# Approved plugin actions mirror their live Herdr shortcuts.
 
 ######################### panes
 cycle_pane_previous = ["prefix+shift+tab", "alt+shift+["]
@@ -69,7 +70,7 @@ delivery = "herdr"
 ######################### herdr-reviewr keybindings
 
 [[keys.command]]
-key = "prefix+u"
+key = "prefix+ctrl+r"
 type = "plugin_action"
 command = "persiyanov.reviewr.toggle"
 description = "toggle reviewr split"
@@ -115,7 +116,7 @@ description = "open repo picker"
 ######################### elio file explorer keybinding
 
 [[keys.command]]
-key = "prefix+y"
+key = "prefix+ctrl+e"
 type = "plugin_action"
 command = "angel-o.elio.open"
 description = "open Elio"
@@ -125,7 +126,7 @@ description = "open Elio"
 ######################### Hub Viewer keybindings
 
 [[keys.command]]
-key = "prefix+m"
+key = "prefix+ctrl+h"
 type = "plugin_action"
 command = "angel-o.hub-viewer.open"
 description = "open Hub Viewer"
@@ -167,7 +168,7 @@ description = "open Memex session palette"
 ######################### Plannotator keybinding
 
 [[keys.command]]
-key = "prefix+ctrl+o"
+key = "prefix+ctrl+p"
 type = "plugin_action"
 command = "annotate.last-newest"
 description = "review agent newest message"
