@@ -1183,6 +1183,7 @@ assert_worker_liveness_contract "$source_dir/docs/opencode-agent-orchestration.m
 [[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
 bash "$source_dir/tests/test-write-bead.sh"
+bash "$source_dir/tests/test-opencode-alignment.sh"
 
 assert_contains "$source_dir/README.md" '`wbd` is always Hub-only'
 assert_contains "$source_dir/README.md" '`beads-hub` and `beads-hub-closeout` skills'
