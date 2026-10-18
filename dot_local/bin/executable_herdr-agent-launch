@@ -241,6 +241,13 @@ open_reviewr() {
         --cwd "$agent_cwd" \
         --no-focus 2>&1); then
         printf 'herdr-agent-launch: Reviewr open failed: %s\n' "$reviewr_response" >&2
+      else
+        # Rename only the tab returned by this open; naming remains best effort.
+        reviewr_tab_id=$(printf '%s\n' "$reviewr_response" |
+          jq -r '.result.plugin_pane.pane.tab_id // empty' 2>/dev/null) || reviewr_tab_id=
+        if [[ -n "$reviewr_tab_id" ]]; then
+          herdr tab rename "$reviewr_tab_id" reviewr >/dev/null 2>&1 || true
+        fi
       fi
       ;;
   esac

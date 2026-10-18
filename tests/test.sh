@@ -672,7 +672,7 @@ EOF
 {"result":{"type":"agent_info","agent":{"terminal_id":"term-agent","name":"worker-agent","agent":"opencode","agent_status":"idle","workspace_id":"w1","tab_id":"w1:t2","pane_id":"w1:p3","focused":false,"interactive_ready":true,"cwd":"$pane_repo","revision":6}}}
 EOF
   cat >"$canned/plugin.json" <<'EOF'
-{"result":{"type":"plugin_pane_opened","plugin_pane":{"pane":{"pane_id":"w1:p4","focused":false}}}}
+{"result":{"type":"plugin_pane_opened","plugin_pane":{"pane":{"pane_id":"w2:p4","tab_id":"w2:t99","focused":false}}}}
 EOF
   cat >"$fake_bin/herdr" <<'EOF'
 #!/usr/bin/env bash
@@ -687,6 +687,7 @@ case "$1 $2" in
   "agent start") file=start.json ;;
   "agent get") file=get.json ;;
   "plugin pane") file=plugin.json ;;
+  "tab rename") file=rename.json ;;
   *) printf '{"error":{"code":"unexpected","message":"unexpected command"}}\n'; exit 1 ;;
 esac
 case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
@@ -719,6 +720,8 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   missing-ready:"agent start") jq 'del(.result.agent.interactive_ready)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   start-failed:"agent start") printf '{"error":{"code":"agent_start_failed","message":"TUI exited"}}\n'; exit 1 ;;
   reviewr-open:"plugin pane") printf '{"error":{"code":"reviewr_open_failed","message":"plugin unavailable"}}\n' >&2; exit 1 ;;
+  reviewr-no-tab:"plugin pane") jq 'del(.result.plugin_pane.pane.tab_id)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  reviewr-rename:"tab rename") printf '{"error":{"code":"tab_rename_failed","message":"tab unavailable"}}\n' >&2; exit 1 ;;
   wrong-agent-cwd:"agent start"|wrong-agent-cwd:"agent get") ;;
   wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
 esac
@@ -824,6 +827,7 @@ EOF
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
   assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement split --target-pane w1:p3 --cwd $pane_repo --no-focus"
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+  test "$(grep -Fc 'tab rename ' "$log")" -eq 0
 
   metadata=$(FAKE_HERDR_FAILURE=explicit-false run_launcher worker tab worker-agent)
   jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
@@ -852,7 +856,17 @@ EOF
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$worktree\"}}"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --session ses_test'
   assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement tab --workspace w2 --cwd $worktree --no-focus"
+  assert_contains "$log" 'tab rename w2:t99 reviewr'
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+
+  metadata=$(FAKE_HERDR_FAILURE=reviewr-no-tab run_launcher worker worktree worker-agent "$worktree")
+  jq -e --arg path "$worktree" ' .cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
+  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+  test "$(grep -Fc 'tab rename ' "$log")" -eq 0
+
+  metadata=$(FAKE_HERDR_FAILURE=reviewr-rename run_launcher worker worktree worker-agent "$worktree")
+  jq -e --arg path "$worktree" ' .cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
+  assert_contains "$log" 'tab rename w2:t99 reviewr'
 
   reviewr_error="$test_dir/reviewr-error"
   metadata=$(FAKE_HERDR_FAILURE=reviewr-open run_launcher worker tab worker-agent 2>"$reviewr_error")
