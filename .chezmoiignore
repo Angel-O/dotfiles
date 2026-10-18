@@ -14,6 +14,9 @@ scripts
 scripts/**
 .idea
 .idea/**
+# Project-local OpenCode commands are intentionally not portable configuration.
+.opencode
+.opencode/**
 {{- if not .modules.ghostty }}
 .config/ghostty/**
 run_once_after_25-migrate-ghostty-config.sh
