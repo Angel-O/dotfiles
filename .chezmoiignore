@@ -91,6 +91,9 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- if or (not .modules.herdr) (not .modules.beads) (not .integrations.opencodeBeads) }}
 .config/opencode/commands/orchestrate-bead.md
 {{- end }}
+{{- if not .modules.opencode }}
+.config/opencode/commands/tracking-report.md
+{{- end }}
 .config/opencode/env.local
 
 {{- if not .modules.starship }}

@@ -76,7 +76,7 @@ chezmoi apply --verbose --no-tty --no-pager
 
 `--no-tty` prevents chezmoi from acquiring a terminal unexpectedly. `--no-pager` prevents verbose output from pausing in `less` while appearing to be a long-running apply. The final command applies the already-reviewed state without interactive prompts.
 
-The apply scripts install missing Homebrew packages additively, build and atomically install the compatible pinned Beads and Viewer forks under `~/.local/bin`, install pinned shell externals under `~/.oh-my-zsh`, install or replace selected pinned Herdr plugins under `~/.config/herdr`, link selected vendored Herdr plugins locally, and generate shell completions under `~/.zsh/completions` when their modules are enabled. The optional SDKMAN installer writes under `~/.sdkman`. These script effects may not appear as ordinary managed-file diffs.
+The apply scripts install missing Homebrew packages additively, build and atomically install the compatible pinned Beads and Viewer forks under `~/.local/bin`, retrieve the public tracker source archive at its full-commit pin and atomically switch its installation under `~/.local/share/opencode/`, install pinned shell externals under `~/.oh-my-zsh`, install or replace selected pinned Herdr plugins under `~/.config/herdr`, link selected vendored Herdr plugins locally, and generate shell completions under `~/.zsh/completions` when their modules are enabled. The optional SDKMAN installer writes under `~/.sdkman`. These script effects may not appear as ordinary managed-file diffs. The tracker installer fails before changing files when the public archive cannot be downloaded or its checksum/layout is invalid.
 
 ## Existing Work-Machine Adoption
 

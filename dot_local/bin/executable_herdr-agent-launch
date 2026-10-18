@@ -260,14 +260,14 @@ fi
 if [[ "$role/$topology" == worker/worktree ]]; then
   jq -cn --arg role "$role" --arg topology "$topology" --arg name "$agent_name" \
     --arg kind opencode --arg workspace "$workspace_id" --arg tab "$tab_id" \
-    --arg pane "$pane_id" --arg cwd "$agent_cwd" --arg path "$worktree_path" \
+    --arg pane "$pane_id" --arg cwd "$agent_cwd" --arg path "$worktree_path" --arg session "$session_id" \
     '{role:$role, topology:$topology, agent_name:$name, agent_kind:$kind,
-      workspace_id:$workspace, tab_id:$tab, pane_id:$pane, cwd:$cwd,
+      workspace_id:$workspace, tab_id:$tab, pane_id:$pane, cwd:$cwd, session_id:$session,
       worktree_path:$path}'
 else
   jq -cn --arg role "$role" --arg topology "$topology" --arg name "$agent_name" \
     --arg kind opencode --arg workspace "$workspace_id" --arg tab "$tab_id" \
-    --arg pane "$pane_id" --arg cwd "$agent_cwd" \
+    --arg pane "$pane_id" --arg cwd "$agent_cwd" --arg session "$session_id" \
     '{role:$role, topology:$topology, agent_name:$name, agent_kind:$kind,
-      workspace_id:$workspace, tab_id:$tab, pane_id:$pane, cwd:$cwd}'
+      workspace_id:$workspace, tab_id:$tab, pane_id:$pane, cwd:$cwd, session_id:$session}'
 fi

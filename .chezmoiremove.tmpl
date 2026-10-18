@@ -23,3 +23,6 @@
 {{ if not (and .modules.herdr .modules.beads $opencodeBeads) }}
 .config/opencode/commands/orchestrate-bead.md
 {{ end }}
+{{ if not .modules.opencode }}
+.config/opencode/commands/tracking-report.md
+{{ end }}

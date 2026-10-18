@@ -33,6 +33,8 @@ bash "$source_dir/tests/test-agents-modifier.sh"
 [[ "${TEST_SCOPE:-}" != agents-modifier ]] || exit 0
 bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
+bash "$source_dir/tests/test-opencode-tracker.sh"
+[[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
 
 source_files() {
   if git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -585,8 +587,12 @@ contracts = {
         ('"*"', '"*"', "deny"),
         ("external_directory", '"*"', "allow"),
         ("question", '"*"', "allow"),
-        ("shell", '"*"', "allow"),
-        ("read", '"*"', "allow"),
+         ("shell", '"*"', "allow"),
+         ("tool", "tracking_run_start", "allow"),
+         ("tool", "tracking_lane_attach", "allow"),
+         ("tool", "tracking_closeout", "allow"),
+         ("tool", "tracking_report", "allow"),
+         ("read", '"*"', "allow"),
         ("glob", '"*"', "allow"),
         ("grep", '"*"', "allow"),
         ("subagent", '"*"', "deny"),
@@ -913,7 +919,7 @@ EOF
   }
 
   metadata=$(run_launcher architect sibling architect-agent)
-  jq -e --arg cwd "$pane_repo" ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:$cwd}' <<<"$metadata" >/dev/null
+  jq -e --arg cwd "$pane_repo" ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
   assert_contains "$log" "pane split --current --direction right --cwd $pane_repo --no-focus"
   test "$(grep -Fc 'pane rename ' "$log")" -eq 2
   grep -Fxq 'pane rename w1:p1 orchestrator' "$log"
@@ -923,7 +929,7 @@ EOF
   assert_not_contains "$log" 'plugin pane open'
 
   metadata=$(run_launcher worker tab worker)
-  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
+  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
   assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement split --target-pane w1:p3 --cwd $pane_repo --no-focus"
@@ -934,7 +940,7 @@ EOF
   jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
 
   metadata=$(run_launcher worker tab worker "$delivery_worktree")
-  jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
+  jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $delivery_worktree --label worker --no-focus"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$delivery_worktree\"}}"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
@@ -952,7 +958,7 @@ EOF
   if run_launcher worker tab worker "$pane_repo" >/dev/null 2>&1; then exit 1; fi
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
-  jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
+  jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,session_id:"ses_test",worktree_path:$path}' <<<"$metadata" >/dev/null
   assert_contains "$log" "worktree create --cwd $process_repo --branch worktree/worker-agent --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$worktree\"}}"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --session ses_test'
@@ -1744,7 +1750,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2", {package:"../../.local/share/opencode/orchestration-tracking/src/plugin.ts", options:{schemaVersion:1}}]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
@@ -1946,7 +1952,7 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
-jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2", {package:"../../.local/share/opencode/orchestration-tracking/src/plugin.ts", options:{schemaVersion:1}}]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$work_home/.config/opencode/cli.json" 'opencode-todo'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
