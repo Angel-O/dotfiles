@@ -827,7 +827,7 @@ EOF
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
   assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement split --target-pane w1:p3 --cwd $pane_repo --no-focus"
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
-  test "$(grep -Fc 'tab rename ' "$log")" -eq 0
+  assert_not_contains "$log" 'tab rename '
 
   metadata=$(FAKE_HERDR_FAILURE=explicit-false run_launcher worker tab worker-agent)
   jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
@@ -862,7 +862,7 @@ EOF
   metadata=$(FAKE_HERDR_FAILURE=reviewr-no-tab run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' .cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
-  test "$(grep -Fc 'tab rename ' "$log")" -eq 0
+  assert_not_contains "$log" 'tab rename '
 
   metadata=$(FAKE_HERDR_FAILURE=reviewr-rename run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' .cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
