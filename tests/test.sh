@@ -163,6 +163,57 @@ if [[ "${TEST_SCOPE:-}" == herdr-blink ]]; then
   exit 0
 fi
 
+assert_herdr_plugin_keybindings() {
+  local config_dir="$root/herdr-plugin-keybindings"
+  local config="$config_dir/config.toml"
+  mkdir -p "$config_dir"
+
+  chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+    <"$source_dir/dot_config/herdr/config.toml.tmpl" >"$config"
+  python3 - "$config" <<'PY'
+import sys
+import tomllib
+
+commands = tomllib.load(open(sys.argv[1], "rb"))["keys"]["command"]
+expected = {
+    "persiyanov.reviewr.toggle": {
+        "key": "prefix+ctrl+r",
+        "type": "plugin_action",
+        "command": "persiyanov.reviewr.toggle",
+        "description": "toggle reviewr split",
+    },
+    "angel-o.hub-viewer.open": {
+        "key": "prefix+ctrl+h",
+        "type": "plugin_action",
+        "command": "angel-o.hub-viewer.open",
+        "description": "open Hub Viewer",
+    },
+    "annotate.last-newest": {
+        "key": "prefix+ctrl+p",
+        "type": "plugin_action",
+        "command": "annotate.last-newest",
+        "description": "review agent newest message",
+    },
+    "angel-o.elio.open": {
+        "key": "prefix+ctrl+e",
+        "type": "plugin_action",
+        "command": "angel-o.elio.open",
+        "description": "open Elio",
+    },
+}
+
+for command, binding in expected.items():
+    matches = [entry for entry in commands if entry.get("command") == command]
+    assert matches == [binding], (command, matches)
+    assert sum(entry.get("key") == binding["key"] for entry in commands) == 1, binding
+PY
+}
+
+if [[ "${TEST_SCOPE:-}" == herdr-plugin-keybindings ]]; then
+  assert_herdr_plugin_keybindings
+  exit 0
+fi
+
 assert_opencode_palette() {
   local personal_cli="$root/personal/home/.config/opencode/cli.json"
   local personal_portable="$root/personal/home/.config/opencode/portable.jsonc"
@@ -1013,11 +1064,11 @@ if [[ "${TEST_SCOPE:-}" == herdr-hub-viewer ]]; then
   chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
     <"$source_dir/dot_config/herdr/config.toml.tmpl" >"$hub_config"
   assert_contains "$hub_config" 'split_vertical = ["prefix+v", "alt+s"]'
-  assert_contains "$hub_config" 'key = "prefix+m"'
+   assert_contains "$hub_config" 'key = "prefix+ctrl+h"'
   assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open"'
-   assert_contains "$hub_config" 'key = "prefix+shift+m"'
+    assert_contains "$hub_config" 'key = "prefix+shift+ctrl+h"'
    assert_contains "$hub_config" 'command = "angel-o.hub-viewer.open-tab"'
-   assert_contains "$hub_config" 'key = "prefix+ctrl+o"'
+    assert_contains "$hub_config" 'key = "prefix+ctrl+p"'
    assert_contains "$hub_config" 'command = "annotate.last-newest"'
   personal_installer="$root/herdr-hub-viewer/personal-installer.sh"
   chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
@@ -1440,12 +1491,12 @@ test -x "$personal_home/.config/herdr/plugins/local/angel-o.elio/bin/resolve-dir
 test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/README.md"
 test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/assets"
 test ! -e "$personal_home/.config/herdr/plugins/local/angel-o.elio/.git"
-assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+m"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+ctrl+h"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open"'
-assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+m"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+ctrl+h"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
 test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
-assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+ctrl+o"'
+assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+ctrl+p"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "annotate.last-newest"'
 
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
@@ -1732,7 +1783,7 @@ cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$work
 assert_contains "$work_home/.config/herdr/config.toml" 'status_indicators = "symbols"'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.elio.open'
 assert_not_contains "$work_home/.config/herdr/config.toml" 'angel-o.hub-viewer'
-assert_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+ctrl+o"'
+assert_contains "$work_home/.config/herdr/config.toml" 'key = "prefix+ctrl+p"'
 assert_contains "$work_home/.config/herdr/config.toml" 'command = "annotate.last-newest"'
 assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
