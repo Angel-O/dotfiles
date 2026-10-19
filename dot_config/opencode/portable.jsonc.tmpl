@@ -1,12 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "orchestrator",
-  "plugin": [
+  "plugins": [
     "@slkiser/opencode-quota@{{ .pins.openCodePlugins.quota }}",
     "../../.local/share/opencode/opencode-todo/src",
     "@plannotator/opencode@{{ .pins.openCodePlugins.plannotator }}",
     {
-      "package": "../../.local/share/opencode/orchestration-tracking/src/plugin.ts",
+      "package": "../../.local/share/opencode/orchestration-tracking",
       "options": {
         "schemaVersion": 1
       }

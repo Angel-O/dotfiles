@@ -21,13 +21,25 @@ import tomllib
 
 portable = json.load(open(sys.argv[1]))
 pins = tomllib.load(open(sys.argv[2], "rb"))["pins"]["openCodeTracker"]
-plugins = portable["plugin"]
-tracker = [entry for entry in plugins if isinstance(entry, dict) and entry.get("package", "").endswith("orchestration-tracking/src/plugin.ts")]
+assert "plugin" not in portable
+plugins = portable["plugins"]
+tracker = [entry for entry in plugins if "orchestration-tracking" in (entry.get("package", "") if isinstance(entry, dict) else entry if isinstance(entry, str) else "")]
 assert len(tracker) == 1, plugins
 assert plugins[-1] is tracker[0], plugins
+assert tracker[0] == {
+    "package": "../../.local/share/opencode/orchestration-tracking",
+    "options": {"schemaVersion": 1},
+}
+assert all("orchestration-tracking/src/plugin.ts" not in str(entry) for entry in plugins)
+assert all("qa" not in str(entry).lower() for entry in plugins)
 assert tracker[0]["options"] == {"schemaVersion": 1}
-assert portable["plugin"].count("../../.local/share/opencode/opencode-todo/src") == 1
-assert portable["plugin"].count("@plannotator/opencode@0.28.2") == 1
+assert plugins[:3] == [
+    "@slkiser/opencode-quota@5.0.2",
+    "../../.local/share/opencode/opencode-todo/src",
+    "@plannotator/opencode@0.28.2",
+]
+assert plugins.count("../../.local/share/opencode/opencode-todo/src") == 1
+assert plugins.count("@plannotator/opencode@0.28.2") == 1
 assert pins == {
     "source": "Angel-O/orchestration-tracking",
     "tag": "v0.1.2",
