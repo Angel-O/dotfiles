@@ -52,6 +52,30 @@ OpenCode uses the managed dark-only native V2 `tokyonight-mauve` theme. Its rend
 
 The portable OpenCode configuration starts new sessions with the custom `orchestrator` agent.
 
+### Per-machine agent model selectors
+
+The managed launcher supplies these defaults only when the corresponding environment variable is absent:
+
+| Agent | Variable | Default selector |
+| --- | --- | --- |
+| `orchestrator` | `OPENCODE_AGENT_MODEL_ORCHESTRATOR` | `openai/gpt-5.6-terra#high` |
+| `integration` | `OPENCODE_AGENT_MODEL_INTEGRATION` | `openai/gpt-5.6-luna#medium` |
+| `investigator` | `OPENCODE_AGENT_MODEL_INVESTIGATOR` | `openai/gpt-5.6-sol#medium` |
+| `reviewer` | `OPENCODE_AGENT_MODEL_REVIEWER` | `openai/gpt-6-astra#medium` |
+| `worker` | `OPENCODE_AGENT_MODEL_WORKER` | `openai/gpt-5.6-luna#high` |
+| `architect` | `OPENCODE_AGENT_MODEL_ARCHITECT` | `openai/gpt-5.6-sol#high` |
+| `planner` | `OPENCODE_AGENT_MODEL_PLANNER` | `openai/gpt-5.6-terra#medium` |
+
+To customize one target without editing managed files, use an unmanaged launcher that exports the complete OpenCode selector before calling the repository launcher:
+
+```zsh
+#!/usr/bin/env zsh
+export OPENCODE_AGENT_MODEL_WORKER='openai/gpt-5.6-luna#medium'
+exec "$HOME/.local/bin/opencode-env" "$@"
+```
+
+The selector is one scalar `provider/model#variant`; the variant must be supported by the selected model. Other agents keep their managed defaults, and ordinary launcher use still sets `OPENCODE_CONFIG` to the managed portable configuration. The existing `~/.config/opencode/env.local` hook remains optional. Restart the OpenCode background service after changing an override so it receives the new environment.
+
 The repository-local `.opencode/commands/align-portable-config.md` command is intentionally excluded from chezmoi. It compares only the managed `portable.jsonc` and `cli.json` surfaces, and delegates confirmed live-to-portable selections without becoming part of the portable setup.
 
 When the `warp` module is enabled, `~/.warp/settings.toml` is modified rather than tracked in full: left Option sends Alt/Meta for terminal keybindings, while right Option remains available for macOS character entry. The module does not install Warp. When disabled, chezmoi does not manage, alter, or delete existing Warp settings. Warp hot-reloads `settings.toml`; smoke-test the enabled policy by confirming `Alt+T` reaches the shell or application instead of producing `†`.

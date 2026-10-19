@@ -1,9 +1,6 @@
 ---
 description: Read-only codebase investigator for bounded discovery and bug verification.
 mode: subagent
-model: openai/gpt-5.6-sol
-options:
-  reasoningEffort: medium
 permissions:
   - action: "*"
     resource: "*"

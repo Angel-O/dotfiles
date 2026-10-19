@@ -1,9 +1,6 @@
 ---
 description: Interactive architecture designer for large cross-area initiatives.
 mode: primary
-model: openai/gpt-5.6-sol
-options:
-  reasoningEffort: high
 permissions:
   - action: "*"
     resource: "*"

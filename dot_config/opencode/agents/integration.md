@@ -1,9 +1,6 @@
 ---
 description: Read-only runner for repository-wide integration validation.
 mode: subagent
-model: openai/gpt-5.6-luna
-options:
-  reasoningEffort: medium
 permissions:
   - action: "*"
     resource: "*"

@@ -1,9 +1,6 @@
 ---
 description: High-reasoning implementation worker for a supplied scope.
 mode: primary
-model: openai/gpt-5.6-luna
-options:
-  reasoningEffort: high
 permissions:
   - action: "*"
     resource: "*"
