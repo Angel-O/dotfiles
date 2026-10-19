@@ -90,7 +90,7 @@ assert_not_contains "$root/personal/skill.sh" 'memex --version'
 grep -Eq '^ensure_github_plugin nicosuave\.memex "nicosuave/memex" "v0\.[0-9]+\.[0-9]+"$' "$root/personal/herdr.sh"
 assert_contains "$root/personal/herdr.toml" 'key = "prefix+ctrl+m"'
 assert_contains "$root/personal/herdr.toml" 'command = "nicosuave.memex.palette"'
-jq -e '(.plugin | all(.[]; (if type == "string" then contains("history") | not else true end))) and (has("mcp") | not) and (has("mcpServers") | not) and (.permission | tostring | contains("memex_") | not)' \
+jq -e '(.plugins | all(.[]; (if type == "string" then contains("history") | not else true end))) and (has("mcp") | not) and (has("mcpServers") | not) and (.permission | tostring | contains("memex_") | not)' \
   "$root/personal/portable.json" >/dev/null
 
 mkdir -p "$root/fake-home/.agents/skills/memex-search" "$root/fake-bin"
