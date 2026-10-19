@@ -45,6 +45,17 @@
       "depTypeTemplate": "beads-runtime",
       "packageNameTemplate": "https://github.com/{{{depName}}}.git",
       "datasourceTemplate": "git-refs"
+    },
+    {
+      "customType": "regex",
+      "description": "Update the OpenCode tracker release asset",
+      "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
+      "matchStrings": [
+        "\\[pins\\.openCodeTracker\\]\\s+source = \"(?<depName>[^\"]+)\"\\s+tag = \"(?<currentValue>v[^\"]+)\"\\s+archiveSha256 = \"(?<currentDigest>[a-f0-9]{64})\""
+      ],
+      "depTypeTemplate": "opencode-tracker",
+      "datasourceTemplate": "github-release-attachments",
+      "versioningTemplate": "semver-coerced"
     }
   ],
   "packageRules": [
