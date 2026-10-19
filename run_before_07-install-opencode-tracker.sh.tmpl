@@ -5,7 +5,9 @@ set -eu
 exit 0
 {{- else }}
 repo={{ .pins.openCodeTracker.source | quote }}
+wanted_tag={{ .pins.openCodeTracker.tag | quote }}
 wanted_ref={{ .pins.openCodeTracker.ref | quote }}
+wanted_archive={{ .pins.openCodeTracker.archive | quote }}
 wanted_sha256={{ .pins.openCodeTracker.archiveSha256 | quote }}
 install_root="$HOME/.local/share/opencode"
 current="$install_root/orchestration-tracking"
@@ -49,7 +51,7 @@ extract="$tmp/extract"
 cleanup() { rm -rf "$tmp"; }
 trap cleanup EXIT HUP INT TERM
 
-archive_url="https://github.com/$repo/archive/$wanted_ref.tar.gz"
+archive_url="https://github.com/$repo/releases/download/$wanted_tag/$wanted_archive"
 if ! curl -fsSL --retry 2 --output "$archive" "$archive_url"; then
   printf 'Unable to download the OpenCode tracker archive from public GitHub.\n' >&2
   exit 1

@@ -42,9 +42,10 @@ assert plugins.count("../../.local/share/opencode/opencode-todo/src") == 1
 assert plugins.count("@plannotator/opencode@0.28.2") == 1
 assert pins == {
     "source": "Angel-O/orchestration-tracking",
-    "tag": "v0.1.2",
-    "ref": "7b48ca2a48bcecb2ed7a278bc5bab092c2bca335",
-    "archiveSha256": "44a8d6d75f4d4d8e8f0f9c9cb33a3fc88bd403bdf9d7c42a9c74bb0baf9037f8",
+    "tag": "v0.1.3",
+    "ref": "dc285a4f4579a853bf9745fa0923fb08b2486d9d",
+    "archive": "orchestration-tracking-0.1.3.tar.gz",
+    "archiveSha256": "0117654dd65430e03e68c4903f596c51c38afc0b6b3e687a65bfea1f578dad36",
 }
 assert re.fullmatch(r"[0-9a-f]{40}", pins["ref"])
 PY
@@ -76,10 +77,14 @@ if printf '%s\n' "$disabled_managed" | grep -Fxq '.config/opencode/commands/trac
   exit 1
 fi
 
-grep -Fq 'https://github.com/$repo/archive/$wanted_ref.tar.gz' "$installer"
+grep -Fq 'https://github.com/$repo/releases/download/$wanted_tag/$wanted_archive' "$installer"
 grep -Fq 'curl -fsSL' "$installer"
 grep -Fq 'mv -Tf "$link_tmp" "$current"' "$installer"
 grep -Fq 'os.replace(sys.argv[1], sys.argv[2])' "$installer"
+if grep -Fq '/archive/' "$installer"; then
+  printf 'tracker installer must use the verified release asset, not a source archive.\n' >&2
+  exit 1
+fi
 if grep -Eq '(^|[[:space:]])(gh|wget)([[:space:]]|$)' "$installer"; then
   printf 'tracker installer must use the public archive URL, not GitHub CLI or wget.\n' >&2
   exit 1
@@ -101,7 +106,7 @@ import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-old = "44a8d6d75f4d4d8e8f0f9c9cb33a3fc88bd403bdf9d7c42a9c74bb0baf9037f8"
+old = "0117654dd65430e03e68c4903f596c51c38afc0b6b3e687a65bfea1f578dad36"
 path.write_text(text.replace(old, sys.argv[2]))
 PY
 
@@ -133,19 +138,20 @@ HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
   sh "$installer"
 current="$home/.local/share/opencode/orchestration-tracking"
 test -L "$current"
-test "$(readlink "$current")" = orchestration-tracking-7b48ca2a48bcecb2ed7a278bc5bab092c2bca335
+test "$(readlink "$current")" = orchestration-tracking-dc285a4f4579a853bf9745fa0923fb08b2486d9d
 test -f "$current/src/plugin.ts"
+grep -Fxq 'https://github.com/Angel-O/orchestration-tracking/releases/download/v0.1.3/orchestration-tracking-0.1.3.tar.gz' "$root/curl.url"
 
 old_ref=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 mkdir -p "$home/.local/share/opencode/orchestration-tracking-$old_ref/src"
 printf '%s\n' 'old managed release' >"$home/.local/share/opencode/orchestration-tracking-$old_ref/src/plugin.ts"
 rm "$current"
-rm -rf "$home/.local/share/opencode/orchestration-tracking-7b48ca2a48bcecb2ed7a278bc5bab092c2bca335"
+rm -rf "$home/.local/share/opencode/orchestration-tracking-dc285a4f4579a853bf9745fa0923fb08b2486d9d"
 ln -s "orchestration-tracking-$old_ref" "$current"
 HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
   FAKE_CURL_URL="$root/curl.url" \
   sh "$installer"
-test "$(readlink "$current")" = orchestration-tracking-7b48ca2a48bcecb2ed7a278bc5bab092c2bca335
+test "$(readlink "$current")" = orchestration-tracking-dc285a4f4579a853bf9745fa0923fb08b2486d9d
 test -f "$home/.local/share/opencode/orchestration-tracking-$old_ref/src/plugin.ts"
 
 HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
