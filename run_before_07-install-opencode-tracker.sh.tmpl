@@ -6,12 +6,11 @@ exit 0
 {{- else }}
 repo={{ .pins.openCodeTracker.source | quote }}
 wanted_tag={{ .pins.openCodeTracker.tag | quote }}
-wanted_ref={{ .pins.openCodeTracker.ref | quote }}
-wanted_archive={{ .pins.openCodeTracker.archive | quote }}
 wanted_sha256={{ .pins.openCodeTracker.archiveSha256 | quote }}
+wanted_archive="orchestration-tracking-${wanted_tag#v}.tar.gz"
 install_root="$HOME/.local/share/opencode"
 current="$install_root/orchestration-tracking"
-release="$install_root/orchestration-tracking-$wanted_ref"
+release="$install_root/orchestration-tracking-$wanted_sha256"
 
 command -v curl >/dev/null 2>&1 || {
   printf 'The OpenCode tracker installer requires curl.\n' >&2
@@ -28,9 +27,9 @@ if [ -L "$current" ]; then
   current_target=$(readlink "$current")
   case "$current_target" in
     orchestration-tracking-*)
-      current_ref=${current_target#orchestration-tracking-}
-      if [ "${#current_ref}" -eq 40 ] &&
-        [ -z "$(printf '%s' "$current_ref" | tr -d '0123456789abcdef')" ]; then
+      current_id=${current_target#orchestration-tracking-}
+      if { [ "${#current_id}" -eq 40 ] || [ "${#current_id}" -eq 64 ]; } &&
+        [ -z "$(printf '%s' "$current_id" | tr -d '0123456789abcdef')" ]; then
         managed_current=1
       fi
       ;;

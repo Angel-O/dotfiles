@@ -14,7 +14,7 @@ chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixt
   <"$source_dir/run_before_07-install-opencode-tracker.sh.tmpl" >"$installer"
 sh -n "$installer"
 
-python3 - "$config" "$source_dir/.chezmoidata.toml" <<'PY'
+python3 - "$config" "$source_dir/.chezmoidata.toml" "$source_dir/renovate.json" <<'PY'
 import json
 import re
 import sys
@@ -22,7 +22,9 @@ import tomllib
 from pathlib import Path
 
 portable = json.load(open(sys.argv[1]))
-pins = tomllib.load(open(sys.argv[2], "rb"))["pins"]["openCodeTracker"]
+pin_text = Path(sys.argv[2]).read_text()
+pins = tomllib.loads(pin_text)["pins"]["openCodeTracker"]
+renovate = json.load(open(sys.argv[3]))
 assert "plugin" not in portable
 plugins = portable["plugins"]
 tracker = [entry for entry in plugins if "orchestration-tracking" in str(entry)]
@@ -48,14 +50,23 @@ managed_src.mkdir(parents=True)
 (managed_src / "index.ts").write_text("export default {};\n")
 assert (config_dir / tracker[0]).resolve() == managed_src.resolve()
 assert (config_dir / tracker[0] / "index.ts").is_file()
-assert pins == {
-    "source": "Angel-O/orchestration-tracking",
-    "tag": "v0.1.3",
-    "ref": "dc285a4f4579a853bf9745fa0923fb08b2486d9d",
-    "archive": "orchestration-tracking-0.1.3.tar.gz",
-    "archiveSha256": "0117654dd65430e03e68c4903f596c51c38afc0b6b3e687a65bfea1f578dad36",
+assert set(pins) == {"source", "tag", "archiveSha256"}
+assert pins["source"] == "Angel-O/orchestration-tracking"
+assert re.fullmatch(r"v\d+\.\d+\.\d+", pins["tag"])
+assert re.fullmatch(r"[0-9a-f]{64}", pins["archiveSha256"])
+managers = [manager for manager in renovate["customManagers"] if manager.get("depTypeTemplate") == "opencode-tracker"]
+assert len(managers) == 1, managers
+manager = managers[0]
+assert manager["datasourceTemplate"] == "github-release-attachments"
+assert manager["versioningTemplate"] == "semver-coerced"
+assert manager["managerFilePatterns"] == [r"/^\.chezmoidata\.toml$/"]
+pattern = manager["matchStrings"][0].replace("(?<", "(?P<")
+match = re.search(pattern, pin_text)
+assert match and match.groupdict() == {
+    "depName": pins["source"],
+    "currentValue": pins["tag"],
+    "currentDigest": pins["archiveSha256"],
 }
-assert re.fullmatch(r"[0-9a-f]{40}", pins["ref"])
 PY
 
 launcher="$source_dir/dot_local/bin/executable_herdr-agent-launch"
@@ -108,14 +119,22 @@ if command -v sha256sum >/dev/null 2>&1; then
 else
   archive_sha=$(shasum -a 256 "$root/tracker.tar.gz" | awk '{print $1}')
 fi
-python3 - "$installer" "$archive_sha" <<'PY'
+read -r tracker_source tracker_tag tracker_sha < <(python3 - "$source_dir/.chezmoidata.toml" <<'PY'
+import sys
+import tomllib
+
+pins = tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodeTracker"]
+print(pins["source"], pins["tag"], pins["archiveSha256"])
+PY
+)
+tracker_archive="orchestration-tracking-${tracker_tag#v}.tar.gz"
+python3 - "$installer" "$tracker_sha" "$archive_sha" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-old = "0117654dd65430e03e68c4903f596c51c38afc0b6b3e687a65bfea1f578dad36"
-path.write_text(text.replace(old, sys.argv[2]))
+path.write_text(text.replace(sys.argv[2], sys.argv[3]))
 PY
 
 fake_bin="$root/bin"
@@ -146,20 +165,20 @@ HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
   sh "$installer"
 current="$home/.local/share/opencode/orchestration-tracking"
 test -L "$current"
-test "$(readlink "$current")" = orchestration-tracking-dc285a4f4579a853bf9745fa0923fb08b2486d9d
+test "$(readlink "$current")" = "orchestration-tracking-$archive_sha"
 test -f "$current/src/plugin.ts"
-grep -Fxq 'https://github.com/Angel-O/orchestration-tracking/releases/download/v0.1.3/orchestration-tracking-0.1.3.tar.gz' "$root/curl.url"
+grep -Fxq "https://github.com/$tracker_source/releases/download/$tracker_tag/$tracker_archive" "$root/curl.url"
 
 old_ref=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 mkdir -p "$home/.local/share/opencode/orchestration-tracking-$old_ref/src"
 printf '%s\n' 'old managed release' >"$home/.local/share/opencode/orchestration-tracking-$old_ref/src/plugin.ts"
 rm "$current"
-rm -rf "$home/.local/share/opencode/orchestration-tracking-dc285a4f4579a853bf9745fa0923fb08b2486d9d"
+rm -rf "$home/.local/share/opencode/orchestration-tracking-$archive_sha"
 ln -s "orchestration-tracking-$old_ref" "$current"
 HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
   FAKE_CURL_URL="$root/curl.url" \
   sh "$installer"
-test "$(readlink "$current")" = orchestration-tracking-dc285a4f4579a853bf9745fa0923fb08b2486d9d
+test "$(readlink "$current")" = "orchestration-tracking-$archive_sha"
 test -f "$home/.local/share/opencode/orchestration-tracking-$old_ref/src/plugin.ts"
 
 HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
