@@ -13,6 +13,14 @@ if [[ -r "$local_env" ]]; then
   source "$local_env"
 fi
 
+export OPENCODE_AGENT_MODEL_ORCHESTRATOR="${OPENCODE_AGENT_MODEL_ORCHESTRATOR-openai/gpt-5.6-terra#high}"
+export OPENCODE_AGENT_MODEL_INTEGRATION="${OPENCODE_AGENT_MODEL_INTEGRATION-openai/gpt-5.6-luna#medium}"
+export OPENCODE_AGENT_MODEL_INVESTIGATOR="${OPENCODE_AGENT_MODEL_INVESTIGATOR-openai/gpt-5.6-sol#medium}"
+export OPENCODE_AGENT_MODEL_REVIEWER="${OPENCODE_AGENT_MODEL_REVIEWER-openai/gpt-6-astra#medium}"
+export OPENCODE_AGENT_MODEL_WORKER="${OPENCODE_AGENT_MODEL_WORKER-openai/gpt-5.6-luna#high}"
+export OPENCODE_AGENT_MODEL_ARCHITECT="${OPENCODE_AGENT_MODEL_ARCHITECT-openai/gpt-5.6-sol#high}"
+export OPENCODE_AGENT_MODEL_PLANNER="${OPENCODE_AGENT_MODEL_PLANNER-openai/gpt-5.6-terra#medium}"
+
 export PLANNOTATOR_DATA_DIR="${PLANNOTATOR_DATA_DIR:-$HOME/.local/share/plannotator}"
 export OPENCODE_CONFIG="$HOME/.config/opencode/portable.jsonc"
 

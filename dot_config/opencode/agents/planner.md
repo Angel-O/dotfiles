@@ -1,9 +1,6 @@
 ---
 description: Decomposer for approved architecture and authorized Bead publication.
 mode: subagent
-model: openai/gpt-5.6-terra
-options:
-  reasoningEffort: medium
 permissions:
   - action: "*"
     resource: "*"

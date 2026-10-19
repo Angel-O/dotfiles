@@ -35,6 +35,8 @@ bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
 bash "$source_dir/tests/test-opencode-tracker.sh"
 [[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
+bash "$source_dir/tests/test-opencode-agent-model-overrides.sh"
+[[ "${TEST_SCOPE:-}" != opencode-agent-model-overrides ]] || exit 0
 
 source_files() {
   if git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -272,16 +274,19 @@ assert cli["diffs"] == {
 assert cli["debug"] == {"devtools": True, "timing": False, "turn_tokens": True}
 assert portable["default_agent"] == "orchestrator"
 expected = {
-    "orchestrator": "#C099FF",
-    "build": "#82AAFF",
-    "plan": "#FF966C",
-    "architect": "#C3E88D",
-    "worker": "#FF757F",
+    "orchestrator": {"color": "#C099FF", "model": "{env:OPENCODE_AGENT_MODEL_ORCHESTRATOR}"},
+    "build": {"color": "#82AAFF"},
+    "plan": {"color": "#FF966C"},
+    "architect": {"color": "#C3E88D", "model": "{env:OPENCODE_AGENT_MODEL_ARCHITECT}"},
+    "worker": {"color": "#FF757F", "model": "{env:OPENCODE_AGENT_MODEL_WORKER}"},
+    "investigator": {"model": "{env:OPENCODE_AGENT_MODEL_INVESTIGATOR}"},
+    "integration": {"model": "{env:OPENCODE_AGENT_MODEL_INTEGRATION}"},
+    "reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"},
+    "planner": {"model": "{env:OPENCODE_AGENT_MODEL_PLANNER}"},
 }
 assert set(portable["agents"]) == set(expected)
-assert "planner" not in portable["agents"]
-for name, color in expected.items():
-    assert portable["agents"][name] == {"color": color}
+for name, config in expected.items():
+    assert portable["agents"][name] == config
 
 assert set(theme) == {"$schema", "base", "dark"}
 assert theme["$schema"] == "https://opencode.ai/theme.json"
@@ -583,7 +588,7 @@ from pathlib import Path
 
 directory = Path(sys.argv[1])
 contracts = {
-    "orchestrator": ("primary", "openai/gpt-5.6-terra", "high", [
+    "orchestrator": ("primary", [
         ('"*"', '"*"', "deny"),
         ("external_directory", '"*"', "allow"),
         ("question", '"*"', "allow"),
@@ -606,7 +611,7 @@ contracts = {
         ("handoff_session", '"*"', "allow"),
         ("read_session", '"*"', "allow"),
     ]),
-    "integration": ("subagent", "openai/gpt-5.6-luna", "medium", [
+    "integration": ("subagent", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "allow"),
         ("external_directory", '"*"', "allow"),
@@ -616,7 +621,7 @@ contracts = {
         ("skill", '"*"', "allow"),
         ("skill", "terminal-mermaid", "deny"),
     ]),
-    "investigator": ("subagent", "openai/gpt-5.6-sol", "medium", [
+    "investigator": ("subagent", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "allow"),
         ("external_directory", '"*"', "ask"),
@@ -626,7 +631,7 @@ contracts = {
         ("webfetch", '"*"', "allow"),
         ("skill", '"*"', "allow"),
     ]),
-    "reviewer": ("subagent", "openai/gpt-6-astra", "medium", [
+    "reviewer": ("subagent", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "allow"),
         ("external_directory", '"*"', "allow"),
@@ -636,7 +641,7 @@ contracts = {
         ("skill", '"*"', "allow"),
         ("skill", "terminal-mermaid", "deny"),
     ]),
-    "worker": ("primary", "openai/gpt-5.6-luna", "high", [
+    "worker": ("primary", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "allow"),
         ("shell", "git", "deny"),
@@ -657,7 +662,7 @@ contracts = {
         ("skill", '"*"', "allow"),
         ("edit", '"*"', "allow"),
     ]),
-    "architect": ("primary", "openai/gpt-5.6-sol", "high", [
+    "architect": ("primary", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "deny"),
         ("shell", '"wbd show * --json"', "allow"),
@@ -675,7 +680,7 @@ contracts = {
         ("subagent", '"*"', "deny"),
         ("subagent", "planner", "allow"),
     ]),
-    "planner": ("subagent", "openai/gpt-5.6-terra", "medium", [
+    "planner": ("subagent", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "deny"),
         ("shell", '"wbd show * --json"', "allow"),
@@ -692,12 +697,12 @@ contracts = {
     ]),
 }
 
-for name, (mode, model, effort, expected) in contracts.items():
+for name, (mode, expected) in contracts.items():
     text = (directory / f"{name}.md").read_text()
     frontmatter = text.split("---", 2)[1]
     assert f"mode: {mode}" in frontmatter
-    assert f"model: {model}" in frontmatter
-    assert f"reasoningEffort: {effort}" in frontmatter
+    assert "model:" not in frontmatter
+    assert "reasoningEffort:" not in frontmatter
     permissions = frontmatter.split("permissions:", 1)[1]
     assert "permission:" not in frontmatter
     actual = [
@@ -872,6 +877,15 @@ printf '%s\n' "$output"
 EOF
   chmod +x "$fake_bin/herdr"
 
+  managed_opencode="$test_dir/home/.local/bin/opencode-env"
+  mkdir -p "$(dirname "$managed_opencode")"
+  cat >"$managed_opencode" <<'EOF'
+#!/usr/bin/env bash
+printf 'managed opencode-env %s\n' "$*" >>"$FAKE_HERDR_LOG"
+exec opencode "$@"
+EOF
+  chmod +x "$managed_opencode"
+
   cat >"$fake_bin/opencode" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -928,7 +942,7 @@ EOF
     : >"$log"
     (
       CDPATH= cd -- "$process_repo"
-      PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      HOME="$test_dir/home" PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
         FAKE_HERDR_FAILURE="${FAKE_HERDR_FAILURE:-}" FAKE_OPENCODE_FAILURE="${FAKE_OPENCODE_FAILURE:-}" \
         FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE="$role" \
         FAKE_HERDR_SOURCE_REPO="$process_repo" \
@@ -947,6 +961,7 @@ EOF
   grep -Fxq 'pane rename w1:p1 orchestrator' "$log"
   grep -Fxq 'pane rename w1:p2 architect' "$log"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"architect\",\"location\":{\"directory\":\"$pane_repo\"}}"
+  assert_contains "$log" 'managed opencode-env api session.create'
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --session ses_test'
   assert_not_contains "$log" 'plugin pane open'
 

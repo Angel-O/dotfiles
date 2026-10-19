@@ -17,7 +17,8 @@
   },
   "agents": {
     "orchestrator": {
-      "color": "#C099FF"
+      "color": "#C099FF",
+      "model": "{env:OPENCODE_AGENT_MODEL_ORCHESTRATOR}"
     },
     "build": {
       "color": "#82AAFF"
@@ -26,10 +27,24 @@
       "color": "#FF966C"
     },
     "architect": {
-      "color": "#C3E88D"
+      "color": "#C3E88D",
+      "model": "{env:OPENCODE_AGENT_MODEL_ARCHITECT}"
     },
     "worker": {
-      "color": "#FF757F"
+      "color": "#FF757F",
+      "model": "{env:OPENCODE_AGENT_MODEL_WORKER}"
+    },
+    "investigator": {
+      "model": "{env:OPENCODE_AGENT_MODEL_INVESTIGATOR}"
+    },
+    "integration": {
+      "model": "{env:OPENCODE_AGENT_MODEL_INTEGRATION}"
+    },
+    "reviewer": {
+      "model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"
+    },
+    "planner": {
+      "model": "{env:OPENCODE_AGENT_MODEL_PLANNER}"
     }
   }{{ if eq .role "personal" }},
   "disabled_providers": ["opencode"],

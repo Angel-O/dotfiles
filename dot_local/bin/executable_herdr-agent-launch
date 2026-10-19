@@ -59,6 +59,8 @@ fi
 command -v herdr >/dev/null 2>&1 || fail 'herdr is not installed'
 command -v jq >/dev/null 2>&1 || fail 'jq is not installed'
 command -v opencode >/dev/null 2>&1 || fail 'opencode is not installed'
+opencode_launcher="$HOME/.local/bin/opencode-env"
+[[ -x "$opencode_launcher" ]] || fail 'managed OpenCode launcher is not installed'
 if [[ "$role/$topology" == worker/worktree ]]; then
   # The launcher process selects the repository; pane cwd is placement metadata.
   if ! source_repo=$(git rev-parse --show-toplevel 2>/dev/null); then
@@ -201,7 +203,7 @@ agent_cwd=$caller_cwd
 [[ "$role/$topology" == worker/tab && -n "$worker_cwd" ]] && agent_cwd=$worker_cwd
 session_request=$(jq -cn --arg agent "$role" --arg directory "$agent_cwd" \
   '{agent:$agent, location:{directory:$directory}}')
-if ! session_response=$(opencode api session.create --data "$session_request" 2>&1); then
+if ! session_response=$("$opencode_launcher" api session.create --data "$session_request" 2>&1); then
   fail "opencode session creation failed: $session_response"
 fi
 session_id=$(jq -er --arg role "$role" --arg cwd "$agent_cwd" \
