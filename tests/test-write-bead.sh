@@ -133,7 +133,13 @@ assert "passes the complete approved architecture verbatim to the planner" in se
 
 assert architect.count("wbd show <epic-id> --json") == 2
 assert "use that current description as the base" in architect
-assert "Stop if `## Architect notes` already exists" in architect
+assert "If `## Architect notes` is absent" in architect
+assert "allow any number of architecture amendments" in architect
+assert "each separately requiring explicit user approval" in architect
+assert "Append each approved amendment as a clearly titled level-3 subsection beneath the existing appendix" in architect
+assert "preserve all existing architect-note content verbatim" in architect
+assert "never add a second level-2 `## Architect notes` heading" in architect
+assert "Otherwise stop." in architect
 assert "Do not perform a post-update read or full-description comparison." in architect
 assert "then read it again" not in architect
 assert "`## Architect notes`" in architect
