@@ -4,7 +4,13 @@
   "plugin": [
     "@slkiser/opencode-quota@{{ .pins.openCodePlugins.quota }}",
     "../../.local/share/opencode/opencode-todo/src",
-    "@plannotator/opencode@{{ .pins.openCodePlugins.plannotator }}"
+    "@plannotator/opencode@{{ .pins.openCodePlugins.plannotator }}",
+    {
+      "package": "../../.local/share/opencode/orchestration-tracking/src/plugin.ts",
+      "options": {
+        "schemaVersion": 1
+      }
+    }
   ],
   "agent": {
     "title": {

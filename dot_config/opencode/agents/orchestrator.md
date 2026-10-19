@@ -17,6 +17,18 @@ permissions:
   - action: shell
     resource: "*"
     effect: allow
+  - action: tool
+    resource: tracking_run_start
+    effect: allow
+  - action: tool
+    resource: tracking_lane_attach
+    effect: allow
+  - action: tool
+    resource: tracking_closeout
+    effect: allow
+  - action: tool
+    resource: tracking_report
+    effect: allow
   - action: read
     resource: "*"
     effect: allow

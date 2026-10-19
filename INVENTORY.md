@@ -112,6 +112,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the release-managed skill; keep history data local; use it for advanced retrieval |
 | `nicosuave.memex` Herdr plugin | Upstream release | v0.28.0 | Shared/selected | Install when selected and bind `prefix+ctrl+m` to the session palette |
 | `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |
+| `orchestration-tracking` | Tag `v0.1.2`, full commit pin, public GitHub source archive plus checksum | Shared | Atomically install under `~/.local/share/opencode/`; load exactly once from the explicit V2 package/options entry; runtime database and reports remain local |
 
 ## OpenCode Local Plugins, Commands, and Skills
 
@@ -121,6 +122,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `herdr-agent-state.js` | `~/.config/opencode/plugins/` | Reports OpenCode session state to Herdr | Regenerate through Herdr integration | Shared/generated |
 | `herdr-name.md` | `~/.config/opencode/command/` | Global command for naming the active Herdr agent | Track | Shared |
 | `orchestrate-bead.md` | `~/.config/opencode/commands/` | Starts fixed custom workers through Herdr for private Bead work | Track when Herdr, Beads, and the OpenCode Beads integration are enabled | Shared/conditional |
+| `tracking-report.md` | `~/.config/opencode/commands/` | Read-only current-session, Bead, session, and time-window report interface | Track when OpenCode is enabled | Shared/conditional |
 | `orchestrate.md` | `~/.config/opencode/commands/` | Starts ordinary work under the custom orchestrator with Ponytail-aware delegates | Track when OpenCode and Herdr are enabled | Shared/conditional |
 | `herdr-agent-launch` | `~/.local/bin/` | Single managed launcher for verified architect sibling, worker tab, and worker worktree Herdr topologies | Track when OpenCode and Herdr are enabled | Shared/conditional |
 | `agents/*.md` | `~/.config/opencode/agents/` | Defines the additive orchestrator, reviewer, worker, architect, and planner roles | Track when OpenCode is enabled | Shared |
@@ -145,6 +147,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | Tool output | `~/.local/share/opencode/tool-output/` | Ignore/private | May include commands, source, and sensitive output |
 | Quota state/history | OpenCode data and cache directories | Ignore/private | Account-related runtime information |
 | Cache | `~/.cache/opencode/` | Ignore | Downloaded packages and transient state |
+| Tracker database and reports | `~/.local/share/opencode/orchestration-tracker/` | Ignore/private | Local SQLite and self-contained reports; never synchronize or publish private Bead IDs |
 
 ## Starship
 

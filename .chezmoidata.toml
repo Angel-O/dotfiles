@@ -18,6 +18,12 @@ ref = "77e86e2edc7c1cd8d8249a1e4879ec45fa8d7d6b"
 quota = "5.0.2"
 plannotator = "0.28.2"
 
+[pins.openCodeTracker]
+source = "Angel-O/orchestration-tracking"
+tag = "v0.1.2"
+ref = "7b48ca2a48bcecb2ed7a278bc5bab092c2bca335"
+archiveSha256 = "44a8d6d75f4d4d8e8f0f9c9cb33a3fc88bd403bdf9d7c42a9c74bb0baf9037f8"
+
 [pins.openCodePlugins.todo]
 source = "https://github.com/afriemann/opencode-todo.git"
 ref = "9f84740dad686f9206d537da1ec3b6eac7a2b8b6"

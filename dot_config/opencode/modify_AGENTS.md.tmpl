@@ -99,6 +99,8 @@ cat <<'BLOCK'
 For explicitly requested private Beads tracking, or work that already references a Bead ID, load the global `beads-hub` skill before acting. Follow its contract; use only `wbd` and approved `wbv --robot-*` queries, never raw `bd`, `bv`, or `br`.
 
 Commit correlation and Bead closure must not occur during implementation, commit, push, or PR creation. Perform both only after the change is merged, through the `beads-hub-closeout` workflow.
+
+Only after `beads-hub-closeout` reports `closeout complete`, invoke the tracker `tracking_closeout` tool with the same exact private Bead ID. Never invoke it for a failed or partial Hub closeout. Tracker failures must not undo or block successful Hub closeout.
 <!-- portable-beads-hub:end -->
 BLOCK
 {{- end }}

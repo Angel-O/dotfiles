@@ -1,0 +1,99 @@
+#!/bin/sh
+set -eu
+
+{{- if not .modules.opencode }}
+exit 0
+{{- else }}
+repo={{ .pins.openCodeTracker.source | quote }}
+wanted_ref={{ .pins.openCodeTracker.ref | quote }}
+wanted_sha256={{ .pins.openCodeTracker.archiveSha256 | quote }}
+install_root="$HOME/.local/share/opencode"
+current="$install_root/orchestration-tracking"
+release="$install_root/orchestration-tracking-$wanted_ref"
+
+command -v curl >/dev/null 2>&1 || {
+  printf 'The OpenCode tracker installer requires curl.\n' >&2
+  exit 1
+}
+
+mkdir -p "$install_root"
+if [ -L "$current" ] && [ "$(readlink "$current")" = "$(basename "$release")" ] &&
+  [ -f "$release/src/plugin.ts" ]; then
+  exit 0
+fi
+managed_current=0
+if [ -L "$current" ]; then
+  current_target=$(readlink "$current")
+  case "$current_target" in
+    orchestration-tracking-*)
+      current_ref=${current_target#orchestration-tracking-}
+      if [ "${#current_ref}" -eq 40 ] &&
+        [ -z "$(printf '%s' "$current_ref" | tr -d '0123456789abcdef')" ]; then
+        managed_current=1
+      fi
+      ;;
+  esac
+fi
+if [ "$managed_current" -eq 0 ] && { [ -e "$current" ] || [ -L "$current" ]; }; then
+  printf '%s exists and is not the managed tracker symlink; refusing to overwrite it.\n' "$current" >&2
+  exit 1
+fi
+if [ -e "$release" ]; then
+  printf '%s exists but does not match the approved archive; refusing to reuse it.\n' "$release" >&2
+  exit 1
+fi
+
+tmp=$(mktemp -d "$install_root/.orchestration-tracking.XXXXXX")
+archive="$tmp/source.tar.gz"
+extract="$tmp/extract"
+cleanup() { rm -rf "$tmp"; }
+trap cleanup EXIT HUP INT TERM
+
+archive_url="https://github.com/$repo/archive/$wanted_ref.tar.gz"
+if ! curl -fsSL --retry 2 --output "$archive" "$archive_url"; then
+  printf 'Unable to download the OpenCode tracker archive from public GitHub.\n' >&2
+  exit 1
+fi
+
+if command -v shasum >/dev/null 2>&1; then
+  actual_sha256=$(shasum -a 256 "$archive" | awk '{print $1}')
+elif command -v sha256sum >/dev/null 2>&1; then
+  actual_sha256=$(sha256sum "$archive" | awk '{print $1}')
+else
+  printf 'The OpenCode tracker installer requires shasum or sha256sum.\n' >&2
+  exit 1
+fi
+if [ "$actual_sha256" != "$wanted_sha256" ]; then
+  printf 'OpenCode tracker archive checksum mismatch: expected %s, got %s.\n' \
+    "$wanted_sha256" "$actual_sha256" >&2
+  exit 1
+fi
+
+mkdir "$extract"
+if ! tar -xzf "$archive" -C "$extract"; then
+  printf 'Unable to extract the OpenCode tracker archive.\n' >&2
+  exit 1
+fi
+source_dir=$(find "$extract" -mindepth 1 -maxdepth 1 -type d -print)
+if [ "$(printf '%s\n' "$source_dir" | wc -l | tr -d ' ')" -ne 1 ] ||
+  [ ! -f "$source_dir/src/plugin.ts" ]; then
+  printf 'The OpenCode tracker archive has an unexpected layout.\n' >&2
+  exit 1
+fi
+
+mv "$source_dir" "$release"
+link_tmp="$tmp/current"
+ln -s "$(basename "$release")" "$link_tmp"
+if ! mv -Tf "$link_tmp" "$current" 2>/dev/null; then
+  command -v python3 >/dev/null 2>&1 || {
+    printf 'The OpenCode tracker installer requires an atomic rename-capable mv or python3.\n' >&2
+    exit 1
+  }
+  python3 - "$link_tmp" "$current" <<'PY'
+import os
+import sys
+
+os.replace(sys.argv[1], sys.argv[2])
+PY
+fi
+{{- end }}

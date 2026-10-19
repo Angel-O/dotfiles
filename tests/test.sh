@@ -33,6 +33,8 @@ bash "$source_dir/tests/test-agents-modifier.sh"
 [[ "${TEST_SCOPE:-}" != agents-modifier ]] || exit 0
 bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
+bash "$source_dir/tests/test-opencode-tracker.sh"
+[[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
 
 source_files() {
   if git -C "$source_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -585,8 +587,12 @@ contracts = {
         ('"*"', '"*"', "deny"),
         ("external_directory", '"*"', "allow"),
         ("question", '"*"', "allow"),
-        ("shell", '"*"', "allow"),
-        ("read", '"*"', "allow"),
+         ("shell", '"*"', "allow"),
+         ("tool", "tracking_run_start", "allow"),
+         ("tool", "tracking_lane_attach", "allow"),
+         ("tool", "tracking_closeout", "allow"),
+         ("tool", "tracking_report", "allow"),
+         ("read", '"*"', "allow"),
         ("glob", '"*"', "allow"),
         ("grep", '"*"', "allow"),
         ("subagent", '"*"', "deny"),
@@ -870,6 +876,17 @@ EOF
 #!/usr/bin/env bash
 set -Eeuo pipefail
 printf 'opencode %s\n' "$*" >>"$FAKE_HERDR_LOG"
+if [[ "$1 $2 $3" == "api session.update --param" ]]; then
+  [[ $# -eq 6 && "$4" == sessionID=ses_test && "$5" == --data ]] || exit 2
+  [[ "${FAKE_OPENCODE_FAILURE:-}" != metadata-update ]] || {
+    printf 'metadata update unavailable\n' >&2
+    exit 1
+  }
+  jq -e --arg session ses_test --arg bead "${FAKE_TRACKING_BEAD:-}" \
+    '.metadata["orchestration-tracking.launch"] ==
+      {version:1,targetSessionID:$session,beadID:$bead}' <<<"$6" >/dev/null
+  exit 0
+fi
 [[ "$1 $2 $3" == "api session.create --data" && $# -eq 4 ]] || exit 2
 case "${FAKE_OPENCODE_FAILURE:-}" in
   unavailable-role) printf 'agent not found\n' >&2; exit 1 ;;
@@ -890,8 +907,18 @@ EOF
     local role=$1 topology=$2 name=$3
     shift 3
     local launcher_path=${1:-}
+    [[ -z "$launcher_path" || "$launcher_path" != --* ]] || launcher_path=
+    [[ -n "$launcher_path" ]] && shift
+    local tracking_bead=
+    if [[ ${1:-} == --tracking-bead ]]; then
+      [[ $# -eq 2 ]] || return 2
+      tracking_bead=$2
+      shift 2
+    fi
+    [[ $# -eq 0 ]] || return 2
     local -a launcher_args=("$role" "$topology" "$name")
     [[ -n "$launcher_path" ]] && launcher_args+=("$launcher_path")
+    [[ -n "$tracking_bead" ]] && launcher_args+=(--tracking-bead "$tracking_bead")
     local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=$pane_repo fake_tab_cwd=$pane_repo
     case "$topology" in
       sibling) fake_tab=w1:t1; fake_pane=w1:p2 ;;
@@ -908,12 +935,13 @@ EOF
         FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
         FAKE_HERDR_TAB="$fake_tab" FAKE_HERDR_PANE="$fake_pane" FAKE_HERDR_CWD="$fake_cwd" \
         FAKE_HERDR_TAB_CWD="$fake_tab_cwd" FAKE_HERDR_BUSY_MARKER="$test_dir/busy-marker" \
+        FAKE_TRACKING_BEAD="$tracking_bead" \
         bash "$launcher" "${launcher_args[@]}"
     )
   }
 
   metadata=$(run_launcher architect sibling architect-agent)
-  jq -e --arg cwd "$pane_repo" ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:$cwd}' <<<"$metadata" >/dev/null
+  jq -e --arg cwd "$pane_repo" ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
   assert_contains "$log" "pane split --current --direction right --cwd $pane_repo --no-focus"
   test "$(grep -Fc 'pane rename ' "$log")" -eq 2
   grep -Fxq 'pane rename w1:p1 orchestrator' "$log"
@@ -922,8 +950,34 @@ EOF
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --session ses_test'
   assert_not_contains "$log" 'plugin pane open'
 
+  tracking_bead=$(printf '%s%s%s' 'fixture' '-' 'bead')
+  metadata=$(run_launcher worker tab worker --tracking-bead "$tracking_bead")
+  jq -e --arg cwd "$pane_repo" --arg bead "$tracking_bead" \
+    '. == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"} and
+     (tostring | contains($bead) | not)' <<<"$metadata" >/dev/null
+  create_line=$(grep -n 'opencode api session.create ' "$log" | cut -d: -f1)
+  update_line=$(grep -n 'opencode api session.update ' "$log" | cut -d: -f1)
+  start_line=$(grep -n 'agent start ' "$log" | cut -d: -f1)
+  test "$create_line" -lt "$update_line"
+  test "$update_line" -lt "$start_line"
+  assert_contains "$log" 'targetSessionID":"ses_test"'
+  assert_contains "$log" "beadID\":\"$tracking_bead\""
+
+  metadata_error="$test_dir/metadata-error"
+  metadata=$(FAKE_OPENCODE_FAILURE=metadata-update run_launcher worker tab worker --tracking-bead "$tracking_bead" \
+    2>"$metadata_error")
+  jq -e --arg bead "$tracking_bead" '.session_id == "ses_test" and (tostring | contains($bead) | not)' \
+    <<<"$metadata" >/dev/null
+  assert_contains "$metadata_error" 'tracking metadata update failed; continuing launch.'
+  assert_not_contains "$metadata_error" "$tracking_bead"
+  assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
+
+  if run_launcher worker tab worker --tracking-bead 'bad/identity' >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker tab worker --tracking-bead "$tracking_bead" --tracking-bead "$tracking_bead" >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker tab worker --unknown-flag >/dev/null 2>&1; then exit 1; fi
+
   metadata=$(run_launcher worker tab worker)
-  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
+  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
   assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement split --target-pane w1:p3 --cwd $pane_repo --no-focus"
@@ -934,7 +988,7 @@ EOF
   jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
 
   metadata=$(run_launcher worker tab worker "$delivery_worktree")
-  jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd}' <<<"$metadata" >/dev/null
+  jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
   assert_contains "$log" "tab create --workspace w1 --cwd $delivery_worktree --label worker --no-focus"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$delivery_worktree\"}}"
   assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
@@ -952,7 +1006,7 @@ EOF
   if run_launcher worker tab worker "$pane_repo" >/dev/null 2>&1; then exit 1; fi
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
-  jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,worktree_path:$path}' <<<"$metadata" >/dev/null
+  jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,session_id:"ses_test",worktree_path:$path}' <<<"$metadata" >/dev/null
   assert_contains "$log" "worktree create --cwd $process_repo --branch worktree/worker-agent --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$worktree\"}}"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --session ses_test'
@@ -1744,7 +1798,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
-jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2", {package:"../../.local/share/opencode/orchestration-tracking/src/plugin.ts", options:{schemaVersion:1}}]) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
@@ -1786,8 +1840,8 @@ assert_private_id_disclosure_policy "$personal_beads_home/.config/opencode/comma
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'The active Bead orchestration contract applies equally to a single concrete work item and to each selected epic child.'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'semantic worker name that is unique among currently active workers and free of private work-item/context identifiers'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'passes the worker name verbatim as its workspace label'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch worker worktree <worker-name> <dedicated-worktree-path>'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name>'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch worker worktree <worker-name> <dedicated-worktree-path> --tracking-bead <bead-id>'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name> --tracking-bead <bead-id>'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
 assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
 assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode --agent'
@@ -1946,7 +2000,7 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
-jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2"]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+jq -e '(.plugin == ["@slkiser/opencode-quota@5.0.2", "../../.local/share/opencode/opencode-todo/src", "@plannotator/opencode@0.28.2", {package:"../../.local/share/opencode/orchestration-tracking/src/plugin.ts", options:{schemaVersion:1}}]) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$work_home/.config/opencode/cli.json" 'opencode-todo'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
