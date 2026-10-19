@@ -5,7 +5,8 @@ source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 
-config="$root/portable.jsonc"
+config="$root/config-home/.config/opencode/portable.jsonc"
+mkdir -p "$(dirname "$config")"
 installer="$root/installer.sh"
 chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
   <"$source_dir/dot_config/opencode/portable.jsonc.tmpl" >"$config"
@@ -18,6 +19,7 @@ import json
 import re
 import sys
 import tomllib
+from pathlib import Path
 
 portable = json.load(open(sys.argv[1]))
 pins = tomllib.load(open(sys.argv[2], "rb"))["pins"]["openCodeTracker"]
@@ -26,19 +28,26 @@ plugins = portable["plugins"]
 tracker = [entry for entry in plugins if "orchestration-tracking" in str(entry)]
 assert len(tracker) == 1, plugins
 assert plugins[-1] is tracker[0], plugins
-assert tracker[0] == "../../.local/share/opencode/orchestration-tracking"
+assert tracker[0] == "../../.local/share/opencode/orchestration-tracking/src"
 assert isinstance(tracker[0], str), tracker
 assert plugins.count(tracker[0]) == 1, plugins
-assert all("orchestration-tracking/src/plugin.ts" not in str(entry) for entry in plugins)
+assert tracker[0] != "../../.local/share/opencode/orchestration-tracking"
 assert all("qa" not in str(entry).lower() for entry in plugins)
 assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entry)) for entry in plugins)
-assert plugins[:3] == [
+assert plugins == [
     "@slkiser/opencode-quota@5.0.2",
     "../../.local/share/opencode/opencode-todo/src",
     "@plannotator/opencode@0.28.2",
+    "../../.local/share/opencode/orchestration-tracking/src",
 ]
 assert plugins.count("../../.local/share/opencode/opencode-todo/src") == 1
 assert plugins.count("@plannotator/opencode@0.28.2") == 1
+config_dir = Path(sys.argv[1]).parent
+managed_src = config_dir.parent.parent / ".local/share/opencode/orchestration-tracking/src"
+managed_src.mkdir(parents=True)
+(managed_src / "index.ts").write_text("export default {};\n")
+assert (config_dir / tracker[0]).resolve() == managed_src.resolve()
+assert (config_dir / tracker[0] / "index.ts").is_file()
 assert pins == {
     "source": "Angel-O/orchestration-tracking",
     "tag": "v0.1.3",
