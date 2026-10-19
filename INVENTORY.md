@@ -112,7 +112,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the release-managed skill; keep history data local; use it for advanced retrieval |
 | `nicosuave.memex` Herdr plugin | Upstream release | v0.28.0 | Shared/selected | Install when selected and bind `prefix+ctrl+m` to the session palette |
 | `@plannotator/opencode@0.28.2` | Pinned | Shared | Review plans in the browser from OpenCode |
-| `orchestration-tracking` | Tag `v0.1.1`, full commit pin, public GitHub source archive plus checksum | Shared | Atomically install under `~/.local/share/opencode/`; load exactly once from the explicit V2 package/options entry; runtime database and reports remain local |
+| `orchestration-tracking` | Tag `v0.1.2`, full commit pin, public GitHub source archive plus checksum | Shared | Atomically install under `~/.local/share/opencode/`; load exactly once from the explicit V2 package/options entry; runtime database and reports remain local |
 
 ## OpenCode Local Plugins, Commands, and Skills
 

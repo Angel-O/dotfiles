@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 # One deliberately small adapter owns the allowed primary-agent layouts.
 usage() {
-  printf 'usage: %s architect sibling NAME\n       %s worker tab NAME [ABSOLUTE_PATH]\n       %s worker worktree NAME ABSOLUTE_PATH\n' "$0" "$0" "$0" >&2
+  printf 'usage: %s architect sibling NAME [--tracking-bead BEAD_ID]\n       %s worker tab NAME [ABSOLUTE_PATH] [--tracking-bead BEAD_ID]\n       %s worker worktree NAME ABSOLUTE_PATH [--tracking-bead BEAD_ID]\n' "$0" "$0" "$0" >&2
   exit 2
 }
 
@@ -12,6 +12,17 @@ fail() {
   exit 1
 }
 
+tracking_bead=
+positional=()
+while [[ $# -gt 0 && $1 != --* ]]; do
+  positional+=("$1")
+  shift
+done
+if [[ $# -gt 0 ]]; then
+  [[ "$1" == --tracking-bead && $# -eq 2 && -n "$2" && "$2" != --* ]] || usage
+  tracking_bead=$2
+fi
+set -- "${positional[@]}"
 [[ $# -ge 2 ]] || usage
 role=$1
 topology=$2
@@ -24,6 +35,10 @@ esac
 
 agent_name=$3
 [[ "$agent_name" =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || fail "invalid agent name: $agent_name"
+if [[ -n "$tracking_bead" ]]; then
+  [[ "$tracking_bead" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$tracking_bead" != *..* ]] ||
+    fail 'invalid tracking bead'
+fi
 
 worktree_path=
 worker_cwd=
@@ -193,6 +208,15 @@ session_id=$(jq -er --arg role "$role" --arg cwd "$agent_cwd" \
   '.data | select(.agent == $role and .location.directory == $cwd) | .id |
    select(type == "string" and startswith("ses") and length > 3)' \
   <<<"$session_response") || fail "opencode session creation returned malformed or unexpected JSON: $session_response"
+
+if [[ -n "$tracking_bead" ]]; then
+  metadata_request=$(jq -cn --arg session "$session_id" --arg bead "$tracking_bead" \
+    '{metadata:{"orchestration-tracking.launch":{version:1,targetSessionID:$session,beadID:$bead}}}')
+  if ! opencode api session.update --param "sessionID=$session_id" --data "$metadata_request" \
+    >/dev/null 2>&1; then
+    printf 'herdr-agent-launch: tracking metadata update failed; continuing launch.\n' >&2
+  fi
+fi
 # Herdr omits false-valued launch_pending; accept that current form and explicit false only.
 herdr_call agent_started \
   '.result | (.agent | type == "object") and (.argv | type == "array") and

@@ -30,9 +30,9 @@ assert portable["plugin"].count("../../.local/share/opencode/opencode-todo/src")
 assert portable["plugin"].count("@plannotator/opencode@0.28.2") == 1
 assert pins == {
     "source": "Angel-O/orchestration-tracking",
-    "tag": "v0.1.1",
-    "ref": "fb412c4525901847eea76cf839907f2fc17dbf90",
-    "archiveSha256": "4c42a39b1ed43c9e64ca2bcff6435ae24ebfbff58b478e2cad4ef4f7314999f3",
+    "tag": "v0.1.2",
+    "ref": "7b48ca2a48bcecb2ed7a278bc5bab092c2bca335",
+    "archiveSha256": "44a8d6d75f4d4d8e8f0f9c9cb33a3fc88bd403bdf9d7c42a9c74bb0baf9037f8",
 }
 assert re.fullmatch(r"[0-9a-f]{40}", pins["ref"])
 PY
@@ -40,8 +40,15 @@ PY
 launcher="$source_dir/dot_local/bin/executable_herdr-agent-launch"
 grep -Fq -- '--arg session "$session_id"' "$launcher"
 grep -Fq 'session_id:$session' "$launcher"
+grep -Fq 'orchestration-tracking.launch' "$launcher"
 grep -Fq 'tracking_run_start' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
 grep -Fq 'tracking_lane_attach' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+grep -Fq -- '--tracking-bead <bead-id>' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+grep -Fq 'remains available for explicit manual recovery only' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+if grep -Fq 'After each primary architect or worker launch' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"; then
+  printf 'normal orchestration must not require post-launch lane attachment.\n' >&2
+  exit 1
+fi
 grep -Fq 'tracking_report' "$source_dir/dot_config/opencode/commands/tracking-report.md"
 grep -Fq 'tracking_closeout' "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl"
 
@@ -82,7 +89,7 @@ import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-old = "4c42a39b1ed43c9e64ca2bcff6435ae24ebfbff58b478e2cad4ef4f7314999f3"
+old = "44a8d6d75f4d4d8e8f0f9c9cb33a3fc88bd403bdf9d7c42a9c74bb0baf9037f8"
 path.write_text(text.replace(old, sys.argv[2]))
 PY
 
@@ -114,19 +121,19 @@ HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
   sh "$installer"
 current="$home/.local/share/opencode/orchestration-tracking"
 test -L "$current"
-test "$(readlink "$current")" = orchestration-tracking-fb412c4525901847eea76cf839907f2fc17dbf90
+test "$(readlink "$current")" = orchestration-tracking-7b48ca2a48bcecb2ed7a278bc5bab092c2bca335
 test -f "$current/src/plugin.ts"
 
 old_ref=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 mkdir -p "$home/.local/share/opencode/orchestration-tracking-$old_ref/src"
 printf '%s\n' 'old managed release' >"$home/.local/share/opencode/orchestration-tracking-$old_ref/src/plugin.ts"
 rm "$current"
-rm -rf "$home/.local/share/opencode/orchestration-tracking-fb412c4525901847eea76cf839907f2fc17dbf90"
+rm -rf "$home/.local/share/opencode/orchestration-tracking-7b48ca2a48bcecb2ed7a278bc5bab092c2bca335"
 ln -s "orchestration-tracking-$old_ref" "$current"
 HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
   FAKE_CURL_URL="$root/curl.url" \
   sh "$installer"
-test "$(readlink "$current")" = orchestration-tracking-fb412c4525901847eea76cf839907f2fc17dbf90
+test "$(readlink "$current")" = orchestration-tracking-7b48ca2a48bcecb2ed7a278bc5bab092c2bca335
 test -f "$home/.local/share/opencode/orchestration-tracking-$old_ref/src/plugin.ts"
 
 HOME="$home" PATH="$fake_bin:$PATH" FAKE_CURL_ARCHIVE="$root/tracker.tar.gz" \
