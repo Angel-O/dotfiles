@@ -26,7 +26,9 @@ pin_text = Path(sys.argv[2]).read_text()
 pins = tomllib.loads(pin_text)["pins"]["openCodeTracker"]
 renovate = json.load(open(sys.argv[3]))
 assert "plugin" not in portable
+assert portable["experimental"] == {"todo": True}
 plugins = portable["plugins"]
+assert "../../.local/share/opencode/opencode-todo/src" not in plugins
 tracker = [entry for entry in plugins if "orchestration-tracking" in str(entry)]
 assert len(tracker) == 1, plugins
 assert plugins[-1] is tracker[0], plugins
@@ -38,11 +40,9 @@ assert all("qa" not in str(entry).lower() for entry in plugins)
 assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entry)) for entry in plugins)
 assert plugins == [
     "@slkiser/opencode-quota@5.0.2",
-    "../../.local/share/opencode/opencode-todo/src",
     "@plannotator/opencode@0.28.2",
     "../../.local/share/opencode/orchestration-tracking/src",
 ]
-assert plugins.count("../../.local/share/opencode/opencode-todo/src") == 1
 assert plugins.count("@plannotator/opencode@0.28.2") == 1
 config_dir = Path(sys.argv[1]).parent
 managed_src = config_dir.parent.parent / ".local/share/opencode/orchestration-tracking/src"
