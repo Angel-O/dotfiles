@@ -35,6 +35,8 @@ bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
 bash "$source_dir/tests/test-opencode-tracker.sh"
 [[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
+bash "$source_dir/tests/test-opencode-policy.sh"
+[[ "${TEST_SCOPE:-}" != opencode-policy ]] || exit 0
 bash "$source_dir/tests/test-opencode-agent-model-overrides.sh"
 [[ "${TEST_SCOPE:-}" != opencode-agent-model-overrides ]] || exit 0
 
@@ -593,10 +595,7 @@ contracts = {
         ("external_directory", '"*"', "allow"),
         ("question", '"*"', "allow"),
          ("shell", '"*"', "allow"),
-         ("tool", "tracking_run_start", "allow"),
-         ("tool", "tracking_lane_attach", "allow"),
-         ("tool", "tracking_closeout", "allow"),
-         ("tool", "tracking_report", "allow"),
+         ("orchestration_tracking", '"*"', "allow"),
          ("read", '"*"', "allow"),
         ("glob", '"*"', "allow"),
         ("grep", '"*"', "allow"),
