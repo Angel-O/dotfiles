@@ -52,6 +52,8 @@ assert (config_dir / tracker[0]).resolve() == managed_src.resolve()
 assert (config_dir / tracker[0] / "index.ts").is_file()
 assert set(pins) == {"source", "tag", "archiveSha256"}
 assert pins["source"] == "Angel-O/orchestration-tracking"
+assert pins["tag"] == "v0.1.5"
+assert pins["archiveSha256"] == "cfd7c28cb02404c28f50937084546e99c31b2a0dc95b8edcbbde2b2cdc7f853d"
 assert re.fullmatch(r"v\d+\.\d+\.\d+", pins["tag"])
 assert re.fullmatch(r"[0-9a-f]{64}", pins["archiveSha256"])
 managers = [manager for manager in renovate["customManagers"] if manager.get("depTypeTemplate") == "opencode-tracker"]
