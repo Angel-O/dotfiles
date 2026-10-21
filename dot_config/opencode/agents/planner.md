@@ -8,6 +8,10 @@ permissions:
   - action: shell
     resource: "*"
     effect: deny
+  # V2 whole-value matching: permit only the direct context discovery command.
+  - action: shell
+    resource: "wbd context"
+    effect: allow
   - action: shell
     resource: "wbd show * --json"
     effect: allow
