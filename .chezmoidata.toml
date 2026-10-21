@@ -62,12 +62,12 @@ ref = "9872a499181b5a52472da3f74b9c567d3898069f"
 [pins.herdrPlugins.kiosk]
 source = "thomasschafer/herdr-kiosk"
 branch = "main"
-ref = "d39791817ceb538db9c018b4f42ede6859f3243e"
+ref = "08e2be1ecbd70d0aa27a808f3310c9ec64d7ff97"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "eecb1d53f5ae16e2d7674429f384c8fabb0bc178"
+ref = "261de9b0441a6972941414bbf16eb4f5df27ac34"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
