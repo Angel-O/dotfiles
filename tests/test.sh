@@ -686,6 +686,7 @@ contracts = {
         ("shell", '"wbd show * --json"', "allow"),
         ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
         ("shell", '"wbd scope active --json"', "allow"),
+        ("shell", '"wbd create * --type * --context * --description * --priority * --json"', "allow"),
         ("shell", '"wbd create * --type * --priority * --context * --description * --json"', "allow"),
         ("shell", '"wbd scope add * --context * --json"', "allow"),
         ("shell", '"wbd dep add * * --type parent-child --json"', "allow"),
