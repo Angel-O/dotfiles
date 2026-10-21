@@ -21,6 +21,10 @@ permissions:
   - action: shell
     resource: "wbd scope active --json"
     effect: allow
+  # Captured V2 scanner form: create flags may place context and description before priority.
+  - action: shell
+    resource: "wbd create * --type * --context * --description * --priority * --json"
+    effect: allow
   - action: shell
     resource: "wbd create * --type * --priority * --context * --description * --json"
     effect: allow

@@ -57,6 +57,7 @@ assert_contains "$planner" 'collective coverage of every epic acceptance criteri
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
 assert_contains "$planner" '    resource: "wbd context"'
+assert_contains "$planner" '    resource: "wbd create * --type * --context * --description * --priority * --json"'
 assert_contains "$planner" '    resource: "wbd create * --type * --priority * --context * --description * --json"'
 assert_contains "$planner" '    resource: "wbd dep add * * --type parent-child --json"'
 assert_contains "$planner" '    resource: "wbd show * --json --expand-dependencies"'
@@ -125,6 +126,7 @@ assert planner_rules[:3] == [
     ('shell', '"wbd context"', 'allow'),
 ]
 assert ('shell', '"wbd context *"', 'allow') not in planner_rules
+assert ('shell', '"wbd create * --context * --priority * --description * --json"', 'allow') not in planner_rules
 
 def matches(pattern, resource):
     pattern = pattern.strip('"')
@@ -141,7 +143,15 @@ def evaluate(resource):
 # Exercise V2's ordered, whole-value matching rather than only checking text.
 assert evaluate('wbd context') == 'allow'
 assert evaluate('wbd context --json') == 'deny'
+assert evaluate('wbd create child --type task --priority 2 --context local --description detail --json') == 'allow'
+assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json') == 'allow'
+assert evaluate("wbd create \"child\" --type task --context local --description 'detail with spaces' --priority 2 --json") == 'allow'
+assert evaluate('wbd create child --type task --context local --priority 2 --description detail --json') == 'deny'
+assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json --from-todo todo') == 'deny'
+assert evaluate('wbd create child --type task --context local --description detail --priority 2') == 'deny'
 assert evaluate('wbd context && wbd create child --type task') == 'deny'
+assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json && wbd update child --status closed') == 'deny'
+assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json | cat') == 'deny'
 assert evaluate('wbd update child --status closed --json') == 'deny'
 assert 'mode: subagent' in planner.split('---', 2)[1]
 assert not any(action == 'subagent' and resource == 'plan' for action, resource, _ in planner_rules)
@@ -226,8 +236,12 @@ remove_list=$(chezmoi execute-template --source "$source_dir" --config "$source_
 printf '%s\n' "$remove_list" | grep -Fxq '.config/opencode/commands/materialize-epic.md'
 
 cleanup=$(mktemp)
+rendered=$(mktemp)
 home=$(mktemp -d)
-trap 'rm -f "$cleanup"; rm -rf "$home"' EXIT
+trap 'rm -f "$cleanup" "$rendered"; rm -rf "$home"' EXIT
+chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
+  <"$planner" >"$rendered"
+grep -Fqx '    resource: "wbd create * --type * --context * --description * --priority * --json"' "$rendered"
 chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" \
   <"$source_dir/run_before_04-remove-disabled-write-bead.sh.tmpl" >"$cleanup"
 sh -n "$cleanup"
