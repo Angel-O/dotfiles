@@ -682,6 +682,7 @@ contracts = {
     "planner": ("subagent", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "deny"),
+        ("shell", '"wbd context"', "allow"),
         ("shell", '"wbd show * --json"', "allow"),
         ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
         ("shell", '"wbd scope active --json"', "allow"),

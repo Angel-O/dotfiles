@@ -56,6 +56,7 @@ assert_contains "$architect" '    resource: "wbd update * --description * --json
 assert_contains "$planner" 'collective coverage of every epic acceptance criterion'
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
+assert_contains "$planner" '    resource: "wbd context"'
 assert_contains "$planner" '    resource: "wbd create * --type * --priority * --context * --description * --json"'
 assert_contains "$planner" '    resource: "wbd dep add * * --type parent-child --json"'
 assert_contains "$planner" '    resource: "wbd show * --json --expand-dependencies"'
@@ -109,6 +110,41 @@ assert rules == [
     ('subagent', '"*"', 'deny'),
     ('subagent', 'planner', 'allow'),
 ], rules
+
+planner_rules = [
+    tuple(match)
+    for match in re.findall(
+        r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+        planner,
+        re.MULTILINE,
+    )
+]
+assert planner_rules[:3] == [
+    ('"*"', '"*"', 'deny'),
+    ('shell', '"*"', 'deny'),
+    ('shell', '"wbd context"', 'allow'),
+]
+assert ('shell', '"wbd context *"', 'allow') not in planner_rules
+
+def matches(pattern, resource):
+    pattern = pattern.strip('"')
+    regex = re.escape(pattern).replace(r'\*', '.*').replace(r'\?', '.')
+    return re.fullmatch(regex, resource) is not None
+
+def evaluate(resource):
+    effect = 'ask'
+    for action, pattern, candidate in planner_rules:
+        if action in {'"*"', 'shell'} and matches(pattern, resource):
+            effect = candidate
+    return effect
+
+# Exercise V2's ordered, whole-value matching rather than only checking text.
+assert evaluate('wbd context') == 'allow'
+assert evaluate('wbd context --json') == 'deny'
+assert evaluate('wbd context && wbd create child --type task') == 'deny'
+assert evaluate('wbd update child --status closed --json') == 'deny'
+assert 'mode: subagent' in planner.split('---', 2)[1]
+assert not any(action == 'subagent' and resource == 'plan' for action, resource, _ in planner_rules)
 assert plan_resource in architect
 assert plan_resource not in planner
 assert 'plannotator' not in planner.lower()
