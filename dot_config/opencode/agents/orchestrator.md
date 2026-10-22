@@ -75,6 +75,10 @@ When user discussion establishes an epic or standalone concrete implementation B
 
 Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners. Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.
 
+## Bead Claim Invariant
+
+For every Bead-backed primary launch, run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt. This is an orchestrator-owned best-effort instruction; `wbd claim` is the authoritative atomic Hub ownership and status operation. Claim an epic when active architect or coordinator work begins, and claim a concrete task or selected epic child only when that worker begins. Never bulk-claim epic children. Tracker selection and `--tracking-bead` provide local session attribution only; they do not claim a Bead or change Hub status. Do not claim planner, reviewer, or integration lanes.
+
 ## Fresh Worker Prompts
 
 Every fresh worker launch prompt is one self-contained contract. Use these labeled fields in this order: `Work item`; `Dedicated worktree and ownership`; `Scope and exclusions`; `Inputs and prerequisites`; `Expected outputs or interfaces`; `Acceptance and compatibility criteria`; `Validation expected and owner`; `Handoff contents`; and `Stop/report conditions`. Do not launch until every field is filled in. For a fresh Bead worker, also include the canonical private Bead ID, relevant epic ID when any, title, wave, and prerequisite status, and require the worker to read those authoritative records. The nine fields provide operational context and must not copy or replace the canonical specification. Keep both IDs in the private prompt only; never copy either into a branch, workspace, file, commit, or report. If the user explicitly requests a Bead ID, provide that ID directly in the user-facing response without objection; this exception does not permit placing it in any Git-visible artifact.
