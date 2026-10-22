@@ -73,16 +73,57 @@ launcher="$source_dir/dot_local/bin/executable_herdr-agent-launch"
 grep -Fq -- '--arg session "$session_id"' "$launcher"
 grep -Fq 'session_id:$session' "$launcher"
 grep -Fq 'orchestration-tracking.launch' "$launcher"
-grep -Fq 'tracking_run_start' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
-grep -Fq 'tracking_lane_attach' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+grep -Fq 'tracking_bead_select({ beadID })' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+if grep -Fq 'tracking_run_start' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"; then
+  printf 'managed orchestration must not use the removed run-start call.\n' >&2
+  exit 1
+fi
+if grep -R -Fq 'tracking_lane_attach' "$source_dir/dot_config/opencode" "$source_dir/docs" "$source_dir/README.md"; then
+  printf 'managed guidance must not use the removed lane-attach call.\n' >&2
+  exit 1
+fi
 grep -Fq -- '--tracking-bead <bead-id>' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
-grep -Fq 'remains available for explicit manual recovery only' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
+grep -Fq -- 'architect sibling <architect-name> --tracking-bead <bead-id>' "$source_dir/dot_config/opencode/commands/orchestrate.md"
 if grep -Fq 'After each primary architect or worker launch' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"; then
   printf 'normal orchestration must not require post-launch lane attachment.\n' >&2
   exit 1
 fi
 grep -Fq 'tracking_report' "$source_dir/dot_config/opencode/commands/tracking-report.md"
+grep -Fq 'tracking_report({ bead?, sessions?, from?, to? })' "$source_dir/dot_config/opencode/commands/tracking-report.md"
+grep -Fq 'tracking_closeout({ beadID })' "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl"
 grep -Fq 'tracking_closeout' "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl"
+
+python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" \
+  "$source_dir/dot_config/opencode/agents/planner.md" \
+  "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl" \
+  "$source_dir/dot_config/opencode/commands/orchestrate.md" \
+  "$source_dir/dot_config/opencode/commands/tracking-report.md" \
+  "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl" <<'PY'
+from pathlib import Path
+import sys
+
+orchestrator, planner, command, ordinary_command, report, agents = (
+    Path(path).read_text() for path in sys.argv[1:]
+)
+assert "tracking_bead_created({ beadID })" in orchestrator
+assert "successful top-level `wbd create`" in orchestrator
+assert "exact `wbd show` validation" in orchestrator
+assert "active-scope membership confirmation" in orchestrator
+assert "tracking_bead_created({ beadID })" in planner
+assert planner.index("parent-linking succeeds") < planner.index("tracking_bead_created({ beadID })")
+assert "planner's epic attribution" in planner
+assert "creating child scoping" in planner
+assert command.index("tracking_bead_select({ beadID })") < command.index("--tracking-bead <bead-id>")
+assert "tracking_run_start" not in command
+assert "tracking_lane_attach" not in command
+assert "newly created epic from normal discussion" in ordinary_command
+assert "already-validated epic ID" in ordinary_command
+assert ordinary_command.index("newly created epic") < ordinary_command.index("architect sibling <architect-name> --tracking-bead <bead-id>")
+assert "omit that option for non-Bead architecture" in ordinary_command
+assert "tracking_report({ bead?, sessions?, from?, to? })" in report
+assert "default run" not in report
+assert agents.index("closeout complete") < agents.index("tracking_closeout({ beadID })")
+PY
 
 managed=$(chezmoi managed --source "$source_dir" \
   --config "$source_dir/tests/fixtures/personal.toml" --cache "$root/cache" \

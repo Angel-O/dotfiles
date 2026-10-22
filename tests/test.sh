@@ -681,6 +681,7 @@ contracts = {
     ]),
     "planner": ("subagent", [
         ('"*"', '"*"', "deny"),
+        ("orchestration_tracking", '"*"', "allow"),
         ("shell", '"*"', "deny"),
         ("shell", '"wbd context"', "allow"),
         ("shell", '"wbd show * --json"', "allow"),
