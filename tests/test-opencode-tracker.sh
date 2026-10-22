@@ -75,6 +75,10 @@ launcher="$source_dir/dot_local/bin/executable_herdr-agent-launch"
 grep -Fq -- '--arg session "$session_id"' "$launcher"
 grep -Fq 'session_id:$session' "$launcher"
 grep -Fq 'orchestration-tracking.launch' "$launcher"
+if grep -Fq 'wbd claim' "$launcher"; then
+  printf 'generic Herdr launcher must not perform Hub claims.\n' >&2
+  exit 1
+fi
 grep -Fq 'tracking_bead_select({ beadID })' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
 if grep -Fq 'tracking_run_start' "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"; then
   printf 'managed orchestration must not use the removed run-start call.\n' >&2
@@ -100,13 +104,56 @@ python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" \
   "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl" \
   "$source_dir/dot_config/opencode/commands/orchestrate.md" \
   "$source_dir/dot_config/opencode/commands/tracking-report.md" \
-  "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl" <<'PY'
+  "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl" \
+  "$source_dir/docs/opencode-agent-orchestration.md" <<'PY'
 from pathlib import Path
 import sys
 
-orchestrator, planner, command, ordinary_command, report, agents = (
+orchestrator, planner, command, ordinary_command, report, agents, docs = (
     Path(path).read_text() for path in sys.argv[1:]
 )
+claim_invariant = "For every Bead-backed primary launch, the orchestrator must run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt."
+assert claim_invariant in orchestrator
+assert "Tracker selection and `--tracking-bead` provide local session attribution only; they do not claim a Bead or change Hub status." in orchestrator
+assert "Do not claim planner, reviewer, or integration lanes." in orchestrator
+
+def branch(text, start, end):
+    return text[text.index(start):text.index(end, text.index(start))]
+
+ordinary_worker = branch(ordinary_command, "For ordinary work,", "\n\nIf the user selects architecture")
+assert "standalone concrete Bead" in ordinary_worker
+assert "wbd claim <bead-id> --json" in ordinary_worker
+assert "exact Bead" in ordinary_worker
+claim_position = ordinary_worker.index("wbd claim <bead-id> --json")
+assert claim_position < ordinary_worker.index('herdr agent prompt worker "<contract>" --wait', claim_position)
+assert "otherwise preserve the non-Bead flow without a claim" in ordinary_worker
+
+new_epic_architect = branch(ordinary_command, "When this follows a newly created epic", "\n\nAfter worker handoff")
+assert "wbd claim <bead-id> --json" in new_epic_architect
+assert "that exact epic" in new_epic_architect
+claim_position = new_epic_architect.index("wbd claim <bead-id> --json")
+assert claim_position < new_epic_architect.index('herdr agent prompt <architect-name> "<design-prompt>" --wait', claim_position)
+
+direct_worker = branch(command, "For a task, bug, feature, or chore,", "\n\n{{- if .modules.opencode }}")
+assert "wbd claim <bead-id> --json" in direct_worker
+assert "that exact concrete Bead before its worker's first prompt" in direct_worker
+
+existing_epic_architect = branch(command, "If the user selects architecture for a large initiative", "\n{{- end }}")
+assert "wbd claim <bead-id> --json" in existing_epic_architect
+assert "exact canonical epic" in existing_epic_architect
+claim_position = existing_epic_architect.index("wbd claim <bead-id> --json")
+assert claim_position < existing_epic_architect.index('herdr agent prompt <architect-name> "<design-prompt>" --wait', claim_position)
+
+child_worker = branch(command, "For each concrete Bead selected for the current wave", "\n\nEvery fresh worker")
+assert "wbd claim <bead-id> --json" in child_worker
+assert "exact selected concrete Bead" in child_worker
+assert "that selected child—not the root epic or its siblings" in child_worker
+assert "never bulk-claim children" in child_worker
+claim_position = child_worker.index("wbd claim <bead-id> --json")
+assert claim_position < child_worker.index('herdr agent prompt <worker-name> "<contract>" --wait', claim_position)
+assert "wbd claim <id> --json" in docs
+assert "tracking_bead_select({ beadID })` and the launcher's `--tracking-bead` option are local session attribution" in docs
+assert "generic Herdr launcher remains responsible for lane, worktree, and tracker plumbing only; it does not perform Hub claims" in docs
 assert "tracking_bead_created({ beadID })" in orchestrator
 assert "successful top-level `wbd create`" in orchestrator
 assert "exact `wbd show` validation" in orchestrator
@@ -121,7 +168,7 @@ assert "tracking_lane_attach" not in command
 assert "newly created epic from normal discussion" in ordinary_command
 assert "already-validated epic ID" in ordinary_command
 assert ordinary_command.index("newly created epic") < ordinary_command.index("architect sibling <architect-name> --tracking-bead <bead-id>")
-assert "omit that option for non-Bead architecture" in ordinary_command
+assert "omit that option and the claim" in ordinary_command
 assert "tracking_report({ bead?, sessions?, from?, to? })" in report
 assert "default run" not in report
 assert agents.index("closeout complete") < agents.index("tracking_closeout({ beadID })")
