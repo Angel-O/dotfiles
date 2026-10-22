@@ -5,6 +5,9 @@ permissions:
   - action: "*"
     resource: "*"
     effect: deny
+  - action: orchestration_tracking
+    resource: "*"
+    effect: allow
   - action: shell
     resource: "*"
     effect: deny
@@ -55,7 +58,7 @@ Convert approved architecture and scope into implementation-ready slices without
 
 For a Bead-backed run, require the exact canonical epic ID, load `beads-hub`, and read the authoritative epic and its approved `## Architect notes`; do not accept a copied specification as canonical input. Inspect existing direct relationships with `wbd show <epic-id> --json --expand-dependencies`. If any direct `parent-child` child already exists, require explicit user authorization for additive publication, preserve every existing child unchanged, and stop before mutation if any proposed slice overlaps or conflicts with one. Load `write-bead` before authoring children. Before the first creation, completely preflight distinct concrete slices, valid slice references, bounded child criteria, genuine dependencies, and collective coverage of every epic acceptance criterion. Missing, duplicate, self-referential, unknown, or conflicting inputs block all publication.
 
-After preflight succeeds, create each structured concrete child with bounded child-specific criteria in the epic's valid context, validate its exact returned canonical ID with the required create-then-show flow, add it to the active scope as required by `beads-hub`, and add a genuine `parent-child` relationship to the epic. If there is no unambiguous active scope, publication is blocked. Only after every created child is validated, scoped, and parent-linked, add `blocks` relationships for genuine implementation dependencies in decomposition order; never add them for ordering preferences. Each child references shared epic context but contains enough task-specific detail to implement and review. Creation does not authorize implementation.
+After preflight succeeds, create each structured concrete child with bounded child-specific criteria in the epic's valid context, validate its exact returned canonical ID with the required create-then-show flow, add it to the active scope as required by `beads-hub`, and add a genuine `parent-child` relationship to the epic. Only after that parent-linking succeeds and the authoritative parent is visible, invoke `tracking_bead_created({ beadID })` for the child. This registers the child without changing the planner's epic attribution or creating child scoping; tracker failure is diagnostic and does not block publication. If there is no unambiguous active scope, publication is blocked. Only after every created child is validated, scoped, and parent-linked, add `blocks` relationships for genuine implementation dependencies in decomposition order; never add them for ordering preferences. Each child references shared epic context but contains enough task-specific detail to implement and review. Creation does not authorize implementation.
 
 On any failed mutation or validation, stop. Never automatically retry, roll back, delete, claim, close, or implement. Accurately report completed and unfinished mutations without adding post-mutation verification beyond the `beads-hub` contract. For a normal non-Bead run, preserve the supplied approved architecture verbatim as authoritative and report only the execution decomposition.
 

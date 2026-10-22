@@ -122,8 +122,8 @@ planner_rules = [
 ]
 assert planner_rules[:3] == [
     ('"*"', '"*"', 'deny'),
+    ('orchestration_tracking', '"*"', 'allow'),
     ('shell', '"*"', 'deny'),
-    ('shell', '"wbd context"', 'allow'),
 ]
 assert ('shell', '"wbd context *"', 'allow') not in planner_rules
 assert ('shell', '"wbd create * --context * --priority * --description * --json"', 'allow') not in planner_rules
