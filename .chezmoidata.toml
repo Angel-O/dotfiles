@@ -34,7 +34,7 @@ ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
 
 [pins.herdrPlugins.memex]
 source = "nicosuave/memex"
-ref = "v0.30.0"
+ref = "v0.31.0"
 
 [pins.herdrPlugins.blink]
 source = "dartyuhov/herdr-blink"
