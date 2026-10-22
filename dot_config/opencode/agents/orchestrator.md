@@ -77,7 +77,7 @@ Prefer and reuse existing suitable delegates for corrections and closely related
 
 ## Bead Claim Invariant
 
-For every Bead-backed primary launch, run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt. This is an orchestrator-owned best-effort instruction; `wbd claim` is the authoritative atomic Hub ownership and status operation. Claim an epic when active architect or coordinator work begins, and claim a concrete task or selected epic child only when that worker begins. Never bulk-claim epic children. Tracker selection and `--tracking-bead` provide local session attribution only; they do not claim a Bead or change Hub status. Do not claim planner, reviewer, or integration lanes.
+For every Bead-backed primary launch, the orchestrator must run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt. `wbd claim` is the authoritative atomic Hub ownership and status operation. Claim an epic when active architect or coordinator work begins, and claim a concrete task or selected epic child only when that worker begins. Never bulk-claim epic children. Tracker selection and `--tracking-bead` provide local session attribution only; they do not claim a Bead or change Hub status. Do not claim planner, reviewer, or integration lanes.
 
 ## Fresh Worker Prompts
 

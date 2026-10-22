@@ -112,7 +112,7 @@ import sys
 orchestrator, planner, command, ordinary_command, report, agents, docs = (
     Path(path).read_text() for path in sys.argv[1:]
 )
-claim_invariant = "For every Bead-backed primary launch, run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt."
+claim_invariant = "For every Bead-backed primary launch, the orchestrator must run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt."
 assert claim_invariant in orchestrator
 assert "Tracker selection and `--tracking-bead` provide local session attribution only; they do not claim a Bead or change Hub status." in orchestrator
 assert "Do not claim planner, reviewer, or integration lanes." in orchestrator
