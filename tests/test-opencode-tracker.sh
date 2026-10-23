@@ -26,7 +26,7 @@ pin_text = Path(sys.argv[2]).read_text()
 pins = tomllib.loads(pin_text)["pins"]["openCodeTracker"]
 renovate = json.load(open(sys.argv[3]))
 assert "plugin" not in portable
-assert portable["experimental"] == {"todo": True}
+assert portable["experimental"] == {"todo": True, "background_compaction": True}
 plugins = portable["plugins"]
 assert "../../.local/share/opencode/opencode-todo/src" not in plugins
 tracker = [entry for entry in plugins if "orchestration-tracking" in str(entry)]
