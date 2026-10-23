@@ -52,9 +52,15 @@ assert (config_dir / tracker[0]).resolve() == managed_src.resolve()
 assert (config_dir / tracker[0] / "index.ts").is_file()
 assert set(pins) == {"source", "tag", "archiveSha256"}
 assert pins["source"] == "Angel-O/orchestration-tracking"
-assert pins["tag"] == "v0.2.1"
-assert pins["archiveSha256"] == "dfece5623582a6121c86f121fbe4a0945bfed776b52312df59126500d012b2ef"
-assert re.fullmatch(r"v\d+\.\d+\.\d+", pins["tag"])
+def supports_tracker_tag(tag):
+    match = re.fullmatch(r"v(\d+)\.\d+\.\d+", tag)
+    return bool(match and match.group(1) == "0")
+
+# Renovate may update patch/minor releases within major version 0.
+assert supports_tracker_tag(pins["tag"])
+assert supports_tracker_tag("v0.4.0")
+assert supports_tracker_tag("v0.3.1")
+assert not supports_tracker_tag("v1.0.0")
 assert re.fullmatch(r"[0-9a-f]{64}", pins["archiveSha256"])
 managers = [manager for manager in renovate["customManagers"] if manager.get("depTypeTemplate") == "opencode-tracker"]
 assert len(managers) == 1, managers
