@@ -29,6 +29,25 @@ test ! -e "$source_dir/dot_config/opencode/skills/orchestration-worker-delivery/
 assert_contains "$commands_dir/orchestrate-task.md.tmpl" 'exactly one concrete task, bug, feature, or chore'
 assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'For an epic, treat the epic as a coordination container and never assign its implementation directly to a worker.'
 assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'dependency-respecting waves'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'Group the selected concrete children by their authoritative repository context'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'at least two selected children'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'no integration state for a group with zero or one child'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'one selected child in each repository remains nonqualifying'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'same semantic, private-ID-free branch name `epic-integration`'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'own distinct integration worktree even though the branch name is shared'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'Freeze the integration tip before each wave'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'current accepted integration tip'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'Cherry-pick only that accepted commit'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'do not resolve substantive integration conflicts in the orchestrator'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'Re-run accumulated validation after each accepted accumulation; do not unlock dependent work until that accumulated validation succeeds'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'do not unlock dependent work until that accumulated validation succeeds'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'final epic acceptance against its final accumulated `epic-integration` worktree'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'child evidence alone is insufficient'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'Do not push any child or integration branch during intermediate waves'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'never push a child branch or create a child PR'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" "push the final \`epic-integration\` branch from each qualifying repository's final accumulated integration worktree"
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'one explicitly requested PR per affected repository from that integration worktree'
+assert_contains "$commands_dir/orchestrate-epic.md.tmpl" 'post-merge closeout workflow'
 assert_not_contains "$commands_dir/orchestrate-task.md.tmpl" 'orchestration-worker-delivery'
 assert_not_contains "$commands_dir/orchestrate-epic.md.tmpl" 'orchestration-worker-delivery'
 assert_not_contains "$source_dir/dot_config/opencode/agents/orchestrator.md" 'orchestration-worker-delivery'
@@ -234,6 +253,32 @@ assert "worker tab worker <absolute-delivery-worktree-path>" not in epic
 wave = "After delivery of a completed child or wave, recompute dependency readiness and immediately launch the next authorized ready wave."
 assert wave not in task
 require(epic, wave)
+
+# Keep the integration contract's threshold, accumulation, acceptance, and
+# delivery gates ordered without introducing a runtime simulation.
+grouping = paragraph(epic, "Group the selected concrete children")
+assert grouping.index("at least two selected children") < grouping.index("zero or one child")
+assert grouping.index("zero or one child") < grouping.index("one selected child in each repository")
+assert grouping.index("same semantic, private-ID-free branch name `epic-integration`") < grouping.index("own distinct integration worktree")
+
+accumulation = paragraph(epic, "For a qualifying repository group")
+assert accumulation.index("accepted corrections") < accumulation.index("Re-run accumulated validation")
+assert accumulation.index("Re-run accumulated validation") < accumulation.index("do not unlock dependent work until that accumulated validation succeeds")
+
+acceptance = paragraph(epic, "For each qualifying repository")
+assert acceptance.index("final epic acceptance against its final accumulated `epic-integration` worktree") < acceptance.index("after all selected child work")
+assert acceptance.index("after all selected child work") < acceptance.index("child evidence alone is insufficient")
+
+delivery = paragraph(epic, "The generic worker delivery instruction above")
+delivery_order = [
+    delivery.index("stop each child at its accepted local commit"),
+    delivery.index("never push a child branch or create a child PR"),
+    delivery.index("Do not push any child or integration branch during intermediate waves"),
+    delivery.index("After final epic acceptance"),
+    delivery.index("push the final `epic-integration` branch from each qualifying repository's final accumulated integration worktree"),
+    delivery.index("one explicitly requested PR per affected repository from that integration worktree"),
+]
+assert delivery_order == sorted(delivery_order), delivery_order
 
 section_map = {
     "ordinary ## Fresh Worker Prompt": "task",
