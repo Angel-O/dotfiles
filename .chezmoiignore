@@ -86,10 +86,10 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/skills/herdr-agent-name/**
 {{- end }}
 {{- if or (not .modules.opencode) (not .modules.herdr) }}
-.config/opencode/commands/orchestrate.md
+.config/opencode/commands/orchestrate-task.md
 {{- end }}
 {{- if or (not .modules.herdr) (not .modules.beads) (not .integrations.opencodeBeads) }}
-.config/opencode/commands/orchestrate-bead.md
+.config/opencode/commands/orchestrate-epic.md
 {{- end }}
 {{- if not .modules.opencode }}
 .config/opencode/commands/tracking-report.md

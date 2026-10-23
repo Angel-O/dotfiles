@@ -35,6 +35,8 @@ bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
 bash "$source_dir/tests/test-opencode-tracker.sh"
 [[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
+bash "$source_dir/tests/test-opencode-orchestration.sh"
+[[ "${TEST_SCOPE:-}" != opencode-orchestration ]] || exit 0
 bash "$source_dir/tests/test-opencode-policy.sh"
 [[ "${TEST_SCOPE:-}" != opencode-policy ]] || exit 0
 bash "$source_dir/tests/test-opencode-agent-model-overrides.sh"
@@ -459,117 +461,6 @@ assert_reviewr_config
 [[ "${TEST_SCOPE:-}" != reviewr-config ]] || exit 0
 assert_viewer_board_config
 [[ "${TEST_SCOPE:-}" != viewer-config ]] || exit 0
-
-assert_orchestration_reuse_contract() {
-  local file=$1
-  assert_contains "$file" 'Prefer and reuse existing suitable delegates for corrections and closely related same-scope follow-ups, including workers, investigators, architects, and planners.'
-  assert_contains "$file" 'Create a new delegate only for distinct ownership, required isolation, or unavailable or unsuitable context.'
-  assert_contains "$file" 'at most one integration subagent session per orchestration run and reuse it for relevant reruns and same-scope follow-ups.'
-  assert_contains "$file" 'Start a second integration session only when genuinely necessary because the existing session'
-  assert_contains "$file" 'do not share a reviewer session across concurrently active parallel workers.'
-  assert_contains "$file" 'review and rereview in that worker'
-  assert_contains "$file" 'Send accepted findings only to that worker; return corrected work only to its paired reviewer session.'
-  assert_contains "$file" 'After that worker lane and review cycle complete, reuse its reviewer for another worker only when the reviewer has capacity.'
-}
-
-assert_reference_branch_contract() {
-  local file=$1
-  assert_contains "$file" 'Reference-branch protection is unconditional by default: never implement, stage, commit, or push on a recorded reference branch.'
-  assert_contains "$file" 'Before launching any implementation worker, create or use a distinct delivery branch or dedicated worktree derived from the recorded reference branch; never launch a worker in or allow a worker to edit the reference checkout.'
-  assert_contains "$file" 'Before staging or pushing, verify that delivery remains on that distinct branch or worktree.'
-  assert_contains "$file" 'This applies whether the reference is main, an integration branch, a release branch, or another named base.'
-  assert_contains "$file" 'Explicit authorization to create or manage a PR does not authorize work, commit, or push on a reference branch; only an explicit user instruction to work or deliver on that specific reference branch waives protection.'
-}
-
-assert_delivery_contract() {
-  local file=$1
-  assert_contains "$file" 'without routine confirmation'
-  assert_contains "$file" 'status/diff inspection, staging, commit, push, and final status reporting'
-  assert_contains "$file" 'does not ask for or wait on manual confirmation'
-  assert_contains "$file" 'gh pr create'
-  assert_contains "$file" 'monitor PR checks'
-  assert_contains "$file" 'user explicitly requests PR handling'
-  assert_contains "$file" 'do not ask whether to create a PR'
-  assert_not_contains "$file" 'PR creation from the orchestrator'
-  assert_not_contains "$file" 'owns delivery through passing PR checks'
-}
-
-assert_worker_liveness_contract() {
-  local file=$1
-  assert_contains "$file" "Retain the launcher's returned metadata for each launched worker in the current orchestration context; this metadata is runtime-only and must not be persisted in Git, files, or Beads."
-  assert_contains "$file" 'A prompt wait timeout is not completion.'
-  assert_contains "$file" 'After a timeout, immediately invoke `herdr agent wait <recorded-worker>` for that same recorded lane and repeat the active wait until it settles or a real blocker occurs; never passively wait or end the turn.'
-  assert_contains "$file" 'This avoids delivery gaps before handoff, review, and next-wave launch.'
-  assert_contains "$file" 'After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker.'
-  assert_contains "$file" 'When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop.'
-  assert_contains "$file" 'Do not stop to narrate routine waiting or progress or require user prompting.'
-  assert_contains "$file" 'Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.'
-}
-
-assert_fresh_worker_prompt_contract() {
-  local file=$1
-  local style=${2:-generic}
-  python3 - "$file" "$style" <<'PY'
-import sys
-from pathlib import Path
-
-text = Path(sys.argv[1]).read_text()
-style = sys.argv[2]
-field_order = [
-    "Work item",
-    "Dedicated worktree and ownership",
-    "Scope and exclusions",
-    "Inputs and prerequisites",
-    "Expected outputs or interfaces",
-    "Acceptance and compatibility criteria",
-    "Validation expected and owner",
-    "Handoff contents",
-    "Stop/report conditions",
-]
-policy_line = next(line for line in text.splitlines() if "Use these labeled fields in this order:" in line)
-cursor = -1
-for label in field_order:
-    position = policy_line.index(f"`{label}`")
-    assert position > cursor
-    cursor = position
-if style == "ordinary":
-    assert "Before every fresh worker launch, submit one self-contained contract." in text
-    assert "Fill every field before launching." in text
-else:
-    assert "Every fresh worker launch prompt is one self-contained contract." in text
-    assert "Do not launch until every field is filled in." in text
-if style == "bead":
-    for field in "canonical private Bead ID", "title", "wave", "prerequisite status":
-        assert field in text
-    assert "never copy it into a branch, workspace, file, commit, or report" in text
-PY
-}
-
-assert_private_id_disclosure_policy() {
-  local file=$1
-  assert_contains "$file" 'If the user explicitly requests a Bead ID, provide that ID directly in the user-facing response without objection; this exception does not permit placing it in any Git-visible artifact.'
-  assert_contains "$file" 'branch, workspace, file, commit, or report'
-}
-
-assert_authorized_loop_simulation() {
-  local file=$1
-  python3 - "$file" <<'PY'
-import sys
-from pathlib import Path
-
-text = Path(sys.argv[1]).read_text()
-events = [
-    "Run one authorized loop.",
-    "A prompt wait timeout is not completion.",
-    "After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker.",
-    "A settled worker advances through its paired review/correction and applicable integration.",
-    "After delivery of a completed child or wave, recompute dependency readiness and immediately launch the next authorized ready wave.",
-]
-positions = [text.index(event) for event in events]
-assert positions == sorted(positions)
-assert "Stop only for a real blocker, required approval, cancellation, withdrawn authorization" in text
-PY
-}
 
 assert_beads_viewer_externals() {
   local file=$1
@@ -1311,34 +1202,10 @@ fi
 bash "$source_dir/tests/test-memex.sh"
 [[ "${TEST_SCOPE:-}" != memex ]] || exit 0
 
-for orchestration_file in \
-  "$source_dir/dot_config/opencode/agents/orchestrator.md" \
-  "$source_dir/dot_config/opencode/commands/orchestrate.md" \
-  "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl" \
-  "$source_dir/docs/opencode-agent-orchestration.md"; do
-  style=generic
-  case "$orchestration_file" in
-    */commands/orchestrate.md) style=ordinary ;;
-    *.tmpl) style=bead ;;
-  esac
-  assert_fresh_worker_prompt_contract "$orchestration_file" "$style"
-  assert_authorized_loop_simulation "$orchestration_file"
-done
-
-for policy_file in \
-  "$source_dir/dot_config/opencode/agents/orchestrator.md" \
-  "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl" \
-  "$source_dir/docs/opencode-agent-orchestration.md"; do
-  assert_private_id_disclosure_policy "$policy_file"
-done
-
-assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
-assert_contains "$source_dir/dot_config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
-assert_contains "$source_dir/docs/opencode-agent-orchestration.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
-assert_worker_liveness_contract "$source_dir/dot_config/opencode/commands/orchestrate.md"
-assert_worker_liveness_contract "$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl"
-assert_worker_liveness_contract "$source_dir/dot_config/opencode/agents/orchestrator.md"
-assert_worker_liveness_contract "$source_dir/docs/opencode-agent-orchestration.md"
+test ! -e "$source_dir/dot_config/opencode/skills/orchestration-worker-delivery/SKILL.md"
+assert_not_contains "$source_dir/dot_config/opencode/agents/orchestrator.md" 'orchestration-worker-delivery'
+assert_not_contains "$source_dir/dot_config/opencode/commands/orchestrate-task.md.tmpl" 'orchestration-worker-delivery'
+assert_not_contains "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl" 'orchestration-worker-delivery'
 
 [[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
@@ -1743,55 +1610,10 @@ assert_contains "$personal_home/.config/opencode/agents/integration.md" 'Refuse 
 assert_contains "$personal_home/.config/opencode/agents/integration.md" 'may perform its own internal setup or build steps'
 assert_contains "$personal_home/.config/opencode/agents/integration.md" 'Report each exact command and result, including blockers and unrelated pre-existing failures.'
 assert_not_contains "$personal_home/.config/opencode/agents/integration.md" 'full test suites'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'agent: orchestrator'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Require every implementation, design, or review delegate to load `ponytail` in its own session.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Load the `herdr` skill.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Never omit the path or use the caller cwd for ordinary implementation.'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent prompt worker "<contract>" --wait'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name>'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode --agent'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode run'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'opencode -m'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" ' --model'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" ' --variant'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning-effort'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reasoning effort'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'openai/gpt-'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'reuse it for every review and rereview'
-python3 - "$personal_home/.config/opencode/commands/orchestrate.md" <<'PY'
-from pathlib import Path
-import sys
-
-text = Path(sys.argv[1]).read_text()
-architecture = text.index('If the user selects architecture')
-handoff = text.index('After worker handoff')
-scope = text.index('## Scope And Complexity Gate')
-for sentence in (
-    'For each concurrently active worker lane, invoke one distinct `reviewer` subagent session and reuse it for every review and rereview in that worker\'s correction cycle.',
-    'Send accepted findings only to that worker; return corrected work only to its paired reviewer session.',
-):
-    position = text.index(sentence)
-    assert architecture < handoff < position < scope
-PY
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'only supplied repository-wide integration-validation commands'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'repository-wide test commands'
-assert_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'assign it generic formatting, linting, static tooling, build, unit-test, focused-test, or affected-scope checks'
-assert_not_contains "$personal_home/.config/opencode/commands/orchestrate.md" 'herdr agent start'
-assert_delivery_contract "$personal_home/.config/opencode/agents/orchestrator.md"
-assert_delivery_contract "$personal_home/.config/opencode/commands/orchestrate.md"
-assert_worker_liveness_contract "$personal_home/.config/opencode/agents/orchestrator.md"
-assert_worker_liveness_contract "$personal_home/.config/opencode/commands/orchestrate.md"
-assert_orchestration_reuse_contract "$personal_home/.config/opencode/agents/orchestrator.md"
-assert_orchestration_reuse_contract "$personal_home/.config/opencode/commands/orchestrate.md"
-assert_reference_branch_contract "$personal_home/.config/opencode/agents/orchestrator.md"
-assert_reference_branch_contract "$personal_home/.config/opencode/commands/orchestrate.md"
-assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'For each concurrently active worker lane in an implementation run, invoke one distinct reviewer subagent session after handoff.'
-assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" "Reuse each worker's reviewer session sequentially for every review and rereview in that worker's correction cycle."
-assert_orchestration_reuse_contract "$source_dir/docs/opencode-agent-orchestration.md"
-assert_reference_branch_contract "$source_dir/docs/opencode-agent-orchestration.md"
+test -f "$personal_home/.config/opencode/commands/orchestrate-task.md"
+test ! -e "$personal_home/.config/opencode/commands/orchestrate-epic.md"
+assert_not_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'orchestration-worker-delivery'
+test ! -e "$personal_home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 assert_contains "$source_dir/docs/opencode-agent-orchestration.md" 'For each concurrently active worker lane, the orchestrator creates one distinct reviewer session.'
 assert_contains "$personal_home/.config/opencode/agents/orchestrator.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$personal_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
@@ -1850,41 +1672,12 @@ test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/SKILL
 test ! -e "$personal_beads_home/.config/opencode/skills/beads-hub-closeout/validate.sh"
 test ! -e "$personal_beads_home/.config/opencode/skills/work-beads/SKILL.md"
 cmp -s "$source_dir/.chezmoitemplates/write-bead.md" "$personal_beads_home/.config/opencode/skills/write-bead/SKILL.md"
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
-assert_fresh_worker_prompt_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" bead
-assert_authorized_loop_simulation "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
-assert_private_id_disclosure_policy "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'The active Bead orchestration contract applies equally to a single concrete work item and to each selected epic child.'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'semantic worker name that is unique among currently active workers and free of private work-item/context identifiers'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'passes the worker name verbatim as its workspace label'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch worker worktree <worker-name> <dedicated-worktree-path> --tracking-bead <bead-id>'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" '~/.local/bin/herdr-agent-launch architect sibling <architect-name> --tracking-bead <bead-id>'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent prompt <architect-name> "<design-prompt>" --wait'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Do not run `opencode` directly or pass model, variant, or reasoning flags'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode --agent'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode run'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'opencode -m'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" ' --model'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" ' --variant'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reasoning-effort'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reasoning effort'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'openai/gpt-'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'For each concurrently active worker lane, create one distinct `reviewer` subagent session.'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'do not share a reviewer session across concurrently active parallel workers.'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'one `reviewer` subagent session'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'reuse that same session sequentially'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'After that worker lane and review cycle complete, reuse its reviewer for another worker only when the reviewer has capacity.'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'including implementation, formatting, focused tests, builds, and static tooling'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'Repository-wide integration validation belongs to the integration subagent after worker handoff.'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'full test suites belong to the integration subagent'
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'the `integration` subagent against the same child worktree in parallel with review'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
-assert_not_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
-assert_delivery_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
-assert_worker_liveness_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
-assert_orchestration_reuse_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
-assert_reference_branch_contract "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md"
-assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-bead.md" 'from the recorded worker worktree, not the orchestrator parent checkout'
+for command in orchestrate-task orchestrate-epic; do
+  assert_contains "$personal_beads_home/.config/opencode/commands/$command.md" 'agent: orchestrator'
+done
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-task.md" 'wbd claim <bead-id> --json'
+assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-epic.md" 'For an epic, treat the epic as a coordination container and never assign its implementation directly to a worker.'
+test ! -e "$personal_beads_home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
@@ -2058,7 +1851,8 @@ printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/cli.json'
 ! printf '%s\n' "$work_managed" | grep -Fq 'plan-diagrams'
 printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/terminal-mermaid/SKILL.md'
 printf '%s\n' "$work_managed" | grep -Fxq '.local/bin/herdr-agent-launch'
-printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-bead.md'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-task.md'
+printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/commands/orchestrate-epic.md'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/herdr-plugin.toml'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/herdr/plugins/local/angel-o.elio/bin/resolve-dir.sh'
 ! printf '%s\n' "$work_managed" | grep -Fxq '.config/opencode/skills/beads-hub/SKILL.md'
@@ -2103,7 +1897,7 @@ chezmoi managed \
   | grep -E '^(\.config/opencode|\.local/bin)' >"$external_managed"
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
-.config/opencode/commands/orchestrate-bead.md
+.config/opencode/commands/orchestrate-epic.md
 .config/opencode/skills/memex-quick-search/SKILL.md
 .config/opencode/skills/terminal-mermaid/SKILL.md
 .config/opencode/skills/write-bead/SKILL.md
@@ -2126,13 +1920,9 @@ cmp -s "$source_dir/dot_config/opencode/skills/memex-quick-search/SKILL.md" "$ex
 cmp -s "$source_dir/dot_config/opencode/skills/terminal-mermaid/SKILL.md" "$external_home/.config/opencode/skills/terminal-mermaid/SKILL.md"
 test ! -e "$external_home/.config/opencode/commands/herdr-name.md"
 test ! -e "$external_home/.config/opencode/command/orchestrate-bead.md"
-assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent: orchestrator'
-assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'herdr agent start'
-assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent worker'
-assert_not_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'agent architect'
-assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'For now, stop immediately after all workers for the first eligible wave have started successfully in their child workspaces.'
-assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'Do not send any worker its task prompt yet, do not start implementation, and do not launch a reviewer.'
-assert_contains "$external_home/.config/opencode/commands/orchestrate-bead.md" 'select each worker'
+assert_not_contains "$external_home/.config/opencode/commands/orchestrate-epic.md" 'agent: orchestrator'
+assert_contains "$external_home/.config/opencode/commands/orchestrate-epic.md" 'For now, stop immediately after all workers for the first eligible wave have started successfully in their child workspaces.'
+test ! -e "$external_home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 test ! -e "$external_home/.local/bin/opencode-env"
 test ! -e "$external_home/.local/bin/herdr-agent-launch"
 cmp -s "$root/external-opencode-beads/opencode.before" "$external_home/.config/opencode/opencode.jsonc"

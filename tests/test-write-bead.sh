@@ -46,7 +46,7 @@ architect=$source_dir/dot_config/opencode/agents/architect.md
 planner=$source_dir/dot_config/opencode/agents/planner.md
 worker=$source_dir/dot_config/opencode/agents/worker.md
 reviewer=$source_dir/dot_config/opencode/agents/reviewer.md
-command=$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl
+command=$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl
 launcher=$source_dir/dot_local/bin/executable_opencode-env.tmpl
 
 assert_contains "$orchestrator" 'load both `write-bead` and `beads-hub`, create the Bead with its structured canonical description'
@@ -69,9 +69,7 @@ assert_contains "$worker" 'read the authoritative assigned record by its exact c
 assert_contains "$worker" 'nine-field worker prompt as operational context'
 assert_contains "$reviewer" 'same exact canonical ID given to its worker'
 assert_contains "$reviewer" '`met`, `unmet`, or `not verified`'
-assert_contains "$command" 'The nine fields provide operational context and must not copy or replace the canonical specification.'
 assert_contains "$command" 'Completed children alone are insufficient.'
-assert_contains "$command" 'Do not automatically re-review every diff or create another review lane'
 assert_contains "$launcher" 'export PLANNOTATOR_DATA_DIR="${PLANNOTATOR_DATA_DIR:-$HOME/.local/share/plannotator}"'
 
 # Keep the role permissions portable; local paths and plan artifacts are not configuration.
@@ -224,9 +222,6 @@ assert "do not reproduce a combined specification" in bead_handoff
 assert "combined handoff" not in bead_handoff
 assert "complete approved architecture verbatim" in normal_handoff
 assert "emit one combined handoff" in normal_handoff
-
-assert "relevant epic ID when any" in orchestrator
-assert "The nine fields provide operational context and must not copy or replace the canonical specification." in orchestrator
 
 events = [
     "Inspect existing direct relationships",
