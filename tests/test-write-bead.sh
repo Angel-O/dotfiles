@@ -46,16 +46,20 @@ architect=$source_dir/dot_config/opencode/agents/architect.md
 planner=$source_dir/dot_config/opencode/agents/planner.md
 worker=$source_dir/dot_config/opencode/agents/worker.md
 reviewer=$source_dir/dot_config/opencode/agents/reviewer.md
-command=$source_dir/dot_config/opencode/commands/orchestrate-bead.md.tmpl
+command=$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl
 launcher=$source_dir/dot_local/bin/executable_opencode-env.tmpl
 
 assert_contains "$orchestrator" 'load both `write-bead` and `beads-hub`, create the Bead with its structured canonical description'
 assert_contains "$orchestrator" 'before architecture, decomposition, or implementation'
 assert_contains "$architect" '    resource: "wbd show * --json"'
 assert_contains "$architect" '    resource: "wbd update * --description * --json"'
+assert_contains "$architect" 'Every authorized Hub operation—`wbd show` and `wbd update`—must be a direct standalone shell command matching its existing allowlisted whole-command form.'
+assert_contains "$architect" 'Do not use shell composition, including chaining, pipes, redirects, command substitution, assignment or environment-prefix wrappers, or other wrapping.'
 assert_contains "$planner" 'collective coverage of every epic acceptance criterion'
 assert_contains "$planner" 'Creation does not authorize implementation.'
 assert_contains "$planner" 'Never automatically retry, roll back, delete, claim, close, or implement.'
+assert_contains "$planner" 'Every authorized Hub operation—`wbd context`, `wbd show`, `wbd scope active`, either allowlisted `wbd create` form, `wbd scope add`, or either allowlisted `wbd dep add` form—must be a direct standalone shell command matching its existing allowlisted whole-command form.'
+assert_contains "$planner" 'Do not use shell composition, including chaining, pipes, redirects, command substitution, assignment or environment-prefix wrappers, or other wrapping.'
 assert_contains "$planner" '    resource: "wbd context"'
 assert_contains "$planner" '    resource: "wbd create * --type * --context * --description * --priority * --json"'
 assert_contains "$planner" '    resource: "wbd create * --type * --priority * --context * --description * --json"'
@@ -65,9 +69,7 @@ assert_contains "$worker" 'read the authoritative assigned record by its exact c
 assert_contains "$worker" 'nine-field worker prompt as operational context'
 assert_contains "$reviewer" 'same exact canonical ID given to its worker'
 assert_contains "$reviewer" '`met`, `unmet`, or `not verified`'
-assert_contains "$command" 'The nine fields provide operational context and must not copy or replace the canonical specification.'
 assert_contains "$command" 'Completed children alone are insufficient.'
-assert_contains "$command" 'Do not automatically re-review every diff or create another review lane'
 assert_contains "$launcher" 'export PLANNOTATOR_DATA_DIR="${PLANNOTATOR_DATA_DIR:-$HOME/.local/share/plannotator}"'
 
 # Keep the role permissions portable; local paths and plan artifacts are not configuration.
@@ -128,14 +130,23 @@ assert planner_rules[:3] == [
 assert ('shell', '"wbd context *"', 'allow') not in planner_rules
 assert ('shell', '"wbd create * --context * --priority * --description * --json"', 'allow') not in planner_rules
 
+architect_rules = [
+    tuple(match)
+    for match in re.findall(
+        r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+        architect,
+        re.MULTILINE,
+    )
+]
+
 def matches(pattern, resource):
     pattern = pattern.strip('"')
     regex = re.escape(pattern).replace(r'\*', '.*').replace(r'\?', '.')
     return re.fullmatch(regex, resource) is not None
 
-def evaluate(resource):
+def evaluate(resource, selected_rules=planner_rules):
     effect = 'ask'
-    for action, pattern, candidate in planner_rules:
+    for action, pattern, candidate in selected_rules:
         if action in {'"*"', 'shell'} and matches(pattern, resource):
             effect = candidate
     return effect
@@ -153,6 +164,19 @@ assert evaluate('wbd context && wbd create child --type task') == 'deny'
 assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json && wbd update child --status closed') == 'deny'
 assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json | cat') == 'deny'
 assert evaluate('wbd update child --status closed --json') == 'deny'
+assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json > result') == 'deny'
+assert evaluate('$(wbd context)') == 'deny'
+assert evaluate('RESULT=ok wbd context') == 'deny'
+assert evaluate('env wbd context') == 'deny'
+
+assert evaluate('wbd show epic --json', architect_rules) == 'allow'
+assert evaluate('wbd update epic --description detail --json', architect_rules) == 'allow'
+assert evaluate('wbd show epic --json && wbd update epic --status closed', architect_rules) == 'deny'
+assert evaluate('wbd update epic --description detail --json | cat', architect_rules) == 'deny'
+assert evaluate('wbd show epic --json > result', architect_rules) == 'deny'
+assert evaluate('$(wbd show epic --json)', architect_rules) == 'deny'
+assert evaluate('RESULT=ok wbd show epic --json', architect_rules) == 'deny'
+assert evaluate('env wbd show epic --json', architect_rules) == 'deny'
 assert 'mode: subagent' in planner.split('---', 2)[1]
 assert not any(action == 'subagent' and resource == 'plan' for action, resource, _ in planner_rules)
 assert plan_resource in architect
@@ -198,9 +222,6 @@ assert "do not reproduce a combined specification" in bead_handoff
 assert "combined handoff" not in bead_handoff
 assert "complete approved architecture verbatim" in normal_handoff
 assert "emit one combined handoff" in normal_handoff
-
-assert "relevant epic ID when any" in orchestrator
-assert "The nine fields provide operational context and must not copy or replace the canonical specification." in orchestrator
 
 events = [
     "Inspect existing direct relationships",
