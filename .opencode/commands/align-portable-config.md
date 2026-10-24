@@ -28,11 +28,13 @@ Resolve deterministically: `all` selects every eligible row; `none` selects none
 
 For a non-empty selection, ask a separate explicit confirmation question after displaying it. Do not combine confirmation with the selection questionnaire. On cancellation or any answer other than an explicit affirmative, report that no alignment was selected and launch no worker.
 
-Only after explicit confirmation, load the `herdr` skill and launch the managed worker using the existing convention:
+Only after explicit confirmation, load the `herdr` skill, choose a semantic name unique among live agents (including retained completed lanes), and launch the managed worker using the existing convention:
 
 ```text
-~/.local/bin/herdr-agent-launch worker tab worker <absolute-delivery-worktree-path>
-herdr agent prompt worker "<bounded alignment contract>" --wait
+~/.local/bin/herdr-agent-launch worker tab <worker-name> <absolute-delivery-worktree-path>
+herdr agent prompt <worker-name> "<bounded alignment contract>" --wait
 ```
+
+Record the exact name and use it for every subsequent prompt, wait, or correction in this lane; retain a suitable same-scope lane rather than creating a replacement.
 
 Pass the selected table rows as the worker's only evidence. The worker contract must say: import only the selected eligible live content into the matching portable source (`portable.jsonc.tmpl` or `cli.json.tmpl`); preserve the managed/unmanaged boundary; never edit live configuration; never read or use `opencode.jsonc`; never install this project-local command; never change separate agent, plugin, launcher, dependency, or other setup files, secrets, authentication, provider-local data, or unselected rows; modify no file outside the two matching managed config templates, and do not reject a selected discrepancy in those templates merely because its setting concerns an agent or plugin; and stop and report ambiguity instead of guessing. The worker must make no change before this confirmation and must report its changed files and validation results.

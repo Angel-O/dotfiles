@@ -96,7 +96,7 @@ if grep -R -Fq 'tracking_lane_attach' "$source_dir/dot_config/opencode" "$source
   exit 1
 fi
 grep -Fq -- '--tracking-bead <bead-id>' "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl"
-grep -Fq -- 'worker tab worker <absolute-delivery-worktree-path>' "$source_dir/dot_config/opencode/commands/orchestrate-task.md.tmpl"
+grep -Fq -- 'worker tab <worker-name> <absolute-delivery-worktree-path>' "$source_dir/dot_config/opencode/commands/orchestrate-task.md.tmpl"
 if grep -Fq 'After each primary architect or worker launch' "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl"; then
   printf 'normal orchestration must not require post-launch lane attachment.\n' >&2
   exit 1
@@ -130,7 +130,7 @@ def branch(text, start, end):
 assert "exactly one concrete task, bug, feature, or chore" in task_command
 assert "wbd claim <bead-id> --json" in task_command
 assert "that exact Bead" in task_command
-assert "worker tab worker <absolute-delivery-worktree-path>" in task_command
+assert "worker tab <worker-name> <absolute-delivery-worktree-path>" in task_command
 task_bead_dispatch = branch(task_command, "For an explicitly supplied concrete Bead", "After worker handoff")
 assert "wbd claim <bead-id> --json" in task_bead_dispatch
 assert task_bead_dispatch.index("wbd claim <bead-id> --json") < task_bead_dispatch.index('herdr agent prompt <worker-name> "<contract>" --wait')
