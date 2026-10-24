@@ -13,6 +13,13 @@ assert_contains() {
   }
 }
 
+assert_not_contains() {
+  if grep -Fq -- "$2" "$1"; then
+    printf 'write-bead test: expected %s not to contain: %s\n' "$1" "$2" >&2
+    exit 1
+  fi
+}
+
 assert_contains "$skill" 'Use ONLY when creating or materially updating a Bead description'
 assert_contains "$skill" 'User stories do not replace acceptance criteria'
 assert_contains "$skill" 'Todos may be contextless or contextual under the supported policy; undefined work requiring refinement is outside this structure.'
@@ -64,7 +71,10 @@ assert_contains "$planner" '    resource: "wbd context"'
 assert_contains "$planner" '    resource: "wbd create * --type * --context * --description * --priority * --json"'
 assert_contains "$planner" '    resource: "wbd create * --type * --priority * --context * --description * --json"'
 assert_contains "$planner" '    resource: "wbd dep add * * --type parent-child --json"'
+assert_contains "$planner" '    resource: "wbd show * --json"'
 assert_contains "$planner" '    resource: "wbd show * --json --expand-dependencies"'
+assert_contains "$planner" 'Expand dependencies only for diagnostics, debugging, or a demonstrated need for a nested field unavailable in compact output'
+assert_contains "$planner" 'Inspect routine parent/child and blocker relationships with compact `wbd show <epic-id> --json` output.'
 assert_contains "$worker" 'read the authoritative assigned record by its exact canonical ID'
 assert_contains "$worker" 'nine-field worker prompt as operational context'
 assert_contains "$reviewer" 'same exact canonical ID given to its worker'
@@ -224,7 +234,7 @@ assert "complete approved architecture verbatim" in normal_handoff
 assert "emit one combined handoff" in normal_handoff
 
 events = [
-    "Inspect existing direct relationships",
+    "Inspect routine parent/child and blocker relationships with compact",
     "require explicit user authorization for additive publication",
     "preserve every existing child unchanged",
     "stop before mutation if any proposed slice overlaps or conflicts with one",
