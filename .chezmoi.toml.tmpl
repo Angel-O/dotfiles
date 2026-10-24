@@ -48,6 +48,10 @@
 
 sourceDir = {{ .chezmoi.sourceDir | quote }}
 
+[update]
+command = "git"
+args = ["pull", "--ff-only"]
+
 [data]
 role = {{ $role | quote }}
 
