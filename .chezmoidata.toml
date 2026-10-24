@@ -20,8 +20,8 @@ plannotator = "0.28.2"
 
 [pins.openCodeTracker]
 source = "Angel-O/orchestration-tracking"
-tag = "v0.3.1"
-archiveSha256 = "6fce88f7b16eb38e068117967ba71925a052ff02bbe2b7fb903df9408ab2c57b"
+tag = "v0.3.2"
+archiveSha256 = "d84a537766a6c4564c8091c22dc0f143922b0da41215b238d02203d54dc21a0d"
 
 [pins.openCodePlugins.todo]
 source = "https://github.com/afriemann/opencode-todo.git"
