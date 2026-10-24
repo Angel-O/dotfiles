@@ -76,6 +76,23 @@ durable=$(HOME="$target_home" PATH="$fake_bin:$PATH" zsh "$target_override" run)
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=anthropic/claude-sonnet#fast' <<<"$durable"
 grep -Fqx "OPENCODE_CONFIG=$target_home/.config/opencode/portable.jsonc" <<<"$durable"
 
+# Applying the portable config installs the skill; validate its documented
+# env.local path with a controlled home and the fake OpenCode executable.
+skill="$target_home/.config/opencode/skills/update-agent-models/SKILL.md"
+test -f "$skill"
+grep -Fq 'Do not edit portable fallback definitions or generated launcher files' "$skill"
+grep -Fq 'OPENCODE_AGENT_MODEL_PLANNER' "$skill"
+mkdir -p "$target_home/.config/opencode"
+cat >"$target_home/.config/opencode/env.local" <<'EOF'
+export OPENCODE_AGENT_MODEL_WORKER='openai/controlled-model'
+export UNRELATED_LOCAL_SETTING='preserved'
+EOF
+controlled=$(HOME="$target_home" PATH="$fake_bin:$PATH" zsh "$target_home/.local/bin/opencode-env" --check)
+grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=openai/controlled-model' <<<"$controlled"
+grep -Fqx "OPENCODE_CONFIG=$target_home/.config/opencode/portable.jsonc" <<<"$controlled"
+grep -Fqx 'args=--check' <<<"$controlled"
+grep -Fq "UNRELATED_LOCAL_SETTING='preserved'" "$target_home/.config/opencode/env.local"
+
 config="$root/portable.json"
 chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
   <"$source_dir/dot_config/opencode/portable.jsonc.tmpl" >"$config"
