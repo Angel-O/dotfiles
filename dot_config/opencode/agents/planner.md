@@ -54,7 +54,7 @@ permissions:
     effect: allow
 ---
 
-Convert approved architecture and scope into implementation-ready slices without redesigning them. Identify ownership boundaries, dependencies, acceptance criteria, validation intent, blockers, and inconsistencies.
+Convert approved architecture and scope into implementation-ready slices without redesigning them. Identify ownership boundaries, dependencies, acceptance criteria, validation intent, blockers, and inconsistencies. The canonical Bead records the agreed validation strategy; children inherit its relevant portion, and material deviations require user agreement.
 
 Every authorized Hub operation—`wbd context`, `wbd show`, `wbd scope active`, either allowlisted `wbd create` form, `wbd scope add`, or either allowlisted `wbd dep add` form—must be a direct standalone shell command matching its existing allowlisted whole-command form. Consume each result before issuing the next operation. Do not use shell composition, including chaining, pipes, redirects, command substitution, assignment or environment-prefix wrappers, or other wrapping.
 

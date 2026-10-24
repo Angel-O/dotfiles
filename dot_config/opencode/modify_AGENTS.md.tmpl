@@ -8,36 +8,43 @@ start='<!-- portable-beads-hub:start -->'
 end='<!-- portable-beads-hub:end -->'
 repository_heading='## REPOSITORY ROOT'
 repository_line='When locating a named local repository, look under ~/workspace/source/.'
+validation_start='<!-- meaningful-validation:start -->'
+validation_end='<!-- meaningful-validation:end -->'
 tmp=$(mktemp)
 clean=$(mktemp)
 repository_clean=$(mktemp)
 trap 'rm -f "$tmp" "$clean" "$repository_clean"' EXIT
 cat >"$tmp"
 
-if awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" '
+if awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" -v validation_start="$validation_start" -v validation_end="$validation_end" '
   {
     marker = $0
     sub(/\r$/, "", marker)
   }
-  marker == old_start || marker == start {
+  marker == old_start || marker == start || marker == validation_start {
     if (inside) {
       malformed = 12
       exit malformed
     }
-    if (blocks > 0) {
+    kind = marker == validation_start ? "validation" : "hub"
+    if (seen[kind]++) {
       malformed = 14
       exit malformed
     }
+    current = kind
     inside = 1
     next
   }
-  marker == old_end || marker == end {
+  marker == old_end || marker == end || marker == validation_end {
     if (!inside) {
       malformed = 13
       exit malformed
     }
     inside = 0
-    blocks++
+    if ((current == "validation" && marker != validation_end) || (current == "hub" && marker == validation_end)) {
+      malformed = 14
+      exit malformed
+    }
   }
   END {
     if (!malformed && inside) exit 11
@@ -58,17 +65,17 @@ else
   exit 1
 fi
 
-awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" '
+awk -v old_start="$old_start" -v old_end="$old_end" -v start="$start" -v end="$end" -v validation_start="$validation_start" -v validation_end="$validation_end" '
   {
     marker = $0
     sub(/\r$/, "", marker)
   }
-  marker == old_start || marker == start {
+  marker == old_start || marker == start || marker == validation_start {
     inside = 1
     next
   }
   inside {
-    if (marker == old_end || marker == end) {
+    if (marker == old_end || marker == end || marker == validation_end) {
       inside = 0
     }
     next
@@ -104,6 +111,18 @@ Only after `beads-hub-closeout` reports `closeout complete`, invoke `tracking_cl
 <!-- portable-beads-hub:end -->
 BLOCK
 {{- end }}
+if [ -s "$repository_clean" ] && [ -n "$(tail -c 1 "$repository_clean")" ]; then
+  printf '\n'
+fi
+cat <<'BLOCK'
+<!-- meaningful-validation:start -->
+## Meaningful validation
+
+Agree a concise validation plan with the user for each epic or standalone implementation Bead before work starts: behavior and risks, checks/owner/environment, pass criteria, limitations, and blocking stages. Children inherit the relevant strategy; material deviations require user agreement. Validate the requested behavior with meaningful, maintainable tests. Do not add tests that merely pin implementation details or policy wording. Remove or weaken tests only for obsolete behavior, demonstrated redundancy, or equivalent/better replacement coverage; explain why, never merely to make checks pass. Documentation-only changes require no tests; review accuracy and consistency. Rendering, installation, and content-preservation checks apply when executable templates or installation logic change, not to test their prose. Agents run reasonably available, reliable, safe programmatic checks; planned human QA is for judgment or access/environment limits, not complexity. Agree its steps, expected result, owner, and blocking stage. Replacing promised automation with human QA requires agreement.
+
+Approval/considered done requires acceptance-criterion evidence from the delivered revision, passed required checks, completed required QA, and disclosed limitations. Not run, blocked, or inconclusive is not passed. Only the user may waive a required gate; record missing evidence, risk, and affected gate, never as a pass. Classify pre-existing failures and selectively rerun affected checks after corrections. Workers own focused checks, integration supplied broader checks when warranted, and reviewers static assessment only. Validate an epic's own outcome, not just child completion. CI/branch protection and release gates are separate; these instructions neither guarantee model compliance nor technically prevent direct Hub closure.
+<!-- meaningful-validation:end -->
+BLOCK
 if [ -s "$repository_clean" ] && [ -n "$(tail -c 1 "$repository_clean")" ]; then
   printf '\n'
 fi

@@ -1463,7 +1463,19 @@ printf '%s\r\n' 'Preserve CRLF before.' 'Preserve CRLF after.' >"$agents_modifie
 printf '%s\n' \
   '## REPOSITORY ROOT' \
   'When locating a named local repository, look under ~/workspace/source/.' >>"$agents_modifier_dir/crlf.expected"
-cmp -s "$agents_modifier_dir/crlf.expected" "$agents_modifier_dir/crlf.disabled"
+python3 - "$agents_modifier_dir/crlf.disabled" "$agents_modifier_dir/crlf.disabled.preserved" <<'PY'
+from pathlib import Path
+import sys
+
+output = Path(sys.argv[1]).read_bytes()
+start = b'<!-- meaningful-validation:start -->\n'
+end = b'<!-- meaningful-validation:end -->\n'
+assert output.count(start) == output.count(end) == 1
+preserved, managed = output.split(start)
+_, suffix = managed.split(end)
+Path(sys.argv[2]).write_bytes(preserved + suffix)
+PY
+cmp -s "$agents_modifier_dir/crlf.expected" "$agents_modifier_dir/crlf.disabled.preserved"
 
 prompt_config_dir="$root/prompt-config"
 mkdir -p "$prompt_config_dir"
