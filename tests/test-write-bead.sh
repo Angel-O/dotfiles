@@ -15,7 +15,7 @@ assert_contains() {
 
 assert_contains "$skill" 'Use ONLY when creating or materially updating a Bead description'
 assert_contains "$skill" 'User stories do not replace acceptance criteria'
-assert_contains "$skill" 'Todos are unscoped, undefined work requiring refinement and are outside this structure.'
+assert_contains "$skill" 'Todos may be contextless or contextual under the supported policy; undefined work requiring refinement is outside this structure.'
 assert_contains "$skill" 'Pending information may be explicit only when it is not required for the next stage; required missing information blocks that stage.'
 assert_contains "$skill" 'Distinguish proposed decisions from approved decisions.'
 assert_contains "$skill" '`Acceptance criteria` states what must be true. `Validation` states how those truths will be established.'

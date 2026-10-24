@@ -7,7 +7,7 @@ description: Use ONLY when creating or materially updating a Bead description; d
 
 Use this authoring contract only when creating or materially updating a Bead description.
 
-Todos are unscoped, undefined work requiring refinement and are outside this structure.
+Todos may be contextless or contextual under the supported policy; undefined work requiring refinement is outside this structure.
 
 For an epic child, reference shared epic context and approved architecture rather than duplicating them, while including enough task-specific problem, scope, approach, criteria, constraints, and validation detail for implementation and review from the child record.
 
