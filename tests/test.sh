@@ -2151,7 +2151,7 @@ mkdir -p "$helix_home/.config/helix/runtime" "$helix_home/.cache/helix"
 printf '%s\n' 'preserve generated runtime data' >"$helix_home/.config/helix/runtime/generated"
 printf '%s\n' 'preserve runtime log' >"$helix_home/.cache/helix/helix.log"
 apply_fixture helix-only
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data == {"theme": "dracula_at_night"}' "$helix_home/.config/helix/config.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data == {"theme": "dracula_at_night", "editor": {"soft-wrap": {"enable": True}}}' "$helix_home/.config/helix/config.toml"
 grep -Fxq 'preserve generated runtime data' "$helix_home/.config/helix/runtime/generated"
 grep -Fxq 'preserve runtime log' "$helix_home/.cache/helix/helix.log"
 test ! -e "$helix_home/.config/ghostty/config"
