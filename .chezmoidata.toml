@@ -47,7 +47,7 @@ ref = "b8b9de1aee7039651be315441c8d6a0f3e869c84"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
-ref = "v0.2.11"
+ref = "v0.2.12"
 
 [pins.herdrPlugins.recentNavigator]
 source = "beyondlex/herdr-recent-navigator"
