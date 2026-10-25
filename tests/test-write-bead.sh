@@ -93,6 +93,8 @@ assert planner_rules[:3] == [
     ('orchestration_tracking', '"*"', 'allow'),
     ('shell', '"*"', 'deny'),
 ]
+assert ('external_directory', '"*"', 'deny') in planner_rules
+assert ('external_directory', '"$HOME/workspace/source/*"', 'allow') in planner_rules
 assert ('shell', '"wbd context *"', 'allow') not in planner_rules
 assert ('shell', '"wbd create * --context * --priority * --description * --json"', 'allow') not in planner_rules
 
@@ -120,6 +122,8 @@ def evaluate(resource, selected_rules=planner_rules):
 # Exercise V2's ordered, whole-value matching rather than only checking text.
 assert evaluate('wbd context') == 'allow'
 assert evaluate('wbd context --json') == 'deny'
+assert evaluate('wbd scope add child --context registered --json') == 'allow'
+assert evaluate('wbd scope add epic --json') == 'deny'
 assert evaluate('wbd create child --type task --priority 2 --context local --description detail --json') == 'allow'
 assert evaluate('wbd create child --type task --context local --description detail --priority 2 --json') == 'allow'
 assert evaluate("wbd create \"child\" --type task --context local --description 'detail with spaces' --priority 2 --json") == 'allow'
@@ -134,6 +138,18 @@ assert evaluate('wbd create child --type task --context local --description deta
 assert evaluate('$(wbd context)') == 'deny'
 assert evaluate('RESULT=ok wbd context') == 'deny'
 assert evaluate('env wbd context') == 'deny'
+
+external_rules = [rule for rule in planner_rules if rule[0] == 'external_directory']
+def evaluate_external(resource):
+    effect = 'ask'
+    for _, pattern, candidate in external_rules:
+        if matches(pattern, resource):
+            effect = candidate
+    return effect
+
+assert evaluate_external('$HOME/workspace/source/beads_viewer') == 'allow'
+assert evaluate_external('$HOME/workspace/other/beads_viewer') == 'deny'
+assert evaluate_external('/tmp/beads_viewer') == 'deny'
 
 assert evaluate('wbd show epic --json', architect_rules) == 'allow'
 assert evaluate('wbd update epic --description detail --json', architect_rules) == 'allow'
