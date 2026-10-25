@@ -29,6 +29,7 @@ if grep -R -E \
   exit 1
 fi
 
+bash "$source_dir/tests/test-explain-this.sh"
 bash "$source_dir/tests/test-agents-modifier.sh"
 bash "$source_dir/tests/test-add-linear-id.sh"
 [[ "${TEST_SCOPE:-}" != agents-modifier ]] || exit 0

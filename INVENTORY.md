@@ -128,6 +128,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `agents/*.md` | `~/.config/opencode/agents/` | Defines the additive orchestrator, reviewer, worker, architect, and planner roles | Track when OpenCode is enabled | Shared |
 | `grilling` | `~/.config/opencode/skills/` | Structured requirements/design interview workflow | Install from pinned source | Shared |
 | `ponytail` | `~/.config/opencode/skills/` | Minimal, YAGNI-first coding workflow | Install from pinned source | Shared |
+| `explain-this` | `~/.config/opencode/skills/explain-this/` | Visual review skill and local HTML builder | Install five files from an immutable pin when OpenCode is enabled; adopt the existing same-path copy | Shared; builder requires preinstalled Node.js 18+ |
 | `write-bead` | `~/.config/opencode/skills/` | Structured epic and concrete Bead authoring contract | Track when Beads and the OpenCode Beads integration are enabled | Shared/conditional |
 | `herdr-agent-name` | `~/.config/opencode/skills/` | Renames the current OpenCode agent in Herdr | Track | Shared |
 | `terminal-mermaid` | `~/.config/opencode/skills/` | Reusable native diagram selection, syntax, and terminal viewport guidance | Track unrestricted | Shared |

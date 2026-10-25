@@ -6,6 +6,21 @@ url = "https://raw.githubusercontent.com/mattpocock/skills/{{ .pins.grillingSkil
 [".config/opencode/skills/ponytail/SKILL.md"]
 type = "file"
 url = "https://raw.githubusercontent.com/dietrichgebert/ponytail/{{ .pins.ponytailSkill }}/skills/ponytail/SKILL.md"
+[".config/opencode/skills/explain-this/README.md"]
+type = "file"
+url = "https://raw.githubusercontent.com/abrinsmead/skills/{{ .pins.explainThisSkill }}/explain-this/README.md"
+[".config/opencode/skills/explain-this/SKILL.md"]
+type = "file"
+url = "https://raw.githubusercontent.com/abrinsmead/skills/{{ .pins.explainThisSkill }}/explain-this/SKILL.md"
+[".config/opencode/skills/explain-this/scripts/build-review.mjs"]
+type = "file"
+url = "https://raw.githubusercontent.com/abrinsmead/skills/{{ .pins.explainThisSkill }}/explain-this/scripts/build-review.mjs"
+[".config/opencode/skills/explain-this/assets/template.html"]
+type = "file"
+url = "https://raw.githubusercontent.com/abrinsmead/skills/{{ .pins.explainThisSkill }}/explain-this/assets/template.html"
+[".config/opencode/skills/explain-this/assets/mermaid.min.js"]
+type = "file"
+url = "https://raw.githubusercontent.com/abrinsmead/skills/{{ .pins.explainThisSkill }}/explain-this/assets/mermaid.min.js"
 {{ end }}
 {{ if and .modules.beads $opencodeBeads }}
 ["beadsViewerSkills"]
