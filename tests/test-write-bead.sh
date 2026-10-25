@@ -39,12 +39,12 @@ worker=$source_dir/dot_config/opencode/agents/worker.md
 launcher=$source_dir/dot_local/bin/executable_opencode-env.tmpl
 
 # Keep the role permissions portable; local paths and plan artifacts are not configuration.
-python3 - "$architect" "$planner" "$launcher" <<'PY'
+python3 - "$architect" "$planner" "$worker" "$launcher" <<'PY'
 import re
 import sys
 from pathlib import Path
 
-architect, planner, launcher = (Path(path).read_text() for path in sys.argv[1:])
+architect, planner, worker, launcher = (Path(path).read_text() for path in sys.argv[1:])
 plan_resource = '$HOME/.local/share/plannotator/plans/*'
 
 for text in (architect, planner):
@@ -107,6 +107,24 @@ architect_rules = [
     )
 ]
 
+worker_rules = [
+    tuple(match)
+    for match in re.findall(
+        r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+        worker,
+        re.MULTILINE,
+    )
+]
+git_deny = worker_rules.index(('shell', '"git *"', 'deny'))
+assert worker_rules[git_deny + 1:git_deny + 3] == [
+    ('shell', '"git rev-parse HEAD"', 'allow'),
+    ('shell', '"git branch --show-current"', 'allow'),
+]
+assert not any(
+    action == 'shell' and effect == 'allow' and resource.startswith('"git *')
+    for action, resource, effect in worker_rules
+)
+
 def matches(pattern, resource):
     pattern = pattern.strip('"')
     regex = re.escape(pattern).replace(r'\*', '.*').replace(r'\?', '.')
@@ -159,6 +177,15 @@ assert evaluate('wbd show epic --json > result', architect_rules) == 'deny'
 assert evaluate('$(wbd show epic --json)', architect_rules) == 'deny'
 assert evaluate('RESULT=ok wbd show epic --json', architect_rules) == 'deny'
 assert evaluate('env wbd show epic --json', architect_rules) == 'deny'
+
+assert evaluate('git rev-parse HEAD', worker_rules) == 'allow'
+assert evaluate('git branch --show-current', worker_rules) == 'allow'
+assert evaluate('git status --short', worker_rules) == 'allow'
+assert evaluate('git diff --stat', worker_rules) == 'allow'
+assert evaluate('git commit -m change', worker_rules) == 'deny'
+assert evaluate('git push', worker_rules) == 'deny'
+assert evaluate('git rev-parse HEAD --verify', worker_rules) == 'deny'
+assert 'A denied command does not mean other shell commands are unavailable' in worker
 assert 'mode: subagent' in planner.split('---', 2)[1]
 assert not any(action == 'subagent' and resource == 'plan' for action, resource, _ in planner_rules)
 assert plan_resource in architect
