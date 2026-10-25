@@ -538,6 +538,8 @@ contracts = {
         ("shell", '"*"', "allow"),
         ("shell", "git", "deny"),
         ("shell", '"git *"', "deny"),
+        ("shell", '"git rev-parse HEAD"', "allow"),
+        ("shell", '"git branch --show-current"', "allow"),
         ("shell", '"git diff"', "allow"),
         ("shell", '"git diff *"', "allow"),
         ("shell", '"git status"', "allow"),
