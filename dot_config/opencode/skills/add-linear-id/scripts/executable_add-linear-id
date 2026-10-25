@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || -z "$1" ]]; then
+  echo 'usage: add-linear-id <issue-id>' >&2
+  exit 2
+fi
+if [[ "${HERDR_ENV:-}" != 1 || -z "${HERDR_PANE_ID:-}" || -z "${HERDR_TAB_ID:-}" || -z "${HERDR_WORKSPACE_ID:-}" ]]; then
+  echo 'not running inside a Herdr-managed pane' >&2
+  exit 1
+fi
+
+issue_id=$1
+agent=$(herdr agent get "$HERDR_PANE_ID")
+session_id=$(jq -er --arg pane "$HERDR_PANE_ID" --arg tab "$HERDR_TAB_ID" --arg workspace "$HERDR_WORKSPACE_ID" '
+  .result | select(.type == "agent_info") | .agent |
+  select(.agent == "opencode" and .pane_id == $pane and .tab_id == $tab and .workspace_id == $workspace) |
+  .agent_session | select(.agent == "opencode" and .kind == "id" and .source == "herdr:opencode") |
+  .value | select(type == "string" and startswith("ses") and length > 3)
+' <<<"$agent") || { echo 'current pane has no verified Herdr-managed OpenCode session' >&2; exit 1; }
+
+session=$(opencode api session.get --param "sessionID=$session_id")
+title=$(jq -er --arg id "$session_id" '
+  .data | select(.id == $id) | .title | select(type == "string")
+' <<<"$session") || { echo 'OpenCode returned no matching session title' >&2; exit 1; }
+
+herdr tab rename "$HERDR_TAB_ID" "$issue_id" >/dev/null
+request=$(jq -cn --arg title "$issue_id: $title" '{title:$title}')
+opencode api session.update --param "sessionID=$session_id" --data "$request" >/dev/null
+printf 'Labeled current session and tab: %s\n' "$issue_id"
