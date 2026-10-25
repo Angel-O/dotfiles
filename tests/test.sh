@@ -281,8 +281,8 @@ assert cli["debug"] == {"devtools": True, "timing": False, "turn_tokens": True}
 assert portable["default_agent"] == "orchestrator"
 expected = {
     "orchestrator": {"color": "#C099FF", "model": "{env:OPENCODE_AGENT_MODEL_ORCHESTRATOR}"},
-    "build": {"color": "#82AAFF"},
-    "plan": {"color": "#FF966C"},
+    "build": {"color": "#82AAFF", "model": "{env:OPENCODE_AGENT_MODEL_BUILD}"},
+    "plan": {"color": "#FF966C", "model": "{env:OPENCODE_AGENT_MODEL_PLAN}"},
     "architect": {"color": "#C3E88D", "model": "{env:OPENCODE_AGENT_MODEL_ARCHITECT}"},
     "worker": {"color": "#FF757F", "model": "{env:OPENCODE_AGENT_MODEL_WORKER}"},
     "investigator": {"model": "{env:OPENCODE_AGENT_MODEL_INVESTIGATOR}"},

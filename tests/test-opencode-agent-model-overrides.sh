@@ -19,6 +19,8 @@ printf 'OPENCODE_AGENT_MODEL_REVIEWER=%s\n' "${OPENCODE_AGENT_MODEL_REVIEWER-}"
 printf 'OPENCODE_AGENT_MODEL_WORKER=%s\n' "${OPENCODE_AGENT_MODEL_WORKER-}"
 printf 'OPENCODE_AGENT_MODEL_ARCHITECT=%s\n' "${OPENCODE_AGENT_MODEL_ARCHITECT-}"
 printf 'OPENCODE_AGENT_MODEL_PLANNER=%s\n' "${OPENCODE_AGENT_MODEL_PLANNER-}"
+printf 'OPENCODE_AGENT_MODEL_PLAN=%s\n' "${OPENCODE_AGENT_MODEL_PLAN-}"
+printf 'OPENCODE_AGENT_MODEL_BUILD=%s\n' "${OPENCODE_AGENT_MODEL_BUILD-}"
 printf 'args=%s\n' "$*"
 EOF
 chmod +x "$fake_bin/opencode"
@@ -38,7 +40,13 @@ grep -Fqx 'OPENCODE_AGENT_MODEL_REVIEWER=openai/gpt-6-astra#medium' <<<"$default
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=openai/gpt-5.6-luna#high' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/gpt-5.6-sol#high' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_PLANNER=openai/gpt-5.6-terra#medium' <<<"$defaults"
+grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/gpt-5.6-sol#high' <<<"$defaults"
+grep -Fqx 'OPENCODE_AGENT_MODEL_BUILD=openai/gpt-6.1-sol#medium' <<<"$defaults"
 grep -Fqx 'args=--check' <<<"$defaults"
+
+builtin_overrides=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MODEL_PLAN=openai/independent-plan OPENCODE_AGENT_MODEL_BUILD=openai/independent-build zsh "$launcher" --check)
+grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/independent-plan' <<<"$builtin_overrides"
+grep -Fqx 'OPENCODE_AGENT_MODEL_BUILD=openai/independent-build' <<<"$builtin_overrides"
 
 empty_worker=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MODEL_WORKER= zsh "$launcher" --check)
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=' <<<"$empty_worker"
@@ -82,13 +90,18 @@ skill="$target_home/.config/opencode/skills/update-agent-models/SKILL.md"
 test -f "$skill"
 grep -Fq 'Do not edit portable fallback definitions or generated launcher files' "$skill"
 grep -Fq 'OPENCODE_AGENT_MODEL_PLANNER' "$skill"
+grep -Fq 'OPENCODE_AGENT_MODEL_PLAN' "$skill"
+grep -Fq 'OPENCODE_AGENT_MODEL_BUILD' "$skill"
 mkdir -p "$target_home/.config/opencode"
 cat >"$target_home/.config/opencode/env.local" <<'EOF'
 export OPENCODE_AGENT_MODEL_WORKER='openai/controlled-model'
+export OPENCODE_AGENT_MODEL_ARCHITECT='openai/local-architect#medium'
 export UNRELATED_LOCAL_SETTING='preserved'
 EOF
 controlled=$(HOME="$target_home" PATH="$fake_bin:$PATH" zsh "$target_home/.local/bin/opencode-env" --check)
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=openai/controlled-model' <<<"$controlled"
+grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/local-architect#medium' <<<"$controlled"
+grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/local-architect#medium' <<<"$controlled"
 grep -Fqx "OPENCODE_CONFIG=$target_home/.config/opencode/portable.jsonc" <<<"$controlled"
 grep -Fqx 'args=--check' <<<"$controlled"
 grep -Fq "UNRELATED_LOCAL_SETTING='preserved'" "$target_home/.config/opencode/env.local"
@@ -110,9 +123,15 @@ expected = {
     "worker": "OPENCODE_AGENT_MODEL_WORKER",
     "architect": "OPENCODE_AGENT_MODEL_ARCHITECT",
     "planner": "OPENCODE_AGENT_MODEL_PLANNER",
+    "plan": "OPENCODE_AGENT_MODEL_PLAN",
+    "build": "OPENCODE_AGENT_MODEL_BUILD",
 }
+assert portable["agents"]["plan"]["color"] == "#FF966C"
+assert portable["agents"]["build"]["color"] == "#82AAFF"
 for agent, variable in expected.items():
     assert portable["agents"][agent]["model"] == "{env:" + variable + "}"
+    if agent in {"plan", "build"}:
+        continue
     frontmatter = (Path(sys.argv[2]) / f"{agent}.md").read_text().split("---", 2)[1]
     assert "model:" not in frontmatter
     assert "reasoningEffort:" not in frontmatter
