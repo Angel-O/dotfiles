@@ -30,6 +30,7 @@ if grep -R -E \
 fi
 
 bash "$source_dir/tests/test-agents-modifier.sh"
+bash "$source_dir/tests/test-add-linear-id.sh"
 [[ "${TEST_SCOPE:-}" != agents-modifier ]] || exit 0
 bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
