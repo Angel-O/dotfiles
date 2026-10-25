@@ -59,16 +59,58 @@ if HERDR_ENV=0 "$helper" 'ENG-123' >/dev/null 2>&1; then
   exit 1
 fi
 
-for role in personal work; do
+integration_sources=(
+  dot_config/opencode/commands/add-linear-id.md
+  dot_config/opencode/skills/add-linear-id/SKILL.md
+  dot_config/opencode/skills/add-linear-id/scripts/executable_add-linear-id
+)
+for role in work personal; do
   fixture="$repo/tests/fixtures/$role.toml"
   ignored=$(chezmoi --source "$repo" --config "$fixture" ignored --source-path)
-  ! grep -Fxq 'dot_config/opencode/commands/add-linear-id.md' <<<"$ignored"
-  ! grep -Fxq 'dot_config/opencode/skills/add-linear-id' <<<"$ignored"
-  target=$(chezmoi --source "$repo" --config "$fixture" target-path --source-path dot_config/opencode/commands/add-linear-id.md)
-  [[ "$target" == */.config/opencode/commands/add-linear-id.md ]]
-  target=$(chezmoi --source "$repo" --config "$fixture" target-path --source-path dot_config/opencode/skills/add-linear-id/SKILL.md)
-  [[ "$target" == */.config/opencode/skills/add-linear-id/SKILL.md ]]
-  target=$(chezmoi --source "$repo" --config "$fixture" target-path --source-path dot_config/opencode/skills/add-linear-id/scripts/executable_add-linear-id)
-  [[ "$target" == */.config/opencode/skills/add-linear-id/scripts/add-linear-id ]]
+  if [[ "$role" == work ]]; then
+    ! grep -Fxq '.config/opencode/commands/add-linear-id.md' <<<"$ignored"
+    ! grep -Fq '.config/opencode/skills/add-linear-id' <<<"$ignored"
+  else
+    grep -Fxq '.config/opencode/commands/add-linear-id.md' <<<"$ignored"
+    grep -Fq '.config/opencode/skills/add-linear-id' <<<"$ignored"
+  fi
+  for source in "${integration_sources[@]}"; do
+    target=$(chezmoi --source "$repo" --config "$fixture" target-path --source-path "$source")
+    case "$source" in
+      dot_config/opencode/commands/*) [[ "$target" == */.config/opencode/commands/add-linear-id.md ]] ;;
+      dot_config/opencode/skills/*/SKILL.md) [[ "$target" == */.config/opencode/skills/add-linear-id/SKILL.md ]] ;;
+      *) [[ "$target" == */.config/opencode/skills/add-linear-id/scripts/add-linear-id ]] ;;
+    esac
+  done
+  ! grep -Fq '.config/herdr-labels' <<<"$ignored"
 done
+
+for disabled in opencode herdr; do
+  fixture="$tmp/work-$disabled-disabled.toml"
+  sed "s/^$disabled = true$/$disabled = false/" "$repo/tests/fixtures/work.toml" >"$fixture"
+  ignored=$(chezmoi --source "$repo" --config "$fixture" ignored --source-path)
+  grep -Fxq '.config/opencode/commands/add-linear-id.md' <<<"$ignored"
+  grep -Fq '.config/opencode/skills/add-linear-id' <<<"$ignored"
+done
+
+work_home="$tmp/rendered-work"
+personal_home="$tmp/rendered-personal"
+for home in "$work_home" "$personal_home"; do
+  mkdir -p "$home/.config/opencode/commands" "$home/.config/opencode/skills/add-linear-id/scripts" "$home/.config/herdr-labels"
+done
+chezmoi --source "$repo" --destination "$work_home" --config "$repo/tests/fixtures/work.toml" \
+  --persistent-state "$tmp/work-state.db" --exclude scripts,externals --force --source-path apply \
+  "${integration_sources[@]}" dot_config/herdr-labels/config.toml
+test -f "$work_home/.config/opencode/commands/add-linear-id.md"
+test -f "$work_home/.config/opencode/skills/add-linear-id/SKILL.md"
+test -x "$work_home/.config/opencode/skills/add-linear-id/scripts/add-linear-id"
+test -f "$work_home/.config/herdr-labels/config.toml"
+
+chezmoi --source "$repo" --destination "$personal_home" --config "$repo/tests/fixtures/personal.toml" \
+  --persistent-state "$tmp/personal-state.db" --exclude scripts,externals --force --source-path apply \
+  dot_config/herdr-labels/config.toml
+test ! -e "$personal_home/.config/opencode/commands/add-linear-id.md"
+test ! -e "$personal_home/.config/opencode/skills/add-linear-id/SKILL.md"
+test ! -e "$personal_home/.config/opencode/skills/add-linear-id/scripts/add-linear-id"
+test -f "$personal_home/.config/herdr-labels/config.toml"
 echo 'add-linear-id behavior checks passed'

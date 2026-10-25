@@ -85,7 +85,7 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/commands/herdr-name.md
 .config/opencode/skills/herdr-agent-name/**
 {{- end }}
-{{- if or (not .modules.opencode) (not .modules.herdr) }}
+{{- if not (and (eq .role "work") .modules.opencode .modules.herdr) }}
 .config/opencode/commands/add-linear-id.md
 .config/opencode/skills/add-linear-id/**
 {{- end }}
