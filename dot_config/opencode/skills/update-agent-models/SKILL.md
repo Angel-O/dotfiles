@@ -1,15 +1,15 @@
 ---
 name: update-agent-models
-description: Update custom OpenCode agent model selectors in machine-local env.local and validate the launcher environment.
+description: Update custom and built-in OpenCode agent model selectors in machine-local env.local and validate the launcher environment.
 ---
 
-# Update Agent Models
+# Update Agent Model Preferences
 
-For routine custom-agent model changes, edit `~/.config/opencode/env.local`. It is sourced by the managed launcher before its fallbacks. Do not edit portable fallback definitions or generated launcher files, and do not change unrelated entries in `env.local`.
+For routine agent model changes, edit `~/.config/opencode/env.local`. It is sourced by the managed launcher before its fallbacks. Do not edit portable fallback definitions or generated launcher files, and do not change unrelated entries in `env.local`.
 
 Before changing a selector, resolve the exact `provider/model` ID from the locally available OpenCode catalogue with `opencode models` (filter/search its output as needed). Do not guess an ID or variant; use a variant only if supported by that model.
 
-Supported selectors (only set the agents you intend to change):
+Custom-agent selectors (only set the agents you intend to change):
 
 - `OPENCODE_AGENT_MODEL_ORCHESTRATOR`
 - `OPENCODE_AGENT_MODEL_INTEGRATION`
@@ -18,6 +18,13 @@ Supported selectors (only set the agents you intend to change):
 - `OPENCODE_AGENT_MODEL_WORKER`
 - `OPENCODE_AGENT_MODEL_ARCHITECT`
 - `OPENCODE_AGENT_MODEL_PLANNER`
+
+Built-in agent selectors:
+
+- `OPENCODE_AGENT_MODEL_PLAN` (defaults to `openai/gpt-5.6-sol#high`, matching but independent of the repository ARCHITECT fallback)
+- `OPENCODE_AGENT_MODEL_BUILD` (defaults to `openai/gpt-6.1-sol#medium`)
+
+An explicit `PLAN` or `BUILD` value overrides its default independently. These settings provide model preferences in the portable configuration; they do not promise automatic session-model or UI agent-switch changes.
 
 Keep existing local settings and add or edit only the desired exports, for example `export OPENCODE_AGENT_MODEL_WORKER='provider/model'`.
 
