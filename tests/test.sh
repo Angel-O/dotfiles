@@ -576,6 +576,8 @@ contracts = {
         ('"*"', '"*"', "deny"),
         ("orchestration_tracking", '"*"', "allow"),
         ("shell", '"*"', "deny"),
+        ("external_directory", '"*"', "deny"),
+        ("external_directory", '"$HOME/workspace/source/*"', "allow"),
         ("shell", '"wbd context"', "allow"),
         ("shell", '"wbd show * --json"', "allow"),
         ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
