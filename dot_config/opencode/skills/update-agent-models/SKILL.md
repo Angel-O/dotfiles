@@ -21,7 +21,7 @@ Custom-agent selectors (only set the agents you intend to change):
 
 Built-in agent selectors:
 
-- `OPENCODE_AGENT_MODEL_PLAN` (defaults to the resolved `OPENCODE_AGENT_MODEL_ARCHITECT` value)
+- `OPENCODE_AGENT_MODEL_PLAN` (defaults to `openai/gpt-5.6-sol#high`, matching but independent of the repository ARCHITECT fallback)
 - `OPENCODE_AGENT_MODEL_BUILD` (defaults to `openai/gpt-6.1-sol#medium`)
 
 An explicit `PLAN` or `BUILD` value overrides its default independently. These settings provide model preferences in the portable configuration; they do not promise automatic session-model or UI agent-switch changes.

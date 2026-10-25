@@ -45,6 +45,7 @@ grep -Fqx 'OPENCODE_AGENT_MODEL_BUILD=openai/gpt-6.1-sol#medium' <<<"$defaults"
 grep -Fqx 'args=--check' <<<"$defaults"
 
 builtin_overrides=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MODEL_PLAN=openai/independent-plan OPENCODE_AGENT_MODEL_BUILD=openai/independent-build zsh "$launcher" --check)
+grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/gpt-5.6-sol#high' <<<"$builtin_overrides"
 grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/independent-plan' <<<"$builtin_overrides"
 grep -Fqx 'OPENCODE_AGENT_MODEL_BUILD=openai/independent-build' <<<"$builtin_overrides"
 
@@ -101,7 +102,7 @@ EOF
 controlled=$(HOME="$target_home" PATH="$fake_bin:$PATH" zsh "$target_home/.local/bin/opencode-env" --check)
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=openai/controlled-model' <<<"$controlled"
 grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/local-architect#medium' <<<"$controlled"
-grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/local-architect#medium' <<<"$controlled"
+grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/gpt-5.6-sol#high' <<<"$controlled"
 grep -Fqx "OPENCODE_CONFIG=$target_home/.config/opencode/portable.jsonc" <<<"$controlled"
 grep -Fqx 'args=--check' <<<"$controlled"
 grep -Fq "UNRELATED_LOCAL_SETTING='preserved'" "$target_home/.config/opencode/env.local"
