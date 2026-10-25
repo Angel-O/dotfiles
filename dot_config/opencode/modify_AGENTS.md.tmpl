@@ -124,7 +124,7 @@ Approval/considered done requires acceptance-criterion evidence from the deliver
 
 ## OpenCode service management
 
-For OpenCode service management, use `~/.local/bin/opencode-env service restart`; do not use bare `opencode service ...` commands. Non-interactive shells may not load the Zsh alias that invokes the wrapper, so a bare command can omit `~/.config/opencode/env.local` and the machine's agent-model overrides, resulting in fallback model selectors.
+For OpenCode service management, use `~/.local/bin/opencode-env service restart`; do not use bare `opencode service ...` commands. Invoke the wrapper once per requested restart. It may report “Command cancelled”; do not retry solely because of that message. Non-interactive shells may not load the Zsh alias that invokes the wrapper, so a bare command can omit `~/.config/opencode/env.local` and the machine's agent-model overrides, resulting in fallback model selectors.
 <!-- meaningful-validation:end -->
 BLOCK
 if [ -s "$repository_clean" ] && [ -n "$(tail -c 1 "$repository_clean")" ]; then
