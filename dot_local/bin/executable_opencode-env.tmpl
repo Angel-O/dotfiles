@@ -13,6 +13,18 @@ if [[ -r "$local_env" ]]; then
   source "$local_env"
 fi
 
+secrets_env="$HOME/.config/opencode/secrets.env"
+if [[ -e "$secrets_env" ]]; then
+  if [[ ! -r "$secrets_env" ]]; then
+    print -u2 'opencode-env: secrets file is not readable'
+    exit 1
+  fi
+  if ! source "$secrets_env" >/dev/null 2>&1; then
+    print -u2 'opencode-env: failed to source secrets file'
+    exit 1
+  fi
+fi
+
 export OPENCODE_AGENT_MODEL_ORCHESTRATOR="${OPENCODE_AGENT_MODEL_ORCHESTRATOR-openai/gpt-5.6-terra#high}"
 export OPENCODE_AGENT_MODEL_INTEGRATION="${OPENCODE_AGENT_MODEL_INTEGRATION-openai/gpt-5.6-luna#medium}"
 export OPENCODE_AGENT_MODEL_INVESTIGATOR="${OPENCODE_AGENT_MODEL_INVESTIGATOR-openai/gpt-5.6-sol#medium}"
