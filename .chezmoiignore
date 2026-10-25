@@ -97,6 +97,7 @@ run_once_after_25-migrate-ghostty-config.sh
 {{- end }}
 {{- if not .modules.opencode }}
 .config/opencode/commands/tracking-report.md
+.config/opencode/commands/restart-opencode-env.md
 {{- end }}
 .config/opencode/env.local
 
