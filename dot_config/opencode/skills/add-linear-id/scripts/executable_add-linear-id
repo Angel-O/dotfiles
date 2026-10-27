@@ -25,6 +25,8 @@ title=$(jq -er --arg id "$session_id" '
 ' <<<"$session") || { echo 'OpenCode returned no matching session title' >&2; exit 1; }
 
 herdr tab rename "$HERDR_TAB_ID" "$issue_id" >/dev/null
-request=$(jq -cn --arg title "$issue_id: $title" '{title:$title}')
+prefix="$issue_id: "
+[[ "${title:0:${#prefix}}" == "$prefix" ]] || title="$prefix$title"
+request=$(jq -cn --arg title "$title" '{title:$title}')
 opencode api session.update --param "sessionID=$session_id" --data "$request" >/dev/null
 printf 'Labeled current session and tab: %s\n' "$issue_id"

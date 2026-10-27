@@ -44,15 +44,15 @@ if "$helper" '' >/dev/null 2>&1; then
 fi
 test ! -e "$TEST_LOG"
 
-"$helper" 'eng/123 weird' >/dev/null
-test "$(<"$TEST_STATE")" = 'eng/123 weird: working on a feature'
-grep -Fxq 'herdr tab rename tab-4 eng/123 weird' "$TEST_LOG"
+"$helper" 'eng/[*]? weird' >/dev/null
+test "$(<"$TEST_STATE")" = 'eng/[*]? weird: working on a feature'
+grep -Fxq 'herdr tab rename tab-4 eng/[*]? weird' "$TEST_LOG"
 grep -Fxq 'api session.get --param sessionID=ses_fixture' "$TEST_LOG"
-grep -Fxq 'api session.update --param sessionID=ses_fixture --data {"title":"eng/123 weird: working on a feature"}' "$TEST_LOG"
+grep -Fxq 'api session.update --param sessionID=ses_fixture --data {"title":"eng/[*]? weird: working on a feature"}' "$TEST_LOG"
 
-"$helper" 'eng/123 weird' >/dev/null
-test "$(<"$TEST_STATE")" = 'eng/123 weird: eng/123 weird: working on a feature'
-test "$(grep -Fc 'herdr tab rename tab-4 eng/123 weird' "$TEST_LOG")" -eq 2
+"$helper" 'eng/[*]? weird' >/dev/null
+test "$(<"$TEST_STATE")" = 'eng/[*]? weird: working on a feature'
+test "$(grep -Fc 'herdr tab rename tab-4 eng/[*]? weird' "$TEST_LOG")" -eq 2
 
 if HERDR_ENV=0 "$helper" 'ENG-123' >/dev/null 2>&1; then
   echo 'unmanaged Herdr context unexpectedly accepted' >&2
