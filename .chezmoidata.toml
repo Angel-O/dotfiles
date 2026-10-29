@@ -8,12 +8,12 @@ explainThisSkill = "fbae95a979f517838af6d65ff4e2ed746895dbec"
 [pins.beads]
 source = "Angel-O/beads"
 branch = "feat/bulk-history-read"
-ref = "89998b86974c76e47d0f7b0ed73a1525c0aad95d"
+ref = "b97cd8bed7d1d4f1d56cb0608d79a288bca38bb9"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
 branch = "feature/repository-aware-correlations"
-ref = "76e58248c66ac99d9f5d2978afbf8b3ec8d614e1"
+ref = "ab36d3af289e812c0fa535e480b95c46baba91ce"
 
 [pins.openCodePlugins]
 quota = "5.0.2"
