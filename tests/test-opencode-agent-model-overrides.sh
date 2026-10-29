@@ -59,7 +59,7 @@ export OPENCODE_AGENT_MODEL_WORKER='anthropic/claude-sonnet#fast'
 exec '$launcher' "\$@"
 EOF
 chmod +x "$target_launcher"
-overridden=$(HOME="$home" PATH="$fake_bin:$PATH" zsh "$target_launcher" run)
+overridden=$(env -i HOME="$home" PATH="$fake_bin:$PATH" zsh "$target_launcher" run)
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=anthropic/claude-sonnet#fast' <<<"$overridden"
 grep -Fqx 'OPENCODE_AGENT_MODEL_ORCHESTRATOR=openai/gpt-5.6-terra#high' <<<"$overridden"
 grep -Fqx 'args=run' <<<"$overridden"
@@ -76,6 +76,9 @@ chmod +x "$target_override"
 chezmoi apply --source "$source_dir" --destination "$target_home" \
   --config "$source_dir/tests/fixtures/work.toml" --cache "$root/cache" \
   --persistent-state "$root/chezmoistate.boltdb" --exclude scripts,externals --force
+test -x "$target_home/.local/bin/opencode-env-restart"
+cmp -s "$source_dir/dot_local/bin/executable_opencode-env-restart" \
+  "$target_home/.local/bin/opencode-env-restart"
 cp "$target_override" "$root/target-opencode.before-apply"
 chezmoi apply --source "$source_dir" --destination "$target_home" \
   --config "$source_dir/tests/fixtures/work.toml" --cache "$root/cache" \
