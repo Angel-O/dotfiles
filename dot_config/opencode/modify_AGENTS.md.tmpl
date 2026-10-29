@@ -124,7 +124,7 @@ Approval/considered done requires acceptance-criterion evidence from the deliver
 
 ## OpenCode service management
 
-For OpenCode service management, use `~/.local/bin/opencode-env service restart`; do not use bare `opencode service ...` commands. Invoke the wrapper once per requested restart. It may report “Command cancelled”; do not retry solely because of that message. Non-interactive shells may not load the Zsh alias that invokes the wrapper, so a bare command can omit `~/.config/opencode/env.local` and the machine's agent-model overrides, resulting in fallback model selectors.
+For an agent model override, run `/restart-opencode-env`. After interruption, check `~/.local/bin/opencode-env-restart status <run-id>` (or `status` for the latest run) before retrying. Report activation only after a successful receipt and live selector match from `~/.local/bin/opencode-env api get /api/agent`.
 <!-- meaningful-validation:end -->
 BLOCK
 if [ -s "$repository_clean" ] && [ -n "$(tail -c 1 "$repository_clean")" ]; then

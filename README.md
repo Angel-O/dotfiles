@@ -74,7 +74,7 @@ export OPENCODE_AGENT_MODEL_WORKER='openai/gpt-5.6-luna#medium'
 exec "$HOME/.local/bin/opencode-env" "$@"
 ```
 
-The selector is one scalar `provider/model#variant`; the variant must be supported by the selected model. Other agents keep their managed defaults, and ordinary launcher use still sets `OPENCODE_CONFIG` to the managed portable configuration. The existing `~/.config/opencode/env.local` hook remains optional. Restart the OpenCode background service after changing an override so it receives the new environment.
+The selector is one scalar `provider/model#variant`; the variant must be supported by the selected model. Other agents keep their managed defaults, ordinary launcher use still sets `OPENCODE_CONFIG` to the managed portable configuration, and `~/.config/opencode/env.local` remains optional. After changing an override, invoke `/restart-opencode-env`; after interruption, check its status receipt before retrying. Confirm activation only when the restart succeeded and the shared-server API reports the requested selector. Existing session selections remain unchanged.
 
 The repository-local `.opencode/commands/align-portable-config.md` command is intentionally excluded from chezmoi. It compares only the managed `portable.jsonc` and `cli.json` surfaces, and delegates confirmed live-to-portable selections without becoming part of the portable setup.
 
