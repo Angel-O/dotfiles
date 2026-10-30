@@ -63,7 +63,7 @@ ref = "9872a499181b5a52472da3f74b9c567d3898069f"
 [pins.herdrPlugins.kiosk]
 source = "thomasschafer/herdr-kiosk"
 branch = "main"
-ref = "6f695dff3bcabaa47278cb69e235c9dcfeff4152"
+ref = "f64929d4ce9ecc15b8d293dd26966b84a6519c56"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
