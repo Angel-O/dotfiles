@@ -48,7 +48,7 @@ ref = "a9973b43c1fc90044a9f15755e310e12b8465abb"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
-ref = "v0.2.15"
+ref = "v0.2.16"
 
 [pins.herdrPlugins.recentNavigator]
 source = "beyondlex/herdr-recent-navigator"
@@ -63,7 +63,7 @@ ref = "9872a499181b5a52472da3f74b9c567d3898069f"
 [pins.herdrPlugins.kiosk]
 source = "thomasschafer/herdr-kiosk"
 branch = "main"
-ref = "f64929d4ce9ecc15b8d293dd26966b84a6519c56"
+ref = "07b40118d33b6218fa22448a7a372d1c4a6468f9"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
