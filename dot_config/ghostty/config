@@ -1,4 +1,4 @@
-theme = dark:TokyoNight,light:TokyoNight Day
+theme = dark:herdr-dracula,light:TokyoNight Day
 
 font-family = Hack
 font-style = Regular

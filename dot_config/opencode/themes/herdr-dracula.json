@@ -1,0 +1,77 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "base": {
+    "categorical": ["purple", "orange", "green", "blue", "red"],
+    "text": {
+      "base": "#f8f8f2",
+      "muted": "#828cb4",
+      "action": {
+        "primary": { "base": "#bd93f9", "$disabled": "#828cb4", "$focused": "#282a36", "$selected": "#bd93f9" },
+        "secondary": { "base": "#828cb4", "$hovered": "#f8f8f2" },
+        "destructive": { "base": "#282a36", "$disabled": "#828cb4" }
+      },
+      "formfield": { "base": "#f8f8f2", "$hovered": "#bd93f9", "$focused": "#bd93f9", "$pressed": "#bd93f9", "$disabled": "#828cb4", "$selected": "#bd93f9" },
+      "feedback": {
+        "error": { "base": "#ff5555" },
+        "warning": { "base": "#ffb86c" },
+        "success": { "base": "#50fa7b" },
+        "info": { "base": "#8be9fd" }
+      }
+    },
+    "background": {
+      "base": "#282a36",
+      "raised": { "base": "#343746", "high": "#44475a", "max": "#6272a4" },
+      "action": {
+        "primary": { "base": "transparent", "$hovered": "#343746", "$focused": "#bd93f9", "$selected": "transparent" },
+        "secondary": { "base": "transparent" },
+        "destructive": { "base": "#ff5555" }
+      },
+      "formfield": { "base": "#282a36" },
+      "feedback": {
+        "error": { "base": "#282a36" },
+        "warning": { "base": "#282a36" },
+        "success": { "base": "#282a36" },
+        "info": { "base": "#282a36" }
+      }
+    },
+    "border": { "base": "#6272a4" },
+    "scrollbar": { "base": "#828cb4" },
+    "diff": {
+      "text": { "added": "#50fa7b", "removed": "#ff5555", "context": "#828cb4", "hunkHeader": "#828cb4" },
+      "background": { "added": "#263b32", "removed": "#3b282f", "context": "#343746" },
+      "highlight": { "added": "#69ff94", "removed": "#ff6e6e" },
+      "lineNumber": { "text": "#828cb4", "background": { "added": "#263b32", "removed": "#3b282f" } }
+    },
+    "syntax": {
+      "comment": "#828cb4", "keyword": "#bd93f9", "function": "#8be9fd", "variable": "#ff79c6",
+      "string": "#f1fa8c", "number": "#bd93f9", "type": "#8be9fd", "operator": "#ff79c6", "punctuation": "#f8f8f2"
+    },
+    "markdown": {
+      "text": "#f8f8f2", "heading": "#bd93f9", "link": "#8be9fd", "linkText": "#8be9fd",
+      "code": "#f1fa8c", "blockQuote": "#ffb86c", "emphasis": "#f1fa8c", "strong": "#ff79c6",
+      "horizontalRule": "#828cb4", "listItem": "#8be9fd", "listEnumeration": "#bd93f9",
+      "image": "#8be9fd", "imageText": "#8be9fd", "codeBlock": "#f8f8f2"
+    },
+    "@dialog": {
+      "background": {
+        "base": "#343746",
+        "action": { "primary": { "$hovered": "#44475a" } }
+      }
+    }
+  },
+  "dark": {
+    "hue": {
+      "gray": { "100": "#ffffff", "200": "#f8f8f2", "300": "#d2d2dc", "400": "#828cb4", "500": "#6272a4", "600": "#44475a", "700": "#343746", "800": "#282a36", "900": "#21222c" },
+      "red": { "100": "#ffc9c9", "200": "#ff5555", "300": "#e64949", "400": "#cc3d3d", "500": "#b33232", "600": "#992727", "700": "#801c1c", "800": "#661111", "900": "#4d0808" },
+      "orange": { "100": "#ffe1bd", "200": "#ffb86c", "300": "#e6a560", "400": "#cc9255", "500": "#b38049", "600": "#996d3e", "700": "#805a32", "800": "#664727", "900": "#4d341b" },
+      "yellow": { "100": "#ffffd0", "200": "#f1fa8c", "300": "#d9e17e", "400": "#c1c970", "500": "#a9b062", "600": "#919854", "700": "#798046", "800": "#616738", "900": "#494f2a" },
+      "green": { "100": "#c9ffd7", "200": "#50fa7b", "300": "#49e370", "400": "#41cc65", "500": "#3ab35a", "600": "#32994e", "700": "#2b8043", "800": "#236637", "900": "#1b4d2c" },
+      "cyan": { "100": "#d0fbff", "200": "#8be9fd", "300": "#7dd2e3", "400": "#6fbbca", "500": "#62a5b2", "600": "#548e99", "700": "#467780", "800": "#396167", "900": "#2b4a4e" },
+      "blue": "$hue.cyan",
+      "purple": { "100": "#e4d5ff", "200": "#bd93f9", "300": "#aa84e0", "400": "#9775c7", "500": "#8466ae", "600": "#715796", "700": "#5e487d", "800": "#4b3964", "900": "#382a4b" },
+      "accent": "$hue.purple",
+      "interactive": "$hue.purple",
+      "neutral": "$hue.gray"
+    }
+  }
+}
