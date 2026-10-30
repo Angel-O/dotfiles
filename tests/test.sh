@@ -244,7 +244,7 @@ with open(sys.argv[2]) as portable_file:
 with open(sys.argv[3]) as theme_file:
     theme = json.load(theme_file)
 
-assert cli["theme"] == {"name": "herdr-dracula", "mode": "dark"}
+assert cli["theme"] == {"name": "tokyonight-mauve", "mode": "dark"}
 assert cli["session"] == {
     "sidebar": "auto",
     "scrollbar": False,
