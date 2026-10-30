@@ -231,7 +231,7 @@ fi
 assert_opencode_palette() {
   local personal_cli="$root/personal/home/.config/opencode/cli.json"
   local personal_portable="$root/personal/home/.config/opencode/portable.jsonc"
-  local personal_theme="$root/personal/home/.config/opencode/themes/tokyonight-mauve.json"
+  local personal_theme="$root/personal/home/.config/opencode/themes/herdr-dracula.json"
   apply_fixture personal
   python3 - "$personal_cli" "$personal_portable" "$personal_theme" <<'PY'
 import json
@@ -244,7 +244,7 @@ with open(sys.argv[2]) as portable_file:
 with open(sys.argv[3]) as theme_file:
     theme = json.load(theme_file)
 
-assert cli["theme"] == {"name": "tokyonight-mauve", "mode": "system"}
+assert cli["theme"] == {"name": "herdr-dracula", "mode": "dark"}
 assert cli["session"] == {
     "sidebar": "auto",
     "scrollbar": False,
@@ -317,59 +317,23 @@ assert set(theme["base"]["markdown"]) == {
 }
 hues = theme["dark"]["hue"]
 assert hues["interactive"] == "$hue.purple"
-assert hues["blue"]["200"] == "#82aaff"
-assert hues["purple"]["200"] == "#c099ff"
-assert set(hues) == {"orange", "green", "blue", "red", "purple", "gray", "accent", "interactive", "neutral"}
-for name in ("orange", "green", "blue", "red", "purple", "gray"):
+assert hues["accent"] == "$hue.purple"
+assert hues["neutral"] == "$hue.gray"
+assert hues["purple"]["200"] == "#bd93f9"
+assert set(hues) == {"orange", "green", "blue", "cyan", "yellow", "red", "purple", "gray", "accent", "interactive", "neutral"}
+assert hues["blue"] == "$hue.cyan"
+for name in ("orange", "green", "cyan", "yellow", "red", "purple", "gray"):
     assert set(hues[name]) == {str(step) for step in range(100, 1000, 100)}
-
-def resolve(value):
-    if not isinstance(value, str) or not value.startswith("$"):
-        return value
-    path = value[1:].split(".")
-    if path[0] == "hue":
-        target = hues[path[1]]
-        while isinstance(target, str):
-            target = hues[target[5:]]
-        return target[path[2]]
-    current = theme["base"]
-    for part in path:
-        current = current[part]
-    return resolve(current)
-
-assert resolve(theme["base"]["text"]["formfield"]["$focused"]) == "#c099ff"
-assert resolve(theme["base"]["text"]["formfield"]["$selected"]) == "#c099ff"
-assert resolve(theme["base"]["text"]["formfield"]["$hovered"]) == "#c099ff"
-assert resolve(theme["base"]["text"]["formfield"]["$pressed"]) == "#c099ff"
-assert resolve(theme["base"]["text"]["action"]["primary"]["$selected"]) == "#c099ff"
-assert resolve(theme["base"]["background"]["action"]["primary"]["$focused"]) == "#c099ff"
-assert theme["base"]["text"]["feedback"]["info"]["base"] == "$hue.blue.200"
-assert resolve(theme["base"]["text"]["feedback"]["info"]["base"]) == "#82aaff"
-assert resolve(theme["base"]["text"]["base"]) == "#c8d3f5"
-assert resolve(theme["base"]["text"]["muted"]) == "#828bb8"
-assert theme["base"]["syntax"]["function"] == "$hue.blue.200"
-assert theme["base"]["markdown"]["link"] == "$hue.blue.200"
-assert theme["base"]["markdown"]["listItem"] == "$hue.blue.200"
-assert theme["base"]["markdown"]["image"] == "$hue.blue.200"
-assert resolve(theme["base"]["syntax"]["function"]) == "#82aaff"
-assert resolve(theme["base"]["markdown"]["link"]) == "#82aaff"
-assert resolve(theme["base"]["markdown"]["listItem"]) == "#82aaff"
-assert resolve(theme["base"]["markdown"]["image"]) == "#82aaff"
-assert resolve(theme["base"]["markdown"]["text"]) == "#c8d3f5"
-assert resolve(theme["base"]["syntax"]["type"]) == "#ffc777"
-assert resolve(theme["base"]["syntax"]["operator"]) == "#86e1fc"
-assert resolve(theme["base"]["border"]["base"]) == "#737aa2"
-assert resolve(theme["base"]["scrollbar"]["base"]) == "#9099b2"
-assert resolve(theme["base"]["background"]["base"]) == "#1a1b26"
-assert resolve(theme["base"]["background"]["raised"]["base"]) == "#1e2030"
-assert resolve(theme["base"]["background"]["raised"]["high"]) == "#222436"
-assert resolve(theme["base"]["background"]["raised"]["max"]) == "#505574"
-assert resolve(theme["base"]["diff"]["text"]["added"]) == "#4fd6be"
-assert resolve(theme["base"]["diff"]["text"]["removed"]) == "#c53b53"
-assert resolve(theme["base"]["diff"]["text"]["context"]) == "#828bb8"
-assert resolve(theme["base"]["diff"]["background"]["added"]) == "#20303b"
-assert resolve(theme["base"]["diff"]["background"]["removed"]) == "#37222c"
-assert resolve(theme["base"]["markdown"]["blockQuote"]) == "#ffc777"
+assert theme["base"]["background"]["base"] == "#282a36"
+assert theme["base"]["background"]["raised"]["high"] == "#44475a"
+assert theme["base"]["text"]["base"] == "#f8f8f2"
+assert theme["base"]["text"]["muted"] == "#828cb4"
+assert theme["base"]["text"]["formfield"]["$focused"] == "#bd93f9"
+assert theme["base"]["text"]["formfield"]["$selected"] == "#bd93f9"
+assert theme["base"]["text"]["formfield"]["$hovered"] == "#bd93f9"
+assert theme["base"]["text"]["formfield"]["$pressed"] == "#bd93f9"
+assert theme["base"]["background"]["action"]["primary"]["$focused"] == "#bd93f9"
+assert theme["base"]["border"]["base"] == "#6272a4"
 PY
   apply_fixture beads-integration-disabled
   python3 - "$root/beads-integration-disabled/home/.config/opencode/cli.json" <<'PY'
@@ -1593,6 +1557,10 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.h
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+ctrl+h"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
 test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
+assert_contains "$personal_home/.config/ghostty/config" 'theme = dark:herdr-dracula,light:TokyoNight Day'
+test -f "$personal_home/.config/ghostty/themes/herdr-dracula"
+assert_contains "$personal_home/.config/ghostty/themes/herdr-dracula" 'background = #282a36'
+assert_contains "$personal_home/.config/ghostty/themes/herdr-dracula" 'selection-background = #44475a'
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+ctrl+p"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "annotate.last-newest"'
 
