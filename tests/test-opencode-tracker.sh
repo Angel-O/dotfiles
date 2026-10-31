@@ -6,15 +6,19 @@ root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 
 config="$root/config-home/.config/opencode/portable.jsonc"
+personal_config="$root/personal-home/.config/opencode/portable.jsonc"
 mkdir -p "$(dirname "$config")"
+mkdir -p "$(dirname "$personal_config")"
 installer="$root/installer.sh"
 chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
   <"$source_dir/dot_config/opencode/portable.jsonc.tmpl" >"$config"
+chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" \
+  <"$source_dir/dot_config/opencode/portable.jsonc.tmpl" >"$personal_config"
 chezmoi execute-template --source "$source_dir" --config "$source_dir/tests/fixtures/work.toml" \
   <"$source_dir/run_before_07-install-opencode-tracker.sh.tmpl" >"$installer"
 sh -n "$installer"
 
-python3 - "$config" "$source_dir/.chezmoidata.toml" "$source_dir/renovate.json" <<'PY'
+python3 - "$config" "$personal_config" "$source_dir/.chezmoidata.toml" "$source_dir/renovate.json" <<'PY'
 import json
 import re
 import sys
@@ -22,9 +26,10 @@ import tomllib
 from pathlib import Path
 
 portable = json.load(open(sys.argv[1]))
-pin_text = Path(sys.argv[2]).read_text()
+personal = json.load(open(sys.argv[2]))
+pin_text = Path(sys.argv[3]).read_text()
 pins = tomllib.loads(pin_text)["pins"]["openCodeTracker"]
-renovate = json.load(open(sys.argv[3]))
+renovate = json.load(open(sys.argv[4]))
 assert "plugin" not in portable
 assert portable["experimental"] == {"todo": True, "background_compaction": True}
 plugins = portable["plugins"]
@@ -41,8 +46,12 @@ assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entr
 assert plugins == [
     "@slkiser/opencode-quota@5.0.2",
     "@plannotator/opencode@0.28.2",
+    "opencode-handoff@0.7.0",
     "../../.local/share/opencode/orchestration-tracking/src",
 ]
+assert personal["plugins"] == plugins
+assert personal["plugins"].count("opencode-handoff@0.7.0") == 1
+assert plugins.count("opencode-handoff@0.7.0") == 1
 assert plugins.count("@plannotator/opencode@0.28.2") == 1
 config_dir = Path(sys.argv[1]).parent
 managed_src = config_dir.parent.parent / ".local/share/opencode/orchestration-tracking/src"
@@ -165,6 +174,10 @@ disabled_managed=$(chezmoi managed --source "$source_dir" \
   --exclude externals --include files)
 if printf '%s\n' "$disabled_managed" | grep -Fxq '.config/opencode/commands/tracking-report.md'; then
   printf 'tracking-report must not be managed when OpenCode is disabled.\n' >&2
+  exit 1
+fi
+if printf '%s\n' "$disabled_managed" | grep -Fxq '.config/opencode/portable.jsonc'; then
+  printf 'portable OpenCode config must not be managed when OpenCode is disabled.\n' >&2
   exit 1
 fi
 
