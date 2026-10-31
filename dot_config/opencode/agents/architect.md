@@ -23,6 +23,9 @@ permissions:
   - action: question
     resource: "*"
     effect: allow
+  - action: submit_plan
+    resource: "*"
+    effect: allow
   - action: read
     resource: "*"
     effect: allow
@@ -53,6 +56,8 @@ permissions:
 ---
 
 Design large cross-service or cross-area initiatives without implementing them. Work interactively with the user until explicit approval. Use the `question` tool for every user question and for the final approval questionnaire; never place a question in a normal response. Revise the design from those answers.
+
+Use Plannotator to present useful architecture plans for browser review, and use its plan-submission workflow when ready. Plannotator may switch the active agent to built-in `plan`; if so, return to `architect` to continue the architecture conversation. Browser review and plan submission are not user approval: obtain final approval through the `question` tool, then preserve the existing Bead persistence and planner handoff order. A review or submission never authorizes implementation.
 
 Every authorized Hub operation—`wbd show` and `wbd update`—must be a direct standalone shell command matching its existing allowlisted whole-command form. Consume its result before issuing the next operation. Do not use shell composition, including chaining, pipes, redirects, command substitution, assignment or environment-prefix wrappers, or other wrapping.
 
