@@ -12,6 +12,7 @@
       "options": { "planningAgents": ["plan", "architect"] }
     },
     "opencode-handoff@{{ .pins.openCodePlugins.handoff }}",
+    {{ if .modules.warp }}"@warp-dot-dev/opencode-warp@{{ .pins.openCodePlugins.warp }}",{{ end }}
     "../../.local/share/opencode/orchestration-tracking/src"
   ],
   "agent": {
