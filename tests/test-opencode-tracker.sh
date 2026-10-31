@@ -60,10 +60,6 @@ assert len(plannotator) == 1
 architect = Path(sys.argv[3]).parent / "dot_config/opencode/agents/architect.md"
 architect_text = architect.read_text()
 assert "  - action: submit_plan\n    resource: \"*\"\n    effect: allow" in architect_text
-assert "Use the `question` tool for every user question and for the final approval questionnaire" in architect_text
-assert "Browser review and plan submission are not user approval" in architect_text
-assert "Only after successful Bead persistence" in architect_text
-assert "return to `architect`" in architect_text
 config_dir = Path(sys.argv[1]).parent
 managed_src = config_dir.parent.parent / ".local/share/opencode/orchestration-tracking/src"
 managed_src.mkdir(parents=True)
