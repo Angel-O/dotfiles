@@ -1560,7 +1560,7 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.h
 assert_contains "$personal_home/.config/herdr/config.toml" 'key = "prefix+shift+ctrl+h"'
 assert_contains "$personal_home/.config/herdr/config.toml" 'command = "angel-o.hub-viewer.open-tab"'
 test -f "$personal_home/.config/herdr/plugins/local/angel-o.hub-viewer/herdr-plugin.toml"
-assert_contains "$personal_home/.config/ghostty/config" 'theme = dark:herdr-dracula,light:TokyoNight Day'
+assert_contains "$personal_home/.config/ghostty/config" 'theme = dark:TokyoNight,light:TokyoNight Day'
 test -f "$personal_home/.config/ghostty/themes/herdr-dracula"
 assert_contains "$personal_home/.config/ghostty/themes/herdr-dracula" 'background = #282a36'
 assert_contains "$personal_home/.config/ghostty/themes/herdr-dracula" 'selection-background = #44475a'
