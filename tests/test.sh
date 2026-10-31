@@ -37,6 +37,8 @@ bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
 bash "$source_dir/tests/test-opencode-tracker.sh"
 [[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
+bash "$source_dir/tests/test-opencode-warp.sh"
+[[ "${TEST_SCOPE:-}" != opencode-warp ]] || exit 0
 bash "$source_dir/tests/test-opencode-orchestration.sh"
 [[ "${TEST_SCOPE:-}" != opencode-orchestration ]] || exit 0
 bash "$source_dir/tests/test-opencode-policy.sh"
@@ -1624,7 +1626,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
- jq -e '(.plugins == ["@slkiser/opencode-quota@5.0.2", {"package": "@plannotator/opencode@0.28.2", "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@0.7.0", "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+ jq -e '(.plugins == ["@slkiser/opencode-quota@5.0.2", {"package": "@plannotator/opencode@0.28.2", "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@0.7.0", "@warp-dot-dev/opencode-warp@0.2.0", "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'

@@ -19,6 +19,7 @@ ref = "2bf6cc93f527503982001df5ff39cb459def72e9"
 quota = "5.0.2"
 plannotator = "0.28.2"
 handoff = "0.7.0"
+warp = "0.2.0"
 
 [pins.openCodeTracker]
 source = "Angel-O/orchestration-tracking"

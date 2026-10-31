@@ -52,7 +52,7 @@ assert plugins == [
     "opencode-handoff@0.7.0",
     "../../.local/share/opencode/orchestration-tracking/src",
 ]
-assert personal["plugins"] == plugins
+assert personal["plugins"] == plugins[:-1] + ["@warp-dot-dev/opencode-warp@0.2.0", plugins[-1]]
 assert personal["plugins"].count("opencode-handoff@0.7.0") == 1
 assert plugins.count("opencode-handoff@0.7.0") == 1
 plannotator = [entry for entry in plugins if isinstance(entry, dict) and entry.get("package") == "@plannotator/opencode@0.28.2"]
