@@ -45,14 +45,21 @@ assert all("qa" not in str(entry).lower() for entry in plugins)
 assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entry)) for entry in plugins)
 assert plugins == [
     "@slkiser/opencode-quota@5.0.2",
-    "@plannotator/opencode@0.28.2",
+    {
+        "package": "@plannotator/opencode@0.28.2",
+        "options": {"planningAgents": ["plan", "architect"]},
+    },
     "opencode-handoff@0.7.0",
     "../../.local/share/opencode/orchestration-tracking/src",
 ]
 assert personal["plugins"] == plugins
 assert personal["plugins"].count("opencode-handoff@0.7.0") == 1
 assert plugins.count("opencode-handoff@0.7.0") == 1
-assert plugins.count("@plannotator/opencode@0.28.2") == 1
+plannotator = [entry for entry in plugins if isinstance(entry, dict) and entry.get("package") == "@plannotator/opencode@0.28.2"]
+assert len(plannotator) == 1
+architect = Path(sys.argv[3]).parent / "dot_config/opencode/agents/architect.md"
+architect_text = architect.read_text()
+assert "  - action: submit_plan\n    resource: \"*\"\n    effect: allow" in architect_text
 config_dir = Path(sys.argv[1]).parent
 managed_src = config_dir.parent.parent / ".local/share/opencode/orchestration-tracking/src"
 managed_src.mkdir(parents=True)

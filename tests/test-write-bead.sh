@@ -69,6 +69,7 @@ assert rules == [
     ('external_directory', '"*"', 'ask'),
     ('external_directory', f'"{plan_resource}"', 'allow'),
     ('question', '"*"', 'allow'),
+    ('submit_plan', '"*"', 'allow'),
     ('read', '"*"', 'allow'),
     ('read', f'"{plan_resource}"', 'allow'),
     ('edit', f'"{plan_resource}"', 'allow'),
