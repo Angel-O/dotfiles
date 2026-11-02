@@ -4,12 +4,12 @@
 .config/opencode/commands/orchestrate.md
 .config/opencode/skills/work-beads/SKILL.md
 .config/opencode/commands/materialize-epic.md
+.config/opencode/agents/planner.md
 {{ if not .modules.opencode }}
 .config/opencode/agents/orchestrator.md
 .config/opencode/agents/reviewer.md
 .config/opencode/agents/worker.md
 .config/opencode/agents/architect.md
-.config/opencode/agents/planner.md
 {{ end }}
 {{ if or (not .modules.opencode) (not .modules.herdr) }}
 .local/bin/herdr-agent-launch

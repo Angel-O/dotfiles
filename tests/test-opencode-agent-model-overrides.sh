@@ -18,7 +18,6 @@ printf 'OPENCODE_AGENT_MODEL_INVESTIGATOR=%s\n' "${OPENCODE_AGENT_MODEL_INVESTIG
 printf 'OPENCODE_AGENT_MODEL_REVIEWER=%s\n' "${OPENCODE_AGENT_MODEL_REVIEWER-}"
 printf 'OPENCODE_AGENT_MODEL_WORKER=%s\n' "${OPENCODE_AGENT_MODEL_WORKER-}"
 printf 'OPENCODE_AGENT_MODEL_ARCHITECT=%s\n' "${OPENCODE_AGENT_MODEL_ARCHITECT-}"
-printf 'OPENCODE_AGENT_MODEL_PLANNER=%s\n' "${OPENCODE_AGENT_MODEL_PLANNER-}"
 printf 'OPENCODE_AGENT_MODEL_PLAN=%s\n' "${OPENCODE_AGENT_MODEL_PLAN-}"
 printf 'OPENCODE_AGENT_MODEL_BUILD=%s\n' "${OPENCODE_AGENT_MODEL_BUILD-}"
 printf 'args=%s\n' "$*"
@@ -39,7 +38,6 @@ grep -Fqx 'OPENCODE_AGENT_MODEL_INVESTIGATOR=openai/gpt-5.6-sol#medium' <<<"$def
 grep -Fqx 'OPENCODE_AGENT_MODEL_REVIEWER=openai/gpt-6-astra#medium' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=openai/gpt-5.6-luna#high' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/gpt-5.6-sol#high' <<<"$defaults"
-grep -Fqx 'OPENCODE_AGENT_MODEL_PLANNER=openai/gpt-5.6-terra#medium' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/gpt-5.6-sol#high' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_BUILD=openai/gpt-6.1-sol#medium' <<<"$defaults"
 grep -Fqx 'args=--check' <<<"$defaults"
@@ -93,7 +91,7 @@ grep -Fqx "OPENCODE_CONFIG=$target_home/.config/opencode/portable.jsonc" <<<"$du
 skill="$target_home/.config/opencode/skills/update-agent-models/SKILL.md"
 test -f "$skill"
 grep -Fq 'Do not edit portable fallback definitions or generated launcher files' "$skill"
-grep -Fq 'OPENCODE_AGENT_MODEL_PLANNER' "$skill"
+! grep -Fq 'OPENCODE_AGENT_MODEL_PLANNER' "$skill"
 grep -Fq 'OPENCODE_AGENT_MODEL_PLAN' "$skill"
 grep -Fq 'OPENCODE_AGENT_MODEL_BUILD' "$skill"
 mkdir -p "$target_home/.config/opencode"
@@ -126,7 +124,6 @@ expected = {
     "reviewer": "OPENCODE_AGENT_MODEL_REVIEWER",
     "worker": "OPENCODE_AGENT_MODEL_WORKER",
     "architect": "OPENCODE_AGENT_MODEL_ARCHITECT",
-    "planner": "OPENCODE_AGENT_MODEL_PLANNER",
     "plan": "OPENCODE_AGENT_MODEL_PLAN",
     "build": "OPENCODE_AGENT_MODEL_BUILD",
 }
@@ -139,6 +136,7 @@ for agent, variable in expected.items():
     frontmatter = (Path(sys.argv[2]) / f"{agent}.md").read_text().split("---", 2)[1]
     assert "model:" not in frontmatter
     assert "reasoningEffort:" not in frontmatter
+assert "planner" not in portable["agents"]
 assert portable["agent"]["title"] == {
     "model": "openai/gpt-5.6-luna",
     "options": {"reasoningEffort": "none"},
