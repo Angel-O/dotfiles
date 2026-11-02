@@ -1878,6 +1878,7 @@ chezmoi managed \
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
 .config/opencode/commands/orchestrate-epic.md
+.config/opencode/skills/decomposition-rules/SKILL.md
 .config/opencode/skills/memex-quick-search/SKILL.md
 .config/opencode/skills/terminal-mermaid/SKILL.md
 .config/opencode/skills/update-agent-models/SKILL.md
