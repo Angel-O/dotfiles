@@ -124,6 +124,8 @@ Approval/considered done requires acceptance-criterion evidence from the deliver
 
 ## OpenCode service management
 
+Never invoke `handoff_session` spontaneously; invoke it only when the user explicitly requests a session handoff.
+
 For an agent model override, run `/restart-opencode-env`. After interruption, check `~/.local/bin/opencode-env-restart status <run-id>` (or `status` for the latest run) before retrying. Report activation only after a successful receipt and live selector match from `~/.local/bin/opencode-env api get /api/agent`.
 <!-- meaningful-validation:end -->
 BLOCK
