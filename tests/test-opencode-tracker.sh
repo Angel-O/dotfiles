@@ -44,7 +44,7 @@ assert tracker[0] != "../../.local/share/opencode/orchestration-tracking"
 assert all("qa" not in str(entry).lower() for entry in plugins)
 assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entry)) for entry in plugins)
 assert plugins == [
-    "@slkiser/opencode-quota@5.0.2",
+    "@slkiser/opencode-quota@6.0.0",
     {
         "package": "@plannotator/opencode@0.28.2",
         "options": {"planningAgents": ["plan", "architect"]},

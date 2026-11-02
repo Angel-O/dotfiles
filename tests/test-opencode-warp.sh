@@ -19,7 +19,7 @@ pins = tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]
 personal, work = (json.load(open(path)) for path in sys.argv[2:])
 plugin = f"@warp-dot-dev/opencode-warp@{pins['warp']}"
 baseline = [
-    "@slkiser/opencode-quota@5.0.2",
+    "@slkiser/opencode-quota@6.0.0",
     {
         "package": "@plannotator/opencode@0.28.2",
         "options": {"planningAgents": ["plan", "architect"]},

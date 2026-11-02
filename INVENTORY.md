@@ -107,7 +107,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 
 | Declaration | Version state | Approved scope | Approved treatment |
 | --- | --- | --- | --- |
-| `@slkiser/opencode-quota@5.0.2` | Pinned | Shared | V2-compatible quota display |
+| `@slkiser/opencode-quota@6.0.0` | Pinned | Shared | Requires OpenCode 2.0.26+; converts 4.x/5.x global settings on first start; no longer reads project `quota-toast.jsonc` files |
 | `../../.local/share/opencode/opencode-todo/src` | Pinned Git checkout | Shared | Todo-list tools, RPC, and TUI from one source entry; restore the checkout under `~/.local/share/opencode/` |
 | Memex CLI and shared `memex-search` skill | Homebrew core formula and bundled release skill | Missing-only | Shared | Install Memex on PATH and refresh the release-managed skill; keep history data local; use it for advanced retrieval |
 | `nicosuave.memex` Herdr plugin | Upstream release | v0.28.0 | Shared/selected | Install when selected and bind `prefix+ctrl+m` to the session palette |
