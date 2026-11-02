@@ -122,6 +122,10 @@ Agree a concise validation plan with the user for each epic or standalone implem
 
 Approval/considered done requires acceptance-criterion evidence from the delivered revision, passed required checks, completed required QA, and disclosed limitations. Not run, blocked, or inconclusive is not passed. Only the user may waive a required gate; record missing evidence, risk, and affected gate, never as a pass. Classify pre-existing failures and selectively rerun affected checks after corrections. Workers own focused checks, integration supplied broader checks when warranted, and reviewers static assessment only. Validate an epic's own outcome, not just child completion. CI/branch protection and release gates are separate; these instructions neither guarantee model compliance nor technically prevent direct Hub closure.
 
+## Tools guardrails
+
+Never invoke `handoff_session` spontaneously; invoke it only when the user explicitly requests a session handoff.
+
 ## OpenCode service management
 
 For an agent model override, run `/restart-opencode-env`. After interruption, check `~/.local/bin/opencode-env-restart status <run-id>` (or `status` for the latest run) before retrying. Report activation only after a successful receipt and live selector match from `~/.local/bin/opencode-env api get /api/agent`.
