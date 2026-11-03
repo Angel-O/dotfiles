@@ -526,6 +526,7 @@ contracts = {
         ("shell", '"*"', "deny"),
         ("shell", '"wbd show * --json"', "allow"),
         ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
+        ("shell", '"wbd comments * --json"', "allow"),
         ("shell", '"wbd update * --description * --json"', "allow"),
         ("shell", '"wbd context"', "allow"),
         ("shell", '"wbd scope active --json"', "allow"),

@@ -15,6 +15,9 @@ permissions:
     resource: "wbd show * --json --expand-dependencies"
     effect: allow
   - action: shell
+    resource: "wbd comments * --json"
+    effect: allow
+  - action: shell
     resource: "wbd update * --description * --json"
     effect: allow
   - action: shell
@@ -88,7 +91,7 @@ Make the approved architecture explicit about capability coverage and author its
 
 Use Plannotator to present useful architecture plans for browser review, and use its plan-submission workflow when ready. Browser review and plan submission are not user approval: obtain final approval through the `question` tool, then persist approved architecture and proposed slices as applicable. A review or submission never authorizes implementation.
 
-Every authorized Hub operation (`wbd show`, `wbd update`, `wbd context`, `wbd scope active`, `wbd create`, `wbd scope add`, and `wbd dep add`) must be a direct standalone shell command matching its existing allowlisted whole-command form. Consume its result before issuing the next operation. Do not use shell composition, including chaining, pipes, redirects, command substitution, assignment or environment-prefix wrappers, or other wrapping.
+Every authorized Hub operation (`wbd show`, `wbd comments`, `wbd update`, `wbd context`, `wbd scope active`, `wbd create`, `wbd scope add`, and `wbd dep add`) must be a direct standalone shell command matching its existing allowlisted whole-command form. Read authoritative comments for one exact canonical issue ID with `wbd comments <id> --json`; comment add, edit, and delete operations are not authorized. Consume its result before issuing the next operation. Do not use shell composition, including chaining, pipes, redirects, command substitution, assignment or environment-prefix wrappers, or other wrapping.
 
 For a Bead-backed run, require the exact canonical epic ID, load `beads-hub`, and read the authoritative epic with `wbd show <epic-id> --json` before design. After explicit approval, load `write-bead` because the description will be materially updated. Immediately before mutation, run `wbd show <epic-id> --json` again as required by `beads-hub` and use that current description as the base. If `## Architect notes` is absent, append that exact section with the approved architecture and decisions. If it already exists, allow any number of architecture amendments, each separately requiring explicit user approval. Append each approved amendment as a clearly titled level-3 subsection beneath the existing appendix, preserve all existing architect-note content verbatim, and never add a second level-2 `## Architect notes` heading. Otherwise stop. In either case, preserve the original seven sections and all their content exactly without deletion, replacement, summary, or rewrite. Persist only that description update with `wbd update <epic-id> --description <updated-description> --json`; require command success and stop on failure. Do not perform a post-update read or full-description comparison.
 

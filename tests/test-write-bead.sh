@@ -56,6 +56,7 @@ allowed = {
     ("shell", '"wbd context"'),
     ("shell", '"wbd show * --json"'),
     ("shell", '"wbd show * --json --expand-dependencies"'),
+    ("shell", '"wbd comments * --json"'),
     ("shell", '"wbd update * --description * --json"'),
     ("shell", '"wbd scope active --json"'),
     ("shell", '"wbd create * --type * --context * --description * --priority * --json"'),
@@ -92,6 +93,7 @@ def authorized(command):
 for command in (
     "wbd context",
     "wbd show epic --json",
+    "wbd comments epic --json",
     "wbd scope active --json",
     "wbd create child --type task --context registered --description detail --priority 2 --json",
     "wbd scope add child --context registered --json",
@@ -101,6 +103,12 @@ for command in (
     assert authorized(command), command
 for command in (
     "wbd context --json",
+    "wbd comments epic",
+    "wbd --json comments add epic -- text",
+    "wbd --json comments edit epic 1 -- text",
+    "wbd --json comments delete epic 1",
+    "wbd comments epic --json | cat",
+    "env wbd comments epic --json",
     "wbd create child --type task --context registered --description detail --priority 2 --json && wbd dep add child epic",
     "wbd scope add epic --json",
     "wbd dep add child epic --type relates --json",
