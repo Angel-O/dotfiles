@@ -37,7 +37,7 @@ ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
 
 [pins.herdrPlugins.memex]
 source = "nicosuave/memex"
-ref = "v0.31.1"
+ref = "v0.32.0"
 
 [pins.herdrPlugins.blink]
 source = "dartyuhov/herdr-blink"
@@ -70,7 +70,7 @@ ref = "f9e3fe137375d5d276d3e6c909165fbb37c60830"
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "d642f7964231b86e82e1ac7f3a390fd5baa03e98"
+ref = "d9cdd88cb734615e96b1c37ed17fc39be904f060"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
