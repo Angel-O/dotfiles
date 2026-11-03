@@ -555,6 +555,7 @@ contracts = {
         ("webfetch", '"*"', "allow"),
         ("skill", '"*"', "allow"),
         ("subagent", '"*"', "deny"),
+        ("subagent", "reviewer", "allow"),
     ]),
 }
 
