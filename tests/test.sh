@@ -290,7 +290,6 @@ expected = {
     "investigator": {"model": "{env:OPENCODE_AGENT_MODEL_INVESTIGATOR}"},
     "integration": {"model": "{env:OPENCODE_AGENT_MODEL_INTEGRATION}"},
     "reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"},
-    "planner": {"model": "{env:OPENCODE_AGENT_MODEL_PLANNER}"},
 }
 assert set(portable["agents"]) == set(expected)
 for name, config in expected.items():
@@ -353,7 +352,7 @@ PY
   assert_not_contains "$source_dir/dot_config/opencode/themes/tokyonight-mauve.json" 'system-pink'
   assert_not_contains "$source_dir/dot_config/opencode/themes/tokyonight-mauve.json" 'global-'
   assert_contains "$source_dir/README.md" 'Normal composer rails follow the active agent color'
-  assert_contains "$source_dir/README.md" 'Built-in `plan` and custom `planner` are distinct'
+  assert_not_contains "$source_dir/README.md" 'custom `planner`'
 }
 
 assert_opencode_palette
@@ -526,9 +525,19 @@ contracts = {
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "deny"),
         ("shell", '"wbd show * --json"', "allow"),
+        ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
         ("shell", '"wbd update * --description * --json"', "allow"),
+        ("shell", '"wbd context"', "allow"),
+        ("shell", '"wbd scope active --json"', "allow"),
+        ("shell", '"wbd create * --type * --context * --description * --priority * --json"', "allow"),
+        ("shell", '"wbd create * --type * --priority * --context * --description * --json"', "allow"),
+        ("shell", '"wbd scope add * --context * --json"', "allow"),
+        ("shell", '"wbd dep add * * --type parent-child --json"', "allow"),
+        ("shell", '"wbd dep add * * --type blocks --json"', "allow"),
+        ("orchestration_tracking", '"*"', "allow"),
         ("external_directory", '"*"', "ask"),
         ("external_directory", '"$HOME/.local/share/plannotator/plans/*"', "allow"),
+        ("external_directory", '"$HOME/workspace/source/*"', "allow"),
         ("question", '"*"', "allow"),
         ("submit_plan", '"*"', "allow"),
         ("read", '"*"', "allow"),
@@ -539,27 +548,6 @@ contracts = {
         ("webfetch", '"*"', "allow"),
         ("skill", '"*"', "allow"),
         ("subagent", '"*"', "deny"),
-        ("subagent", "planner", "allow"),
-    ]),
-    "planner": ("subagent", [
-        ('"*"', '"*"', "deny"),
-        ("orchestration_tracking", '"*"', "allow"),
-        ("shell", '"*"', "deny"),
-        ("external_directory", '"*"', "deny"),
-        ("external_directory", '"$HOME/workspace/source/*"', "allow"),
-        ("shell", '"wbd context"', "allow"),
-        ("shell", '"wbd show * --json"', "allow"),
-        ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
-        ("shell", '"wbd scope active --json"', "allow"),
-        ("shell", '"wbd create * --type * --context * --description * --priority * --json"', "allow"),
-        ("shell", '"wbd create * --type * --priority * --context * --description * --json"', "allow"),
-        ("shell", '"wbd scope add * --context * --json"', "allow"),
-        ("shell", '"wbd dep add * * --type parent-child --json"', "allow"),
-        ("shell", '"wbd dep add * * --type blocks --json"', "allow"),
-        ("read", '"*"', "allow"),
-        ("glob", '"*"', "allow"),
-        ("grep", '"*"', "allow"),
-        ("skill", '"*"', "allow"),
     ]),
 }
 
@@ -584,12 +572,11 @@ for name, (mode, expected) in contracts.items():
         assert "create or include diagrams" in text
 
 for name, forbidden in {
-    "integration": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
-    "investigator": {"orchestrator", "reviewer", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
-    "reviewer": {"orchestrator", "worker", "planner", "architect", "orchestration", "routing", "delegate"},
-    "worker": {"orchestrator", "reviewer", "planner", "architect", "orchestration", "routing", "delegate"},
+    "integration": {"orchestrator", "reviewer", "worker", "architect", "orchestration", "routing", "delegate"},
+    "investigator": {"orchestrator", "reviewer", "worker", "architect", "orchestration", "routing", "delegate"},
+    "reviewer": {"orchestrator", "worker", "architect", "orchestration", "routing", "delegate"},
+    "worker": {"orchestrator", "reviewer", "architect", "orchestration", "routing", "delegate"},
     "architect": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
-    "planner": {"orchestrator", "reviewer", "worker", "orchestration", "routing", "delegate"},
 }.items():
     identity = (directory / f"{name}.md").read_text().split("---", 2)[2].lower()
     assert not forbidden.intersection(identity), (name, forbidden.intersection(identity))
@@ -599,7 +586,8 @@ assert '  - action: subagent\n    resource: "*"\n    effect: deny\n  - action: s
 assert 'Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane.' in orchestrator
 assert "Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation." in orchestrator
 architect = (directory / "architect.md").read_text()
-assert '  - action: subagent\n    resource: "*"\n    effect: deny\n  - action: subagent\n    resource: planner\n    effect: allow' in architect
+assert '  - action: subagent\n    resource: "*"\n    effect: deny' in architect
+assert 'resource: planner' not in architect
 assert 'architect: allow' not in orchestrator
 assert 'worker: allow' not in orchestrator
 for name in ("worker", "architect", "reviewer"):
@@ -1591,9 +1579,12 @@ assert cli["diffs"]["fullscreen"] is False
 assert cli["debug"] == {"devtools": True, "timing": False, "turn_tokens": True}
 PY
 assert_agent_contracts "$personal_home/.config/opencode/agents"
-for agent in orchestrator integration investigator reviewer worker architect planner; do
+for agent in orchestrator integration investigator reviewer worker architect; do
   test -f "$personal_home/.config/opencode/agents/$agent.md"
 done
+test ! -e "$personal_home/.config/opencode/agents/planner.md"
+cmp -s "$source_dir/dot_config/opencode/skills/decomposition-rules/SKILL.md" \
+  "$personal_home/.config/opencode/skills/decomposition-rules/SKILL.md"
 assert_contains "$personal_home/.config/opencode/agents/integration.md" 'only supplied commands that are clearly repository-wide integration validation'
 assert_contains "$personal_home/.config/opencode/agents/integration.md" 'Refuse and report a blocker for any supplied command that is outside or ambiguous'
 assert_contains "$personal_home/.config/opencode/agents/integration.md" 'may perform its own internal setup or build steps'
@@ -1887,6 +1878,7 @@ chezmoi managed \
 cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
 .config/opencode/commands/orchestrate-epic.md
+.config/opencode/skills/decomposition-rules/SKILL.md
 .config/opencode/skills/memex-quick-search/SKILL.md
 .config/opencode/skills/terminal-mermaid/SKILL.md
 .config/opencode/skills/update-agent-models/SKILL.md

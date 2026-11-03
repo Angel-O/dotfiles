@@ -37,10 +37,15 @@ apply_fixture() {
     --persistent-state "$root/$fixture/state.boltdb" --exclude scripts,externals --force
 }
 
+mkdir -p "$root/personal/home/.config/opencode/agents"
+printf '%s\n' 'obsolete installed planner' >"$root/personal/home/.config/opencode/agents/planner.md"
 apply_fixture personal
 test -f "$root/personal/home/.config/opencode/commands/orchestrate-task.md"
 test ! -e "$root/personal/home/.config/opencode/commands/orchestrate-epic.md"
+test ! -e "$root/personal/home/.config/opencode/agents/planner.md"
 test ! -e "$root/personal/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/skills/decomposition-rules/SKILL.md" \
+  "$root/personal/home/.config/opencode/skills/decomposition-rules/SKILL.md"
 
 apply_fixture external-opencode-beads
 test ! -e "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-task.md"

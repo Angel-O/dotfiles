@@ -123,7 +123,7 @@ grep -Fq 'tracking_closeout({ beadID })' "$source_dir/dot_config/opencode/modify
 grep -Fq 'tracking_closeout' "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl"
 
 python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" \
-  "$source_dir/dot_config/opencode/agents/planner.md" \
+  "$source_dir/dot_config/opencode/agents/architect.md" \
   "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl" \
   "$source_dir/dot_config/opencode/commands/orchestrate-task.md.tmpl" \
   "$source_dir/dot_config/opencode/commands/tracking-report.md" \
@@ -132,13 +132,13 @@ python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" \
 from pathlib import Path
 import sys
 
-orchestrator, planner, command, task_command, report, agents, docs = (
+orchestrator, architect, command, task_command, report, agents, docs = (
     Path(path).read_text() for path in sys.argv[1:]
 )
 claim_invariant = "For every Bead-backed primary launch, the orchestrator must run `wbd claim <id> --json` for the exact Bead being started before sending that lane's first work prompt."
 assert claim_invariant in orchestrator
 assert "Tracker selection and `--tracking-bead` provide local session attribution only; they do not claim a Bead or change Hub status." in orchestrator
-assert "Do not claim planner, reviewer, or integration lanes." in orchestrator
+assert "Do not claim reviewer or integration lanes." in orchestrator
 
 def branch(text, start, end):
     return text[text.index(start):text.index(end, text.index(start))]
@@ -160,10 +160,9 @@ assert "tracking_bead_created({ beadID })" in orchestrator
 assert "successful top-level `wbd create`" in orchestrator
 assert "exact `wbd show` validation" in orchestrator
 assert "active-scope membership confirmation" in orchestrator
-assert "tracking_bead_created({ beadID })" in planner
-assert planner.index("parent-linking succeeds") < planner.index("tracking_bead_created({ beadID })")
-assert "planner's epic attribution" in planner
-assert "creating child scoping" in planner
+assert "tracking_bead_created({ beadID })" in architect
+assert architect.index("parent-linking") < architect.index("tracking_bead_created({ beadID })")
+assert "creating child scoping" in architect
 assert command.index("tracking_bead_select({ beadID })") < command.index("--tracking-bead <bead-id>")
 assert "tracking_run_start" not in command
 assert "tracking_lane_attach" not in command

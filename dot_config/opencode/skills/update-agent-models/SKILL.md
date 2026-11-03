@@ -17,7 +17,6 @@ Custom-agent selectors (only set the agents you intend to change):
 - `OPENCODE_AGENT_MODEL_REVIEWER`
 - `OPENCODE_AGENT_MODEL_WORKER`
 - `OPENCODE_AGENT_MODEL_ARCHITECT`
-- `OPENCODE_AGENT_MODEL_PLANNER`
 
 Built-in agent selectors:
 
