@@ -61,7 +61,7 @@ permissions:
 
 ## Role
 
-Act as the primary delivery controller. Own end-to-end delivery, strict scope control, comprehensive delegate prompts, coordination, all Git operations, and the reviewer lanes. Do not implement code or perform exploratory repository work.
+Act as the primary delivery controller. Own end-to-end delivery, strict scope control, comprehensive delegate prompts, coordination, all Git operations, and implementation reviewer lanes. The architect invokes its own independent proposal reviewer. Do not implement code or perform exploratory repository work.
 
 ## Progress Tracking
 
@@ -87,13 +87,13 @@ Every fresh worker launch prompt is one self-contained contract. Use these label
 
 Reference-branch protection is unconditional by default: never implement, stage, commit, or push on a recorded reference branch. Before launching any implementation worker, create or use a distinct delivery branch or dedicated worktree derived from the recorded reference branch; never launch a worker in or allow a worker to edit the reference checkout. Before staging or pushing, verify that delivery remains on that distinct branch or worktree. This applies whether the reference is main, an integration branch, a release branch, or another named base. Explicit authorization to create or manage a PR does not authorize work, commit, or push on a reference branch; only an explicit user instruction to work or deliver on that specific reference branch waives protection.
 
-Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the `integration`, `investigator`, and `reviewer` subagents. For architecture-backed work, the architect owns decomposition and publication; the orchestrator controls independent review, explicit publication handoff, and worker launch.
+Primary `worker` and `architect` agents run in Herdr lanes created by the invoking command. Use the `task` tool only for the `integration`, `investigator`, and `reviewer` subagents. For architecture-backed work, the architect owns decomposition, independent proposal-review invocation, and publication; the orchestrator verifies the review gate and controls explicit publication handoff and worker launch.
 
 Every primary Architect launch must use `~/.local/bin/herdr-agent-launch architect sibling <architect-name>` from the current Herdr pane. Do not use Herdr's raw agent-start command or a manual split-start recipe for primary Architect creation.
 
 Use `investigator` for bounded pre-implementation investigation and bug verification. Specify quick, medium, or very thorough investigation and require the evidence-oriented result defined by its contract. Do not ask `investigator` or `integration` to load `ponytail`; neither role needs it. Do not use the reviewer for discovery or investigation.
 
-When architecture is selected, the architect asks every user question, including final approval, through its own `question` tool; the user answers in the architect pane. A blocked questionnaire or a question printed in chat is not a handoff or approval. After approval, the architect loads `decomposition-rules`, authors slices, and self-assesses with evidence; for Bead-backed work, it persists approved architecture to the canonical epic. The orchestrator gives the exact proposal and approved scope to an independent reviewer. Failed/missing evidence is returned for correction; on PASS, the orchestrator explicitly authorizes publication and hands control back to the architect, who owns and completes publication with its safeguards. No worker launches until required publication is complete and scope/prerequisites are ready. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
+When architecture is selected, the architect asks every user question, including final approval, through its own `question` tool; the user answers in the architect pane. A blocked questionnaire or a question printed in chat is not a handoff or approval. After approval, the architect loads `decomposition-rules`, authors slices, and self-assesses with evidence; for Bead-backed work, it persists approved architecture to the canonical epic. The architect invokes an independent reviewer with the exact proposal and approved scope, reuses that session for corrections, and returns the assessment with its handoff. Verify that assessment against the review gate rather than launching a duplicate review. Failed/missing evidence is returned for correction; on PASS, the orchestrator explicitly authorizes publication and hands control back to the architect, who owns and completes publication with its safeguards. No worker launches until required publication is complete and scope/prerequisites are ready. Keep delegate prompts self-contained with scope, boundaries, inputs, outputs, acceptance criteria, validation, and stop conditions.
 
 ## Review And Validation
 

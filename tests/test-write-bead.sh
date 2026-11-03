@@ -74,7 +74,7 @@ allowed = {
 assert all((action, resource) in allowed for action, resource, effect in rules if action == "shell" and effect == "allow")
 assert allowed == {(action, resource) for action, resource, effect in rules if action == "shell" and effect == "allow"}
 assert ('orchestration_tracking', '"*"', 'allow') in rules
-assert not any(action == "subagent" and effect == "allow" for action, _, effect in rules)
+assert {resource for action, resource, effect in rules if action == "subagent" and effect == "allow"} == {"reviewer"}
 worker_frontmatter = worker.split("---", 2)[1]
 worker_rules = [tuple(match) for match in re.findall(
     r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$', worker_frontmatter, re.MULTILINE
@@ -89,12 +89,16 @@ def matches(pattern, resource):
     pattern = pattern.strip('"')
     return re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), resource) is not None
 
-def authorized(command):
+def authorized(command, action="shell"):
     decision = "ask"
-    for action, pattern, effect in rules:
-        if action in {"*", '"*"', "shell"} and matches(pattern, command):
+    for rule_action, pattern, effect in rules:
+        if rule_action in {"*", '"*"', action} and matches(pattern, command):
             decision = effect
     return decision == "allow"
+
+assert authorized("reviewer", action="subagent")
+for agent in ("worker", "architect", "planner", "integration", "investigator", "general", "explore"):
+    assert not authorized(agent, action="subagent"), agent
 
 for command in (
     "wbd context",
