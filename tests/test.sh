@@ -526,6 +526,7 @@ contracts = {
         ("shell", '"*"', "deny"),
         ("shell", '"wbd show * --json"', "allow"),
         ("shell", '"wbd show * --json --expand-dependencies"', "allow"),
+        ("shell", '"wbd epic child-closure * --json"', "allow"),
         ("shell", '"wbd comments * --json"', "allow"),
         ("shell", '"wbd --json comments add * -- *"', "allow"),
         ("shell", '"wbd --json comments edit * * -- *"', "allow"),

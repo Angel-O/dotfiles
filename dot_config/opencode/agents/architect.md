@@ -15,6 +15,9 @@ permissions:
     resource: "wbd show * --json --expand-dependencies"
     effect: allow
   - action: shell
+    resource: "wbd epic child-closure * --json"
+    effect: allow
+  - action: shell
     resource: "wbd comments * --json"
     effect: allow
   - action: shell
