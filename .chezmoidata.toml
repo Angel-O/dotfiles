@@ -8,7 +8,7 @@ explainThisSkill = "fbae95a979f517838af6d65ff4e2ed746895dbec"
 [pins.beads]
 source = "Angel-O/beads"
 branch = "feat/bulk-history-read"
-ref = "591bfbee618d1b73deff6acc8c2775a707360b97"
+ref = "6e20875449ca68b68aeff181486a9a832d5e58c9"
 
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
