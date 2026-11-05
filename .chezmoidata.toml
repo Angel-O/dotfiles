@@ -32,8 +32,7 @@ ref = "9f84740dad686f9206d537da1ec3b6eac7a2b8b6"
 
 [pins.herdrPlugins.agentResume]
 source = "Angel-O/herdr-agent-resume"
-branch = "main"
-ref = "17f166fde105777d0ffc503e09f01a8d0fa52dd6"
+ref = "v0.1.2"
 
 [pins.herdrPlugins.memex]
 source = "nicosuave/memex"
