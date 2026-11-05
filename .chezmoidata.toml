@@ -33,7 +33,7 @@ ref = "9f84740dad686f9206d537da1ec3b6eac7a2b8b6"
 [pins.herdrPlugins.agentResume]
 source = "Angel-O/herdr-agent-resume"
 branch = "main"
-ref = "dcd6417ac87b5d73e8b32e12486a4838850e8b1a"
+ref = "17f166fde105777d0ffc503e09f01a8d0fa52dd6"
 
 [pins.herdrPlugins.memex]
 source = "nicosuave/memex"
@@ -65,7 +65,7 @@ ref = "21e6341ebb17971da2be724ec22ba37908dcc370"
 [pins.herdrPlugins.kiosk]
 source = "thomasschafer/herdr-kiosk"
 branch = "main"
-ref = "f9e3fe137375d5d276d3e6c909165fbb37c60830"
+ref = "67b23145bfec6c80202e9a90744354d415ee8485"
 
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
