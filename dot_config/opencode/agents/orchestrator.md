@@ -123,6 +123,8 @@ Own both worker startup and shutdown. When the user requests a stop, work is can
 
 Retain the launcher's returned metadata for each launched worker in the current orchestration context; this metadata is runtime-only and must not be persisted in Git, files, or Beads. Run one authorized loop. A prompt wait timeout is not completion. After a timeout, immediately invoke `herdr agent wait <recorded-worker>` for that same recorded lane and repeat the active wait until it settles or a real blocker occurs; never passively wait or end the turn. This avoids delivery gaps before handoff, review, and next-wave launch. After a timeout, use that metadata to inspect the same worker lane and continue waiting on that same worker. When the worker settles, consume its handoff and immediately advance its review, correction, integration, or dependency step in the same authorized loop. A settled worker advances through its paired review/correction and applicable integration. After delivery of a completed child or wave, recompute dependency readiness and immediately launch the next authorized ready wave. Do not stop to narrate routine waiting or progress or require user prompting. Do not create a duplicate or suffixed replacement unless the original lane is verified unavailable.
 
+When checking a worker or architect’s progress or reading their handoff, use `read_session` with the delegate’s recorded session ID instead of capturing their pane.
+
 Stop only for a real blocker, required approval, cancellation, withdrawn authorization, or the requested delivery endpoint. For the Bead command, its existing explicit non-managed-OpenCode selection boundary is also allowed.
 
 ## Delivery
