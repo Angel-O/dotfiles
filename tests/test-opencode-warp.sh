@@ -21,14 +21,13 @@ plugin = f"@warp-dot-dev/opencode-warp@{pins['warp']}"
 baseline = [
     f"@slkiser/opencode-quota@{pins['quota']}",
     {
-        "package": "@plannotator/opencode@0.28.2",
+        "package": f"@plannotator/opencode@{pins['plannotator']}",
         "options": {"planningAgents": ["plan", "architect"]},
     },
-    "opencode-handoff@0.7.0",
+    f"opencode-handoff@{pins['handoff']}",
     "../../.local/share/opencode/orchestration-tracking/src",
 ]
 
-assert pins["warp"] == "0.2.0"
 assert personal["plugins"] == baseline[:-1] + [plugin, baseline[-1]]
 assert work["plugins"] == baseline
 assert all("plugin" not in config for config in (personal, work))

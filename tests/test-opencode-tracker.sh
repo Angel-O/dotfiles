@@ -29,7 +29,8 @@ portable = json.load(open(sys.argv[1]))
 personal = json.load(open(sys.argv[2]))
 pin_text = Path(sys.argv[3]).read_text()
 pins = tomllib.loads(pin_text)["pins"]["openCodeTracker"]
-quota_version = tomllib.loads(pin_text)["pins"]["openCodePlugins"]["quota"]
+plugin_pins = tomllib.loads(pin_text)["pins"]["openCodePlugins"]
+quota_version = plugin_pins["quota"]
 renovate = json.load(open(sys.argv[4]))
 assert "plugin" not in portable
 assert portable["experimental"] == {"todo": True, "background_compaction": True}
@@ -47,16 +48,16 @@ assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entr
 assert plugins == [
     f"@slkiser/opencode-quota@{quota_version}",
     {
-        "package": "@plannotator/opencode@0.28.2",
+        "package": f"@plannotator/opencode@{plugin_pins['plannotator']}",
         "options": {"planningAgents": ["plan", "architect"]},
     },
-    "opencode-handoff@0.7.0",
+    f"opencode-handoff@{plugin_pins['handoff']}",
     "../../.local/share/opencode/orchestration-tracking/src",
 ]
-assert personal["plugins"] == plugins[:-1] + ["@warp-dot-dev/opencode-warp@0.2.0", plugins[-1]]
-assert personal["plugins"].count("opencode-handoff@0.7.0") == 1
-assert plugins.count("opencode-handoff@0.7.0") == 1
-plannotator = [entry for entry in plugins if isinstance(entry, dict) and entry.get("package") == "@plannotator/opencode@0.28.2"]
+assert personal["plugins"] == plugins[:-1] + [f"@warp-dot-dev/opencode-warp@{plugin_pins['warp']}", plugins[-1]]
+assert personal["plugins"].count(f"opencode-handoff@{plugin_pins['handoff']}") == 1
+assert plugins.count(f"opencode-handoff@{plugin_pins['handoff']}") == 1
+plannotator = [entry for entry in plugins if isinstance(entry, dict) and entry.get("package") == f"@plannotator/opencode@{plugin_pins['plannotator']}"]
 assert len(plannotator) == 1
 architect = Path(sys.argv[3]).parent / "dot_config/opencode/agents/architect.md"
 architect_text = architect.read_text()
@@ -89,6 +90,17 @@ quota_pattern = quota_manager["matchStrings"][0].replace("(?<", "(?P<")
 for candidate, expected in ((pin_text, quota_version), (pin_text.replace(f'quota = "{quota_version}"', 'quota = "6.1.0"'), "6.1.0")):
     quota_match = re.search(quota_pattern, candidate)
     assert quota_match and quota_match.group("currentValue") == expected
+for key, package in (("plannotator", "@plannotator/opencode"), ("handoff", "opencode-handoff"), ("warp", "@warp-dot-dev/opencode-warp")):
+    matches = [item for item in renovate["customManagers"] if item.get("packageNameTemplate") == package]
+    assert len(matches) == 1, matches
+    manager = matches[0]
+    assert manager["datasourceTemplate"] == "npm"
+    assert manager["versioningTemplate"] == "semver"
+    assert manager["managerFilePatterns"] == [r"/^\.chezmoidata\.toml$/"]
+    pattern = manager["matchStrings"][0].replace("(?<", "(?P<")
+    for candidate, expected in ((pin_text, plugin_pins[key]), (pin_text.replace(f'{key} = "{plugin_pins[key]}"', f'{key} = "1.2.3"'), "1.2.3")):
+        match = re.search(pattern, candidate)
+        assert match and match.group("currentValue") == expected, (key, candidate)
 managers = [manager for manager in renovate["customManagers"] if manager.get("depTypeTemplate") == "opencode-tracker"]
 assert len(managers) == 1, managers
 manager = managers[0]

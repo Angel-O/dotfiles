@@ -9,6 +9,9 @@ blink_source=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[
 blink_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["herdrPlugins"]["blink"]["ref"])' "$source_dir/.chezmoidata.toml")
 todo_source=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["todo"]["source"])' "$source_dir/.chezmoidata.toml")
 todo_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["todo"]["ref"])' "$source_dir/.chezmoidata.toml")
+plannotator_version=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["plannotator"])' "$source_dir/.chezmoidata.toml")
+handoff_version=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["handoff"])' "$source_dir/.chezmoidata.toml")
+warp_version=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["warp"])' "$source_dir/.chezmoidata.toml")
 root=/tmp/dotfiles-test
 rm -rf "$root"
 mkdir -p "$root"
@@ -1632,7 +1635,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
- jq -e '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == [{"package": "@plannotator/opencode@0.28.2", "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@0.7.0", "@warp-dot-dev/opencode-warp@0.2.0", "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+ jq -e --arg plannotator "$plannotator_version" --arg handoff "$handoff_version" --arg warp "$warp_version" '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == [{"package": ("@plannotator/opencode@" + $plannotator), "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@" + $handoff, "@warp-dot-dev/opencode-warp@" + $warp, "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
@@ -1805,7 +1808,7 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
- jq -e '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == [{"package": "@plannotator/opencode@0.28.2", "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@0.7.0", "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+ jq -e --arg plannotator "$plannotator_version" --arg handoff "$handoff_version" '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == [{"package": ("@plannotator/opencode@" + $plannotator), "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@" + $handoff, "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$work_home/.config/opencode/cli.json" 'opencode-todo'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
