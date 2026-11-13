@@ -16,6 +16,7 @@ printf 'OPENCODE_AGENT_MODEL_ORCHESTRATOR=%s\n' "${OPENCODE_AGENT_MODEL_ORCHESTR
 printf 'OPENCODE_AGENT_MODEL_INTEGRATION=%s\n' "${OPENCODE_AGENT_MODEL_INTEGRATION-}"
 printf 'OPENCODE_AGENT_MODEL_INVESTIGATOR=%s\n' "${OPENCODE_AGENT_MODEL_INVESTIGATOR-}"
 printf 'OPENCODE_AGENT_MODEL_REVIEWER=%s\n' "${OPENCODE_AGENT_MODEL_REVIEWER-}"
+printf 'OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER=%s\n' "${OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER-}"
 printf 'OPENCODE_AGENT_MODEL_WORKER=%s\n' "${OPENCODE_AGENT_MODEL_WORKER-}"
 printf 'OPENCODE_AGENT_MODEL_ARCHITECT=%s\n' "${OPENCODE_AGENT_MODEL_ARCHITECT-}"
 printf 'OPENCODE_AGENT_MODEL_PLAN=%s\n' "${OPENCODE_AGENT_MODEL_PLAN-}"
@@ -36,6 +37,7 @@ grep -Fqx 'OPENCODE_AGENT_MODEL_ORCHESTRATOR=openai/gpt-5.6-terra#high' <<<"$def
 grep -Fqx 'OPENCODE_AGENT_MODEL_INTEGRATION=openai/gpt-5.6-luna#medium' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_INVESTIGATOR=openai/gpt-5.6-sol#medium' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_REVIEWER=openai/gpt-6-astra#medium' <<<"$defaults"
+grep -Fqx 'OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER=openai/gpt-5.6-luna#medium' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=openai/gpt-5.6-luna#high' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/gpt-5.6-sol#high' <<<"$defaults"
 grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/gpt-5.6-sol#high' <<<"$defaults"
@@ -46,6 +48,13 @@ builtin_overrides=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MO
 grep -Fqx 'OPENCODE_AGENT_MODEL_ARCHITECT=openai/gpt-5.6-sol#high' <<<"$builtin_overrides"
 grep -Fqx 'OPENCODE_AGENT_MODEL_PLAN=openai/independent-plan' <<<"$builtin_overrides"
 grep -Fqx 'OPENCODE_AGENT_MODEL_BUILD=openai/independent-build' <<<"$builtin_overrides"
+
+scope_override=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER=openai/independent-scope#fast zsh "$launcher" --check)
+grep -Fqx 'OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER=openai/independent-scope#fast' <<<"$scope_override"
+
+reviewer_override=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MODEL_REVIEWER=openai/independent-reviewer zsh "$launcher" --check)
+grep -Fqx 'OPENCODE_AGENT_MODEL_REVIEWER=openai/independent-reviewer' <<<"$reviewer_override"
+grep -Fqx 'OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER=openai/gpt-5.6-luna#medium' <<<"$reviewer_override"
 
 empty_worker=$(env -i HOME="$home" PATH="$fake_bin:$PATH" OPENCODE_AGENT_MODEL_WORKER= zsh "$launcher" --check)
 grep -Fqx 'OPENCODE_AGENT_MODEL_WORKER=' <<<"$empty_worker"
@@ -122,6 +131,7 @@ expected = {
     "integration": "OPENCODE_AGENT_MODEL_INTEGRATION",
     "investigator": "OPENCODE_AGENT_MODEL_INVESTIGATOR",
     "reviewer": "OPENCODE_AGENT_MODEL_REVIEWER",
+    "test-scope-reviewer": "OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER",
     "worker": "OPENCODE_AGENT_MODEL_WORKER",
     "architect": "OPENCODE_AGENT_MODEL_ARCHITECT",
     "plan": "OPENCODE_AGENT_MODEL_PLAN",

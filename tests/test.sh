@@ -290,6 +290,7 @@ expected = {
     "investigator": {"model": "{env:OPENCODE_AGENT_MODEL_INVESTIGATOR}"},
     "integration": {"model": "{env:OPENCODE_AGENT_MODEL_INTEGRATION}"},
     "reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"},
+    "test-scope-reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER}"},
 }
 assert set(portable["agents"]) == set(expected)
 for name, config in expected.items():
@@ -498,6 +499,10 @@ contracts = {
         ("skill", '"*"', "allow"),
         ("skill", "terminal-mermaid", "deny"),
     ]),
+    "test-scope-reviewer": ("subagent", [
+        ('"*"', '"*"', "deny"),
+        ("skill", "ponytail", "allow"),
+    ]),
     "worker": ("primary", [
         ('"*"', '"*"', "deny"),
         ("shell", '"*"', "allow"),
@@ -519,6 +524,7 @@ contracts = {
         ("webfetch", '"*"', "allow"),
         ("todowrite", '"*"', "allow"),
         ("skill", '"*"', "allow"),
+        ("subagent", "test-scope-reviewer", "allow"),
         ("edit", '"*"', "allow"),
     ]),
     "architect": ("primary", [

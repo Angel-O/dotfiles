@@ -52,6 +52,9 @@
     },
     "reviewer": {
       "model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"
+    },
+    "test-scope-reviewer": {
+      "model": "{env:OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER}"
     }
   }{{ if eq .role "personal" }},
   "disabled_providers": ["opencode"],
