@@ -29,6 +29,7 @@ portable = json.load(open(sys.argv[1]))
 personal = json.load(open(sys.argv[2]))
 pin_text = Path(sys.argv[3]).read_text()
 pins = tomllib.loads(pin_text)["pins"]["openCodeTracker"]
+quota_version = tomllib.loads(pin_text)["pins"]["openCodePlugins"]["quota"]
 renovate = json.load(open(sys.argv[4]))
 assert "plugin" not in portable
 assert portable["experimental"] == {"todo": True, "background_compaction": True}
@@ -44,7 +45,7 @@ assert tracker[0] != "../../.local/share/opencode/orchestration-tracking"
 assert all("qa" not in str(entry).lower() for entry in plugins)
 assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entry)) for entry in plugins)
 assert plugins == [
-    "@slkiser/opencode-quota@6.0.0",
+    f"@slkiser/opencode-quota@{quota_version}",
     {
         "package": "@plannotator/opencode@0.28.2",
         "options": {"planningAgents": ["plan", "architect"]},
@@ -78,6 +79,16 @@ assert supports_tracker_tag("v0.4.0")
 assert supports_tracker_tag("v0.3.1")
 assert not supports_tracker_tag("v1.0.0")
 assert re.fullmatch(r"[0-9a-f]{64}", pins["archiveSha256"])
+quota_managers = [manager for manager in renovate["customManagers"] if manager.get("packageNameTemplate") == "@slkiser/opencode-quota"]
+assert len(quota_managers) == 1, quota_managers
+quota_manager = quota_managers[0]
+assert quota_manager["datasourceTemplate"] == "npm"
+assert quota_manager["versioningTemplate"] == "semver"
+assert quota_manager["managerFilePatterns"] == [r"/^\.chezmoidata\.toml$/"]
+quota_pattern = quota_manager["matchStrings"][0].replace("(?<", "(?P<")
+for candidate, expected in ((pin_text, quota_version), (pin_text.replace(f'quota = "{quota_version}"', 'quota = "6.1.0"'), "6.1.0")):
+    quota_match = re.search(quota_pattern, candidate)
+    assert quota_match and quota_match.group("currentValue") == expected
 managers = [manager for manager in renovate["customManagers"] if manager.get("depTypeTemplate") == "opencode-tracker"]
 assert len(managers) == 1, managers
 manager = managers[0]
