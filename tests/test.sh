@@ -502,6 +502,7 @@ contracts = {
     "test-scope-reviewer": ("subagent", [
         ('"*"', '"*"', "deny"),
         ("skill", "ponytail", "allow"),
+        ("skill", "testing-rules", "allow"),
     ]),
     "worker": ("primary", [
         ('"*"', '"*"', "deny"),
@@ -1895,6 +1896,7 @@ cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/skills/decomposition-rules/SKILL.md
 .config/opencode/skills/memex-quick-search/SKILL.md
 .config/opencode/skills/terminal-mermaid/SKILL.md
+.config/opencode/skills/testing-rules/SKILL.md
 .config/opencode/skills/update-agent-models/SKILL.md
 .config/opencode/skills/write-bead/SKILL.md
 EOF

@@ -44,6 +44,7 @@ scope_rules = re.findall(
 assert scope_rules == [
     ('"*"', '"*"', 'deny'),
     ('skill', 'ponytail', 'allow'),
+    ('skill', 'testing-rules', 'allow'),
 ]
 assert "mode: subagent" in Path(sys.argv[4]).read_text().split("---", 2)[1]
 PY
@@ -67,11 +68,15 @@ test ! -e "$root/personal/home/.config/opencode/agents/planner.md"
 test ! -e "$root/personal/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/decomposition-rules/SKILL.md" \
   "$root/personal/home/.config/opencode/skills/decomposition-rules/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
+  "$root/personal/home/.config/opencode/skills/testing-rules/SKILL.md"
 
 apply_fixture external-opencode-beads
 test ! -e "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-task.md"
 test -f "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-epic.md"
 test ! -e "$root/external-opencode-beads/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
+  "$root/external-opencode-beads/home/.config/opencode/skills/testing-rules/SKILL.md"
 
 for fixture in beads-integration-disabled ghostty-only; do
   apply_fixture "$fixture"
@@ -79,6 +84,9 @@ for fixture in beads-integration-disabled ghostty-only; do
   test ! -e "$root/$fixture/home/.config/opencode/commands/orchestrate-epic.md"
   test ! -e "$root/$fixture/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 done
+cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
+  "$root/beads-integration-disabled/home/.config/opencode/skills/testing-rules/SKILL.md"
+test ! -e "$root/ghostty-only/home/.config/opencode/skills/testing-rules/SKILL.md"
 
 for fixture in personal-with-beads external-opencode-beads; do
   home="$root/$fixture/home"
