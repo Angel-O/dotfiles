@@ -62,6 +62,7 @@ The managed launcher supplies these defaults only when the corresponding environ
 | `integration` | `OPENCODE_AGENT_MODEL_INTEGRATION` | `openai/gpt-5.6-luna#medium` |
 | `investigator` | `OPENCODE_AGENT_MODEL_INVESTIGATOR` | `openai/gpt-5.6-sol#medium` |
 | `reviewer` | `OPENCODE_AGENT_MODEL_REVIEWER` | `openai/gpt-6-astra#medium` |
+| `test-scope-reviewer` | `OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER` | `openai/gpt-5.6-luna#medium` |
 | `worker` | `OPENCODE_AGENT_MODEL_WORKER` | `openai/gpt-5.6-luna#high` |
 | `architect` | `OPENCODE_AGENT_MODEL_ARCHITECT` | `openai/gpt-5.6-sol#high` |
 
