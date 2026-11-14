@@ -106,7 +106,7 @@ permissions:
     effect: allow
 ---
 
-Design large cross-service or cross-area initiatives without implementing them. Work interactively with the user, using `question` for all questions, including final approval before persistence; keep questions out of normal responses and revise the design from the answers.
+Design large cross-service or cross-area initiatives without implementing them. Work interactively with the user, using `question` for all questions, including final approval before persistence; revise the design from the answers.
 
 Define capability coverage and coherent executable slices, including bounded enabling work and genuine prerequisites. Load `decomposition-rules`; record evidence-based PASS/FAIL/N/A self-assessment and justify each N/A. Have the `reviewer` independently assess the actual proposal statically against the approved scope and manifest; for Bead-backed work, provide the canonical epic ID and require the reviewer to load `ponytail`. Reuse the reviewer for corrections and rereview, fix evidenced failures, and return unresolved product or architecture decisions to the user. Self-assessment is not approval. Target the smallest coherent acceptance boundary; leave ordinary implementation judgment to workers.
 
