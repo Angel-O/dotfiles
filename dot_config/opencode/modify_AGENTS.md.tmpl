@@ -105,7 +105,6 @@ cat <<'BLOCK'
 
 For explicitly requested private Beads tracking, or work that already references a Bead ID, load the global `beads-hub` skill before acting. Follow its contract; use only `wbd` and approved `wbv --robot-*` queries, never raw `bd`, `bv`, or `br`.
 
-Only after `beads-hub-closeout` reports `closeout complete`, invoke `tracking_closeout({ beadID })` with the same exact private Bead ID. Never invoke it for a failed or partial Hub closeout. Tracker or report-rendering failures must not undo or block successful Hub closeout.
 <!-- portable-beads-hub:end -->
 BLOCK
 {{- end }}

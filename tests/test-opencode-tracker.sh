@@ -142,9 +142,6 @@ if grep -Fq 'After each primary architect or worker launch' "$source_dir/dot_con
 fi
 grep -Fq 'tracking_report' "$source_dir/dot_config/opencode/commands/tracking-report.md"
 grep -Fq 'tracking_report({ bead?, sessions?, from?, to? })' "$source_dir/dot_config/opencode/commands/tracking-report.md"
-grep -Fq 'tracking_closeout({ beadID })' "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl"
-grep -Fq 'tracking_closeout' "$source_dir/dot_config/opencode/modify_AGENTS.md.tmpl"
-
 python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" \
   "$source_dir/dot_config/opencode/agents/architect.md" \
   "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl" \
@@ -189,7 +186,7 @@ assert "tracking_run_start" not in command
 assert "tracking_lane_attach" not in command
 assert "tracking_report({ bead?, sessions?, from?, to? })" in report
 assert "default run" not in report
-assert agents.index("closeout complete") < agents.index("tracking_closeout({ beadID })")
+assert "closeout complete" not in agents
 PY
 
 managed=$(chezmoi managed --source "$source_dir" \
