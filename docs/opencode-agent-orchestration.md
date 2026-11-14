@@ -56,8 +56,6 @@ Every fresh worker launch prompt is one self-contained contract. Use these label
 
 After all epic children are delivered, the orchestrator validates the initiative outcome against epic criteria using child evidence and needed integration validation. Child completion alone is insufficient; this check does not automatically re-review every diff or create another review lane. Static review remains separate from runnable validation.
 
-Commit correlation and Bead closure are prohibited during implementation, commit, push, and PR creation. Both occur only after merge through the `beads-hub-closeout` workflow.
-
 ## Delivery
 
 Normal delivery continues without routine confirmation from worker handoff through review/correction and applicable integration validation, then through status/diff inspection, staging, commit, push, and final status reporting; it stops at the requested delivery endpoint. PR creation with `gh pr create` and PR-check monitoring are conditional on an explicit user request; for Bead worker delivery, run `gh pr create` from the recorded worker worktree, not the orchestrator parent checkout, so the PR targets the delivered branch. The orchestrator does not ask whether to create a PR when none was requested. Only a real blocker, required approval, cancellation, withdrawn authorization, or the requested delivery endpoint may interrupt the flow; the Bead command additionally retains its explicit non-managed-OpenCode selection boundary. Normal delivery never merges automatically.

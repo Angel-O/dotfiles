@@ -133,7 +133,7 @@ From worker handoff through review/correction and successful applicable integrat
 
 ## Closeout
 
-Commit correlation and Bead closure must not occur during implementation, commit, push, or PR creation. Perform both only after the change is merged, through the `beads-hub-closeout` workflow.
+Close verified local-only work, todos, and obsolete Beads directly with `wbd close` and accurate reasons; no PR or commit correlation is required. For merge-bound implementation work, do not correlate or close during implementation, commit, push, or PR creation; after merge, use `beads-hub-closeout` for required correlation and closure. For mixed-child epics, close local-only children normally and complete post-merge closeout for merged children before closing the epic.
 
 ## Reporting
 
