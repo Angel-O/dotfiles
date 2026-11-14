@@ -16,7 +16,7 @@ branch = "feature/repository-aware-correlations"
 ref = "2bf6cc93f527503982001df5ff39cb459def72e9"
 
 [pins.openCodePlugins]
-quota = "6.2.2"
+quota = "6.3.0"
 plannotator = "0.28.64"
 handoff = "0.7.0"
 warp = "0.2.0"
