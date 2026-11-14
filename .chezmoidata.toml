@@ -13,7 +13,7 @@ ref = "6e20875449ca68b68aeff181486a9a832d5e58c9"
 [pins.beadsViewer]
 source = "Angel-O/beads_viewer"
 branch = "feature/repository-aware-correlations"
-ref = "2bf6cc93f527503982001df5ff39cb459def72e9"
+ref = "887d17e337780d37b22e5e6a0f45da3c00ced311"
 
 [pins.openCodePlugins]
 quota = "6.2.2"
