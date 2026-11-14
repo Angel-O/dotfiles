@@ -180,11 +180,9 @@ assert "wbd claim <id> --json" in docs
 assert "tracking_bead_select({ beadID })` and the launcher's `--tracking-bead` option are local session attribution" in docs
 assert "generic Herdr launcher remains responsible for lane, worktree, and tracker plumbing only; it does not perform Hub claims" in docs
 assert "tracking_bead_created({ beadID })" in orchestrator
-assert "successful top-level `wbd create`" in orchestrator
-assert "exact `wbd show` validation" in orchestrator
-assert "active-scope membership confirmation" in orchestrator
+assert orchestrator.index("After successful top-level scoping") < orchestrator.index("tracking_bead_created({ beadID })")
 assert "tracking_bead_created({ beadID })" in architect
-assert architect.index("parent-linking") < architect.index("tracking_bead_created({ beadID })")
+assert architect.index("After successful scope and parent-link receipts") < architect.index("tracking_bead_created({ beadID })")
 assert "creating child scoping" in architect
 assert command.index("tracking_bead_select({ beadID })") < command.index("--tracking-bead <bead-id>")
 assert "tracking_run_start" not in command
