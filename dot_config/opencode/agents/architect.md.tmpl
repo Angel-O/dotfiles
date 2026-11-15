@@ -42,6 +42,12 @@ permissions:
     resource: "wbd context"
     effect: allow
   - action: shell
+    resource: "wbd list *"
+    effect: allow
+  - action: shell
+    resource: "wbd scope show *"
+    effect: allow
+  - action: shell
     resource: "wbd scope active --json"
     effect: allow
   - action: shell

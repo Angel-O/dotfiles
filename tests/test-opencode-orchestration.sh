@@ -201,6 +201,24 @@ for identity in orchestrator architect; do
   ! grep -Fq 'consult-adr' "$root/work-$identity.md"
   ! grep -Fq 'consult-adr' "$root/personal-opencode-disabled-$identity.md"
 done
+python3 - "$root/personal-architect.md" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+permissions = text.split("---", 2)[1].split("permissions:", 1)[1]
+rules = re.findall(
+    r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+    permissions,
+    re.MULTILINE,
+)
+assert ("shell", '"*"', "deny") in rules
+assert ("shell", '"wbd list *"', "allow") in rules
+assert ("shell", '"wbd scope show *"', "allow") in rules
+assert ("shell", '"wbd scope active --json"', "allow") in rules
+assert ("shell", '"wbd scope add *"', "allow") in rules
+PY
 grep -Fq 'Act as the primary delivery controller.' "$root/personal-orchestrator.md"
 grep -Fq 'Design large cross-service or cross-area initiatives without implementing them.' \
   "$root/personal-architect.md"
