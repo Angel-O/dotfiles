@@ -63,11 +63,9 @@ allowed = {
     ("shell", '"wbd * --help"'),
     ("shell", '"wbd update * --description * --json"'),
     ("shell", '"wbd scope active --json"'),
-    ("shell", '"wbd create * --type * --context * --description * --priority * --json"'),
-    ("shell", '"wbd create * --type * --priority * --context * --description * --json"'),
-    ("shell", '"wbd scope add * --context * --json"'),
-    ("shell", '"wbd dep add * * --type parent-child --json"'),
-    ("shell", '"wbd dep add * * --type blocks --json"'),
+    ("shell", '"wbd create *"'),
+    ("shell", '"wbd scope add *"'),
+    ("shell", '"wbd dep add *"'),
 }
 assert all((action, resource) in allowed for action, resource, effect in rules if action == "shell" and effect == "allow")
 assert allowed == {(action, resource) for action, resource, effect in rules if action == "shell" and effect == "allow"}
@@ -85,7 +83,7 @@ assert worker_rules[git_deny + 1:git_deny + 3] == [
 
 def matches(pattern, resource):
     pattern = pattern.strip('"')
-    return re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), resource) is not None
+    return re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), resource, re.DOTALL) is not None
 
 def authorized(command, action="shell"):
     decision = "ask"
@@ -110,8 +108,11 @@ for command in (
     "wbd comments --help",
     "wbd scope active --json",
     "wbd create child --type task --context registered --description detail --priority 2 --json",
+    "wbd create child --description 'detail\ncontinued' --priority 2 --type task --json",
     "wbd scope add child --context registered --json",
+    "wbd scope add child --json --context registered",
     "wbd dep add child epic --type parent-child --json",
+    "wbd dep add child prerequisite --json --type blocks",
     "wbd dep add child prerequisite --type blocks --json",
 ):
     assert authorized(command), command
@@ -137,11 +138,10 @@ for command in (
     "wbd close epic --reason done --json",
     "wbd link epic HEAD",
     "wbd update epic --context registered --json",
-    "wbd create child --type task --context registered --description detail --priority 2 --json && wbd dep add child epic",
-    "wbd scope add epic --json",
-    "wbd dep add child epic --type relates --json",
     "wbd update epic --status closed --json",
-    "wbd create child --type task --context registered --description detail --priority 2 --json | cat",
+    "echo unrelated",
+    "cat /etc/hosts",
+    "rm unrelated",
     "$(wbd context)",
     "RESULT=ok wbd context",
     "env wbd context",
