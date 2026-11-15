@@ -103,6 +103,11 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/commands/tracking-report.md
 .config/opencode/commands/restart-opencode-env.md
 {{- end }}
+{{- if not (and .modules.opencode (eq .role "personal")) }}
+.config/opencode/commands/write-adr.md
+.config/opencode/skills/consult-adr
+.config/opencode/skills/consult-adr/**
+{{- end }}
 .config/opencode/env.local
 
 {{- if not .modules.starship }}

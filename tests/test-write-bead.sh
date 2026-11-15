@@ -17,7 +17,7 @@ assert re.search(r"`- AC1: [^`]+`", text)
 assert re.search(r"`- AC2: [^`]+`", text)
 PY
 
-python3 - "$source_dir/dot_config/opencode/agents/architect.md" \
+python3 - "$source_dir/dot_config/opencode/agents/architect.md.tmpl" \
   "$source_dir/dot_config/opencode/agents/planner.md" \
   "$source_dir/dot_config/opencode/skills/decomposition-rules/SKILL.md" \
   "$source_dir/dot_config/opencode/agents/worker.md" \

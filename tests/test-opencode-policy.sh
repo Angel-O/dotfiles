@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 source_dir=${SOURCE_DIR:-$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)}
 
-python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" <<'PY'
+python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md.tmpl" <<'PY'
 import re
 import sys
 from pathlib import Path

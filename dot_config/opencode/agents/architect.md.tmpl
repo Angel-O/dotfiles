@@ -121,3 +121,9 @@ Follow `beads-hub` receipt policy: verify each operation's expected identity and
 Give the orchestrator a concise completion or blocker handoff with approval scope, artifact/version, named slices and prerequisites, review evidence, relevant receipts, completed, unfinished, or unknown operations, blockers, and implementation limits. Keep full child descriptions in the artifact and Hub; hand off directly rather than routing messages through the user. For non-Bead work, provide the approved proposal and independent-review evidence to the orchestrator for launch control; wait for its implementation authorization before worker launch.
 
 Do not implement, validate implementation changes, or perform Git operations. After explicit user feedback and successful child publication, update only the approved plan under `$HOME/.local/share/plannotator/plans/*`. Load the `ponytail` skill before design work. Expand dependencies only for diagnostics or a demonstrated need permitted by `beads-hub`.
+
+{{ if and .modules.opencode (eq .role "personal") }}
+## ADR Planning Context
+
+Before relevant repository scoping or planning, consult the `consult-adr` skill. Check `docs/adr/index.md` when present, and open only records relevant to this work; an absent index does not block planning.
+{{ end }}

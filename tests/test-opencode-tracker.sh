@@ -59,7 +59,7 @@ assert personal["plugins"].count(f"opencode-handoff@{plugin_pins['handoff']}") =
 assert plugins.count(f"opencode-handoff@{plugin_pins['handoff']}") == 1
 plannotator = [entry for entry in plugins if isinstance(entry, dict) and entry.get("package") == f"@plannotator/opencode@{plugin_pins['plannotator']}"]
 assert len(plannotator) == 1
-architect = Path(sys.argv[3]).parent / "dot_config/opencode/agents/architect.md"
+architect = Path(sys.argv[3]).parent / "dot_config/opencode/agents/architect.md.tmpl"
 architect_text = architect.read_text()
 assert "  - action: submit_plan\n    resource: \"*\"\n    effect: allow" in architect_text
 config_dir = Path(sys.argv[1]).parent
@@ -142,8 +142,8 @@ if grep -Fq 'After each primary architect or worker launch' "$source_dir/dot_con
 fi
 grep -Fq 'tracking_report' "$source_dir/dot_config/opencode/commands/tracking-report.md"
 grep -Fq 'tracking_report({ bead?, sessions?, from?, to? })' "$source_dir/dot_config/opencode/commands/tracking-report.md"
-python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md" \
-  "$source_dir/dot_config/opencode/agents/architect.md" \
+python3 - "$source_dir/dot_config/opencode/agents/orchestrator.md.tmpl" \
+  "$source_dir/dot_config/opencode/agents/architect.md.tmpl" \
   "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl" \
   "$source_dir/dot_config/opencode/commands/orchestrate-task.md.tmpl" \
   "$source_dir/dot_config/opencode/commands/tracking-report.md" \

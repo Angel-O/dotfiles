@@ -127,4 +127,62 @@ remove_list=$(chezmoi execute-template --source "$source_dir" \
   --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" \
   <"$source_dir/.chezmoiremove.tmpl")
 printf '%s\n' "$remove_list" | grep -Fxq '.config/opencode/commands/refactoring.md'
+
+# Isolated stand-ins exercise the personal-only ignore gate without editing
+# the separately owned approved command or skill.
+adr_source="$root/adr-source"
+mkdir -p "$adr_source/dot_config/opencode/commands" \
+  "$adr_source/dot_config/opencode/skills/consult-adr"
+cp "$source_dir/.chezmoiignore" "$adr_source/.chezmoiignore"
+printf '%s\n' 'fixture command' >"$adr_source/dot_config/opencode/commands/write-adr.md"
+printf '%s\n' 'fixture skill' >"$adr_source/dot_config/opencode/skills/consult-adr/SKILL.md"
+for fixture in personal work beads-integration-disabled external-opencode-beads; do
+  home="$root/adr-$fixture/home"
+  mkdir -p "$home"
+  chezmoi apply --source "$adr_source" --destination "$home" \
+    --config "$source_dir/tests/fixtures/$fixture.toml" --cache "$root/cache/adr-$fixture" \
+    --persistent-state "$root/adr-$fixture/state.boltdb" --force
+  if [ "$fixture" = personal ]; then
+    test -f "$home/.config/opencode/commands/write-adr.md"
+    test -f "$home/.config/opencode/skills/consult-adr/SKILL.md"
+  else
+    test ! -e "$home/.config/opencode/commands/write-adr.md"
+    test ! -e "$home/.config/opencode/skills/consult-adr/SKILL.md"
+  fi
+done
+# Derive a personal-role config with only the OpenCode module disabled, so the
+# role and module gates are exercised independently of the work profile.
+personal_no_opencode="$root/personal-opencode-disabled.toml"
+sed 's/^opencode = true$/opencode = false/' \
+  "$source_dir/tests/fixtures/personal.toml" >"$personal_no_opencode"
+home="$root/adr-personal-opencode-disabled/home"
+mkdir -p "$home"
+chezmoi apply --source "$adr_source" --destination "$home" \
+  --config "$personal_no_opencode" --cache "$root/cache/adr-personal-opencode-disabled" \
+  --persistent-state "$root/adr-personal-opencode-disabled/state.boltdb" --force
+test ! -e "$home/.config/opencode/commands/write-adr.md"
+test ! -e "$home/.config/opencode/skills/consult-adr/SKILL.md"
+# The external-OpenCode Beads-only profile still retains its existing Beads
+# command/skill behavior while excluding the personal ADR artifacts.
+test -f "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-epic.md"
+test -f "$root/external-opencode-beads/home/.config/opencode/skills/testing-rules/SKILL.md"
+
+render_identity() {
+  local profile=$1 identity=$2 config=$3
+  chezmoi execute-template --source "$source_dir" --config "$config" \
+    <"$source_dir/dot_config/opencode/agents/$identity.md.tmpl" >"$root/$profile-$identity.md"
+}
+for identity in orchestrator architect; do
+  render_identity personal "$identity" "$source_dir/tests/fixtures/personal.toml"
+  render_identity work "$identity" "$source_dir/tests/fixtures/work.toml"
+  render_identity personal-opencode-disabled "$identity" "$personal_no_opencode"
+  grep -Fq 'consult-adr' "$root/personal-$identity.md"
+  grep -Fq 'docs/adr/index.md' "$root/personal-$identity.md"
+  grep -Fq 'consult-adr' "$root/personal/home/.config/opencode/agents/$identity.md"
+  ! grep -Fq 'consult-adr' "$root/work-$identity.md"
+  ! grep -Fq 'consult-adr' "$root/personal-opencode-disabled-$identity.md"
+done
+grep -Fq 'Act as the primary delivery controller.' "$root/personal-orchestrator.md"
+grep -Fq 'Design large cross-service or cross-area initiatives without implementing them.' \
+  "$root/personal-architect.md"
 echo 'orchestration interfaces and installation boundaries: PASS'
