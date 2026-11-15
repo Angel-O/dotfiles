@@ -97,6 +97,9 @@ run_once_after_25-migrate-ghostty-config.sh
 .config/opencode/commands/orchestrate-epic.md
 {{- end }}
 {{- if not .modules.opencode }}
+.config/opencode/commands/dry-code.md
+{{- end }}
+{{- if not .modules.opencode }}
 .config/opencode/commands/tracking-report.md
 .config/opencode/commands/restart-opencode-env.md
 {{- end }}

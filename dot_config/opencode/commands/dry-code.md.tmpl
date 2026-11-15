@@ -1,0 +1,13 @@
+---
+description: Find and coordinate evidence-based duplicate reduction
+---
+
+Treat `$ARGUMENTS` only as the code inspection target—files, directories, packages, or an entire repository—not as a Beads named scope. For example, `/dry-code crates/application` or `/dry-code the entire repository`. If no target is supplied, ask what code to inspect; do not silently assume one.
+
+First check whether an IntelliJ/JetBrains duplicate-warning inspection capability is available, identifying it by what it can do rather than assuming a tool name. If none is available, clearly state that no scan was performed and ask the user whether they approve an alternative; do not infer, simulate, or claim inspection results.
+
+For an available inspection, present evidence-based opportunities with their scanned scope, exclusions, limitations, and locations. Distinguish individual warning locations from clone groups, preserve evidence, and give each group an explicit disposition (reduce, retain with reason, or investigate); do not use a warning-removal quota.
+
+Based on the breadth of those findings, recommend either a bounded task or a multi-slice epic and ask the user which to create. Do not create it, start implementation, or invoke another command; the user will choose and invoke their execution workflow separately.
+
+For an epic, explain useful ownership-aware parallel batches and only genuine implementation prerequisites. Recommend promptly cleaning up completed worker worktrees and build outputs. Recommend one aggregate integration run on the final accumulated result, not after each increment; preserve final outcome verification. Do not launch or coordinate execution.
