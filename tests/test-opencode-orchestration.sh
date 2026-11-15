@@ -14,6 +14,17 @@ test -f "$commands_dir/orchestrate-task.md.tmpl"
 test -f "$commands_dir/orchestrate-epic.md.tmpl"
 test -f "$commands_dir/refactoring.md.tmpl"
 test ! -e "$source_dir/dot_config/opencode/skills/orchestration-worker-delivery/SKILL.md"
+python3 - "$commands_dir/refactoring.md.tmpl" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+frontmatter, body = text.split("---", 2)[1:]
+assert not re.search(r"(?m)^agent:", frontmatter)
+assert "$ARGUMENTS" in body
+assert not re.search(r"/orchestrate-(?:task|epic)|\b(?:orchestrator|architect)\b", body)
+PY
 python3 - "$commands_dir/orchestrate-task.md.tmpl" "$commands_dir/orchestrate-epic.md.tmpl" \
   "$source_dir/dot_config/opencode/agents/worker.md" \
   "$source_dir/dot_config/opencode/agents/test-scope-reviewer.md" <<'PY'
@@ -63,7 +74,8 @@ mkdir -p "$root/personal/home/.config/opencode/agents"
 printf '%s\n' 'obsolete installed planner' >"$root/personal/home/.config/opencode/agents/planner.md"
 apply_fixture personal
 test -f "$root/personal/home/.config/opencode/commands/orchestrate-task.md"
-test ! -e "$root/personal/home/.config/opencode/commands/refactoring.md"
+test -f "$root/personal/home/.config/opencode/commands/refactoring.md"
+! grep -Eq '^agent:' "$root/personal/home/.config/opencode/commands/refactoring.md"
 test -f "$root/personal/home/.config/opencode/agents/test-scope-reviewer.md"
 test ! -e "$root/personal/home/.config/opencode/commands/orchestrate-epic.md"
 test ! -e "$root/personal/home/.config/opencode/agents/planner.md"
@@ -85,7 +97,11 @@ for fixture in beads-integration-disabled ghostty-only; do
   apply_fixture "$fixture"
   test ! -e "$root/$fixture/home/.config/opencode/commands/orchestrate-task.md"
   test ! -e "$root/$fixture/home/.config/opencode/commands/orchestrate-epic.md"
-  test ! -e "$root/$fixture/home/.config/opencode/commands/refactoring.md"
+  if [[ $fixture == beads-integration-disabled ]]; then
+    test -f "$root/$fixture/home/.config/opencode/commands/refactoring.md"
+  else
+    test ! -e "$root/$fixture/home/.config/opencode/commands/refactoring.md"
+  fi
   test ! -e "$root/$fixture/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 done
 cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
@@ -122,9 +138,9 @@ printf '%s\n' "$managed" | grep -Fxq '.config/opencode/commands/refactoring.md'
 managed=$(chezmoi managed --source "$source_dir" \
   --config "$source_dir/tests/fixtures/personal.toml" \
   --cache "$root/cache/unmanaged" --exclude externals --include files)
-! printf '%s\n' "$managed" | grep -Fxq '.config/opencode/commands/refactoring.md'
+printf '%s\n' "$managed" | grep -Fxq '.config/opencode/commands/refactoring.md'
 remove_list=$(chezmoi execute-template --source "$source_dir" \
-  --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" \
+  --config "$source_dir/tests/fixtures/external-opencode-beads.toml" \
   <"$source_dir/.chezmoiremove.tmpl")
 printf '%s\n' "$remove_list" | grep -Fxq '.config/opencode/commands/refactoring.md'
 

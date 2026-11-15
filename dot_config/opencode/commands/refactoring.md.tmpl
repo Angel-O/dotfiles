@@ -1,16 +1,13 @@
 ---
 description: Find and coordinate evidence-based duplicate reduction
-agent: orchestrator
 ---
 
-Coordinate duplicate reduction for this user-supplied scope: `$ARGUMENTS`.
+Find duplicate-reduction opportunities in this user-supplied scope: `$ARGUMENTS`.
 
-Start with the existing `/orchestrate-task` and `/orchestrate-epic` entrypoint contracts and orchestrator/architect role contracts. Do not replace their responsibilities or perform the repository refactor in this command.
+First check whether an IntelliJ/JetBrains duplicate-warning inspection capability is available, identifying it by what it can do rather than assuming a tool name. If none is available, clearly state that no scan was performed and ask the user whether they approve an alternative; do not infer, simulate, or claim inspection results.
 
-Before inventory work, inspect available IntelliJ/JetBrains duplicate-warning inspection capabilities by what they can do, not by a hard-coded tool name. If none is available, state that no scan was performed and ask the user to approve an alternative capability; do not infer, simulate, or claim inspection results.
+For an available inspection, present evidence-based opportunities with their scanned scope, exclusions, limitations, and locations. Distinguish individual warning locations from clone groups, preserve evidence, and give each group an explicit disposition (reduce, retain with reason, or investigate); do not use a warning-removal quota.
 
-For an available inspection, report the scanned scope, exclusions and limitations. Separate individual warning locations from clone groups, preserve evidence and locations, and give every group an explicit disposition (reduce, retain with reason, or investigate); do not use a warning-removal quota.
+Based on the breadth of those findings, recommend either a bounded task or a multi-slice epic and ask the user which to create. Do not create it, start implementation, or invoke another command; the user will choose and invoke their execution workflow separately.
 
-Route one bounded outcome to the existing concrete-task lifecycle as a single task and its single worker. Route substantial work spanning multiple independently owned slices to the existing epic lifecycle: the architect owns design/decomposition, obtains user approval, and arranges independent proposal review before publication. Do not invent an epic or prerequisites when the work is bounded or slices can proceed independently.
-
-For epic execution, preserve distinct ownership and compatible parallel batches, and encode only genuine implementation prerequisites. Keep focused checks and paired review for each worker increment, and accumulate accepted commits through the existing orchestrator process. For this workflow, explicitly override any `/orchestrate-epic` requirement to run integration validation per child or after each accepted accumulation, and any dependency gate requiring that per-accumulation validation. Do not run those intermediate integration validations or use them as readiness gates. Run one aggregate integration validation on the final accumulated epic result; retain genuine prerequisite readiness and final epic outcome verification. Follow other existing orchestrator rules and any later user direction.
+For an epic, explain useful ownership-aware parallel batches and only genuine implementation prerequisites. Recommend promptly cleaning up completed worker worktrees and build outputs. Recommend one aggregate integration run on the final accumulated result, not after each increment; preserve final outcome verification. Do not launch or coordinate execution.
