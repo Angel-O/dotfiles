@@ -12,6 +12,7 @@ test ! -e "$commands_dir/orchestrate.md"
 test ! -e "$commands_dir/orchestrate-bead.md.tmpl"
 test -f "$commands_dir/orchestrate-task.md.tmpl"
 test -f "$commands_dir/orchestrate-epic.md.tmpl"
+test -f "$commands_dir/refactoring.md.tmpl"
 test ! -e "$source_dir/dot_config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 python3 - "$commands_dir/orchestrate-task.md.tmpl" "$commands_dir/orchestrate-epic.md.tmpl" \
   "$source_dir/dot_config/opencode/agents/worker.md" \
@@ -62,6 +63,7 @@ mkdir -p "$root/personal/home/.config/opencode/agents"
 printf '%s\n' 'obsolete installed planner' >"$root/personal/home/.config/opencode/agents/planner.md"
 apply_fixture personal
 test -f "$root/personal/home/.config/opencode/commands/orchestrate-task.md"
+test ! -e "$root/personal/home/.config/opencode/commands/refactoring.md"
 test -f "$root/personal/home/.config/opencode/agents/test-scope-reviewer.md"
 test ! -e "$root/personal/home/.config/opencode/commands/orchestrate-epic.md"
 test ! -e "$root/personal/home/.config/opencode/agents/planner.md"
@@ -73,6 +75,7 @@ cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
 
 apply_fixture external-opencode-beads
 test ! -e "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-task.md"
+test ! -e "$root/external-opencode-beads/home/.config/opencode/commands/refactoring.md"
 test -f "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-epic.md"
 test ! -e "$root/external-opencode-beads/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
@@ -82,6 +85,7 @@ for fixture in beads-integration-disabled ghostty-only; do
   apply_fixture "$fixture"
   test ! -e "$root/$fixture/home/.config/opencode/commands/orchestrate-task.md"
   test ! -e "$root/$fixture/home/.config/opencode/commands/orchestrate-epic.md"
+  test ! -e "$root/$fixture/home/.config/opencode/commands/refactoring.md"
   test ! -e "$root/$fixture/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 done
 cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
@@ -95,12 +99,32 @@ for fixture in personal-with-beads external-opencode-beads; do
   printf '%s\n' legacy >"$home/.config/opencode/command/orchestrate-bead.md"
   printf '%s\n' legacy >"$home/.config/opencode/commands/orchestrate-bead.md"
   printf '%s\n' legacy >"$home/.config/opencode/skills/work-beads/SKILL.md"
+  printf '%s\n' unrelated >"$home/.config/opencode/commands/unrelated.md"
   chezmoi apply --source "$source_dir" --destination "$home" \
     --config "$source_dir/tests/fixtures/$fixture.toml" --cache "$root/cache/$fixture" \
     --persistent-state "$root/$fixture/state.boltdb" --exclude scripts,externals --force
   test ! -e "$home/.config/opencode/command/orchestrate-bead.md"
   test ! -e "$home/.config/opencode/commands/orchestrate-bead.md"
   test ! -e "$home/.config/opencode/skills/work-beads/SKILL.md"
+  if [[ $fixture == personal-with-beads ]]; then
+    test -f "$home/.config/opencode/commands/refactoring.md"
+  else
+    test ! -e "$home/.config/opencode/commands/refactoring.md"
+  fi
+  test "$(cat "$home/.config/opencode/commands/unrelated.md")" = unrelated
   test ! -e "$home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 done
+
+managed=$(chezmoi managed --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/personal-with-beads.toml" \
+  --cache "$root/cache/managed" --exclude externals --include files)
+printf '%s\n' "$managed" | grep -Fxq '.config/opencode/commands/refactoring.md'
+managed=$(chezmoi managed --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/personal.toml" \
+  --cache "$root/cache/unmanaged" --exclude externals --include files)
+! printf '%s\n' "$managed" | grep -Fxq '.config/opencode/commands/refactoring.md'
+remove_list=$(chezmoi execute-template --source "$source_dir" \
+  --config "$source_dir/tests/fixtures/beads-integration-disabled.toml" \
+  <"$source_dir/.chezmoiremove.tmpl")
+printf '%s\n' "$remove_list" | grep -Fxq '.config/opencode/commands/refactoring.md'
 echo 'orchestration interfaces and installation boundaries: PASS'

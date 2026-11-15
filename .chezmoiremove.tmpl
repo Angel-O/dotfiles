@@ -25,6 +25,9 @@
 {{ if or (not .modules.herdr) (not .modules.beads) (not $opencodeBeads) }}
 .config/opencode/commands/orchestrate-epic.md
 {{ end }}
+{{ if or (not .modules.opencode) (not .modules.herdr) (not .modules.beads) (not $opencodeBeads) }}
+.config/opencode/commands/refactoring.md
+{{ end }}
 {{ if not .modules.opencode }}
 .config/opencode/commands/tracking-report.md
 {{ end }}
