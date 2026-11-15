@@ -1,40 +1,82 @@
 ---
 name: write-bead
-description: Use ONLY when creating or materially updating a Bead description; defines the required authoring structure for epics and concrete implementation Beads.
+description: Use ONLY when creating or materially updating a Bead description; defines capture/readiness gates and authoring requirements for epics and concrete implementation Beads.
 ---
 
 # Write Bead
 
-Use this authoring contract only when creating or materially updating a Bead description.
+Write concise worker contracts, not conversation summaries. Follow `beads-hub` for record operations and context policy.
 
-Todos may be contextless or contextual under the supported policy; undefined work requiring refinement is outside this structure.
+## Choose the record
 
-For an epic child, reference shared epic context and approved architecture rather than duplicating them, while including enough task-specific problem, scope, approach, criteria, constraints, and validation detail for implementation and review from the child record. An epic may describe shared outcome-level validation where useful, but does not prescribe a testing methodology for children; each concrete child selects and records its own methodology.
+- **Epic:** may begin as a shell for architect refinement. Capture known goals and boundaries; identify unresolved decisions without inventing answers. A shell is not an implementation-ready plan.
+- **Bug, task, feature or chore:** create only when the problem, outcome, implementation scope and necessary decisions are sufficiently defined for a worker to implement without renewed investigation or scope discovery.
+- **Undefined concrete work:** propose a **todo**, even if the user requests a bug or task. Explain what needs refinement; do not silently substitute record types. Ask a focused question first when it can resolve the gap immediately.
+- When a todo becomes concrete work, create the implementation Bead from it using `beads-hub`. A todo is capture, not an implementation assignment.
 
-## Required Structure
+Workers may choose local coding details. They must not have to rediscover the root cause, determine the intended outcome, choose the fundamental scope, or define or infer acceptance criteria.
 
-Epics and concrete implementation Beads use these exact Markdown headings in this order:
+## Required structures
 
-1. `## Problem and desired outcome`
-2. `## User stories`
-3. `## Scope and non-goals`
-4. `## Approved approach / design`
-5. `## Acceptance criteria`
-6. `## Decisions and constraints`
-7. `## Validation`
+Use the template for the record type below. Headings are exact and ordered; the text beside each heading defines its content. Keep entries brief and prefer bullets. Never invent facts or approval.
 
-Preserve the headings and order. Never invent missing information. Pending information may be explicit only when it is not required for the next stage; required missing information blocks that stage. Distinguish proposed decisions from approved decisions.
+Reference shared epic context and approved architecture rather than copying them, while keeping each concrete child independently actionable. Carry established findings and decisions into the contract; resolve essential scope/design decisions before creating concrete work.
 
-`User stories` is mandatory. Identify who benefits, what they need, and why. User stories do not replace acceptance criteria.
+### Task / feature / chore
 
-`Acceptance criteria` states what must be true. `Validation` states how those truths will be established. Keep both bounded to the approved scope.
+1. `## Problem and desired outcome` — current problem and intended result.
+2. `## User stories` — write stories as “As a [user], I want [capability], so that [benefit],” not separate answers about who, what and why.
+3. `## Scope and non-goals` — included changes and explicit exclusions.
+4. `## Implementation approach` — bounded technical direction, affected areas and existing patterns to reuse. Leave local coding details to the worker; a simple change may need only one bullet.
+5. `## Acceptance criteria` — explicit completion conditions using the AC rules below.
+6. `## Decisions and constraints` — settled decisions, applicable restrictions, prerequisites and actual approval requirements/status.
+7. `## Validation` — how the ACs will be established, using the validation rules below.
 
-## Validation Contract
+### Bug
 
-For each concrete Bead, agree its testing methodology and validation plan with the user before implementation. Consult the on-demand `testing-rules` skill when detailed methodology selection is needed; do not load it routinely. Record the task-specific work type, behavior at risk, selected methodology, checks and owner/environment, observable pass criteria, limitations, and blocking stages in this existing `Validation` section. An epic may record shared outcome-level validation if useful, but need not choose a methodology before architecture and does not impose one on children. Each concrete slice selects its own relevant methodology and behavior. A bug investigation supplies reproduction evidence and the controller ensures the concrete Bead records its selected methodology.
+1. `## Problem and desired outcome` — labelled bullets for **Expected behavior**, **Actual behavior** and **Root cause**. Add reproduction details or evidence references only where useful; a source-code-based root-cause explanation can be sufficient.
+2. `## User stories` — write stories as “As a [user], I want [restored behavior], so that [benefit],” not separate answers about who, what and why.
+3. `## Scope and non-goals` — included fixes and explicit exclusions.
+4. `## Implementation approach` — targeted fix addressing the established cause, affected paths and relevant invalidation/compatibility requirements. Leave local coding details to the worker, not the fundamental fix direction.
+5. `## Acceptance criteria` — explicit completion conditions for the fix and relevant preserved behavior, using the AC rules below.
+6. `## Decisions and constraints` — settled decisions, applicable restrictions, prerequisites and actual approval requirements/status.
+7. `## Validation` — regression checks and, where relevant, comparable before/after measurements, using the validation rules below.
 
-Apply the task-specific methodology selected using `testing-rules` where needed; do not require every epic or child to repeat the full manifest. Documentation-only changes need accuracy/consistency review, not artificial tests or test-scope review. Preserve relevant behavioral validation for executable workflows/templates. Agents run safe, reasonably available programmatic checks; planned human QA is for judgment or access/environment limits, not complexity. Record QA steps, expected result, owner, and blocking stage. Replacing promised automation with human QA requires user agreement.
+Do not hand a completed investigation back to the worker as an open diagnostic task. If root cause or fix scope remains unresolved, use the todo gate.
 
-The user may clearly change or drop a testing methodology or testing requirement at any time; no special waiver wording or ceremony is required. The controller updates the current strategy and communicates it to affected workers and reviewers. Report what was and was not checked, without claiming an unrun check passed. This does not change unrelated authorization, safety, or delivery gates.
+### Epic
 
-`## Architect notes` is the exact epic-only appendix heading added after explicit architecture approval. It is not an eighth mandatory section for implementation Beads. Preserve existing description content verbatim by default, including the seven original sections and existing architect notes. Rewrite existing content only after presenting the proposed changes and obtaining explicit user approval for that rewrite; architecture approval alone is insufficient. Preserve content outside the approved rewrite scope and retain the seven required headings in order. Rewrite approval authorizes only the description revision, not child publication, status changes, or implementation.
+1. `## Problem` — current situation, who is affected and why it needs attention. Do not list future goals here.
+2. `## High level goals` — bullet-list intended initiative outcomes, not implementation activities or a child-task list. Record each outcome once, here.
+3. `## Scope and boundaries` — use labelled bullet groups: **In scope** (included capabilities/areas), **Out of scope** (explicit exclusions), and **Boundaries** (where responsibility starts/stops and interfaces with adjacent work). Do not repeat goals or technical/product restrictions.
+4. `## High level approach` — intended strategy, not detailed implementation instructions. Shell epics may leave this for architect refinement.
+5. `## Decisions and constraints` — settled decisions, technical/product restrictions and unresolved questions requiring refinement. Distinguish approved decisions from proposals.
+
+Shell epics may explicitly mark unknown information for refinement. Epics do not require a `Validation` section and do not prescribe children's testing methodologies.
+
+## Acceptance criteria
+
+Use a bullet list with sequential identifiers: `- AC1: …`, `- AC2: …`. Never use a prose paragraph.
+
+- Each AC states an explicit, independently assessable completion condition; workers must not define or infer it.
+- Cover the intended outcome, required implementation constraints and relevant compatibility behavior.
+- Be specific: name the behavior and conditions; avoid “works correctly,” “meaningful improvement” or similar claims without a pass condition.
+- Include quantitative thresholds when needed to judge success; agree missing targets rather than inventing them.
+- Do not use investigation activities, implementation steps or test commands as acceptance criteria. Put verification procedures in `Validation`.
+
+## Validation
+
+Acceptance criteria state **what must be true**; validation states **how it will be established**.
+
+- For each concrete Bead, agree its testing methodology and validation plan with the user before implementation. Consult `testing-rules` when detailed methodology selection is needed, not routinely.
+- Record work type, behavior at risk, selected methodology, checks, owner/environment, observable pass conditions and limitations. Identify any remaining validation agreement and the stage it blocks; do not confuse it with unresolved implementation scope.
+- Use task-specific checks rather than repeating a full generic manifest. Documentation-only work needs accuracy/consistency review, not artificial tests or test-scope review. Preserve behavioral checks for executable workflows/templates.
+- Agents run safe, reasonably available programmatic checks. Human QA is for judgment or access/environment limits, not complexity; record steps, expected results, owner and blocking stage. Replacing promised automation with human QA requires user agreement.
+- The user may change or drop validation requirements without special waiver wording. Update the strategy and affected workers/reviewers; report actual checks and limitations. Unrelated authorization, safety and delivery gates remain unchanged.
+
+## Rewriting existing beads and adding architecture notes
+
+- Preserve existing content by default. Present proposed rewrites and obtain explicit user approval before changing it; architecture approval alone does not authorize rewriting.
+- Preserve content outside the approved rewrite scope. Use the applicable heading structure for new Beads; do not migrate existing headings without rewrite approval.
+- `## Architect notes` is an epic-only appendix added after explicit architecture approval, not a mandatory section.
+- Description approval does not authorize child publication, status changes or implementation.
