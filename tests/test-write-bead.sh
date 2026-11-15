@@ -6,17 +6,15 @@ cache=${CHEZMOI_TEST_CACHE:-/tmp/dotfiles-write-bead-cache}
 
 python3 - "$source_dir/.chezmoitemplates/write-bead.md" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 text = Path(sys.argv[1]).read_text()
-sections = [
-    "Problem and desired outcome", "User stories", "Scope and non-goals",
-    "Approved approach / design", "Acceptance criteria", "Decisions and constraints",
-    "Validation",
-]
-positions = [text.index(f"`## {section}`") for section in sections]
+sections = ["### Task / feature / chore", "### Bug", "### Epic"]
+positions = [text.index(section) for section in sections]
 assert positions == sorted(positions)
-assert text.count("`## Architect notes`") == 1
+assert re.search(r"`- AC1: [^`]+`", text)
+assert re.search(r"`- AC2: [^`]+`", text)
 PY
 
 python3 - "$source_dir/dot_config/opencode/agents/architect.md" \
