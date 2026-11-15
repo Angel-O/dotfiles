@@ -214,12 +214,8 @@ rules = re.findall(
     re.MULTILINE,
 )
 assert ("shell", '"*"', "deny") in rules
-assert ("shell", '"wbd list --json"', "allow") in rules
-assert ("shell", '"wbd list --json *"', "allow") in rules
-assert ("shell", '"wbd list * --json"', "allow") in rules
-assert ("shell", '"wbd list * --json *"', "allow") in rules
-assert ("shell", '"wbd scope show * --json"', "allow") in rules
-assert ("shell", '"wbd scope show * --json *"', "allow") in rules
+assert ("shell", '"wbd list *"', "allow") in rules
+assert ("shell", '"wbd scope show *"', "allow") in rules
 assert ("shell", '"wbd scope active --json"', "allow") in rules
 assert ("shell", '"wbd scope add *"', "allow") in rules
 PY

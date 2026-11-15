@@ -65,12 +65,8 @@ rules = [
 ]
 assert ("*", "*", "deny") in rules
 assert ("shell", "*", "deny") in rules
-assert ("shell", "wbd list --json", "allow") in rules
-assert ("shell", "wbd list --json *", "allow") in rules
-assert ("shell", "wbd list * --json", "allow") in rules
-assert ("shell", "wbd list * --json *", "allow") in rules
-assert ("shell", "wbd scope show * --json", "allow") in rules
-assert ("shell", "wbd scope show * --json *", "allow") in rules
+assert ("shell", "wbd list *", "allow") in rules
+assert ("shell", "wbd scope show *", "allow") in rules
 
 shell_allows = [
     resource
@@ -85,12 +81,16 @@ allowed_reads = (
     "wbd list --paginate --limit 50 --sort updated_at:desc --brief --json",
     "wbd list --brief --json --paginate --limit 50 --sort updated_at:desc",
     "wbd list --paginate --limit 50 --sort updated_at:desc --cursor opaque-cursor --brief --json",
+    "wbd list --paginate --limit 50 --sort updated_at:desc --brief",
+    "wbd list --brief --paginate --limit 50 --sort updated_at:desc",
     "wbd list --json",
     "wbd list --json --paginate --limit 50 --sort updated_at:desc --brief",
     "wbd list --json --paginate --limit 50 --sort updated_at:desc --cursor opaque-cursor --brief",
     "wbd scope show active --json",
+    "wbd scope show active",
     "wbd scope show example-scope --json --paginate --limit 50",
     "wbd scope show example-scope --json --paginate --limit 50 --cursor opaque-cursor",
+    "wbd scope show example-scope --paginate --limit 50",
 )
 for command in allowed_reads:
     assert allowed(command), command
@@ -104,8 +104,6 @@ for command in (
     assert allowed(command), command
 
 for command in (
-    "wbd list --paginate --limit 50 --sort updated_at:desc --brief",
-    "wbd scope show active",
     "wbd scope activate viewer-harmony --json",
     "wbd scope remove bead-123 --json",
     "wbd claim bead-123 --json",
