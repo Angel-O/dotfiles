@@ -45,19 +45,13 @@ permissions:
     resource: "wbd scope active --json"
     effect: allow
   - action: shell
-    resource: "wbd create * --type * --context * --description * --priority * --json"
+    resource: "wbd create *"
     effect: allow
   - action: shell
-    resource: "wbd create * --type * --priority * --context * --description * --json"
+    resource: "wbd scope add *"
     effect: allow
   - action: shell
-    resource: "wbd scope add * --context * --json"
-    effect: allow
-  - action: shell
-    resource: "wbd dep add * * --type parent-child --json"
-    effect: allow
-  - action: shell
-    resource: "wbd dep add * * --type blocks --json"
+    resource: "wbd dep add *"
     effect: allow
   - action: orchestration_tracking
     resource: "*"
