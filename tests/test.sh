@@ -1180,7 +1180,7 @@ bash "$source_dir/tests/test-memex.sh"
 [[ "${TEST_SCOPE:-}" != memex ]] || exit 0
 
 test ! -e "$source_dir/dot_config/opencode/skills/orchestration-worker-delivery/SKILL.md"
-assert_not_contains "$source_dir/dot_config/opencode/agents/orchestrator.md" 'orchestration-worker-delivery'
+assert_not_contains "$source_dir/dot_config/opencode/agents/orchestrator.md.tmpl" 'orchestration-worker-delivery'
 assert_not_contains "$source_dir/dot_config/opencode/commands/orchestrate-task.md.tmpl" 'orchestration-worker-delivery'
 assert_not_contains "$source_dir/dot_config/opencode/commands/orchestrate-epic.md.tmpl" 'orchestration-worker-delivery'
 

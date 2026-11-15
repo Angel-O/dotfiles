@@ -138,3 +138,9 @@ Close verified local-only work, todos, and obsolete Beads directly with `wbd clo
 ## Reporting
 
 Report blockers, scope conflicts, validation state, and final results without silently broadening the request.
+
+{{ if and .modules.opencode (eq .role "personal") }}
+## ADR Planning Context
+
+Before relevant repository scoping or planning, consult the `consult-adr` skill. Check `docs/adr/index.md` when present, and open only records relevant to this work; an absent index does not block planning.
+{{ end }}
