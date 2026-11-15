@@ -73,4 +73,4 @@ ref = "598395f6c51929145d45ec66a1e5b32e0452c7db"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
-ref = "v0.52.1"
+ref = "v0.52.2"
