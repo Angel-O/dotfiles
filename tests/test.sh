@@ -294,10 +294,12 @@ expected = {
     "integration": {"model": "{env:OPENCODE_AGENT_MODEL_INTEGRATION}"},
     "reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"},
     "test-scope-reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER}"},
+    "scope-complexity-reviewer": {"model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"},
 }
 assert set(portable["agents"]) == set(expected)
 for name, config in expected.items():
     assert portable["agents"][name] == config
+assert portable["experimental"]["subagent_depth"] == 2
 
 assert set(theme) == {"$schema", "base", "dark"}
 assert theme["$schema"] == "https://opencode.ai/theme.json"
@@ -501,6 +503,7 @@ contracts = {
         ("grep", '"*"', "allow"),
         ("skill", '"*"', "allow"),
         ("skill", "terminal-mermaid", "deny"),
+        ("subagent", "scope-complexity-reviewer", "allow"),
     ]),
     "test-scope-reviewer": ("subagent", [
         ('"*"', '"*"', "deny"),
@@ -1635,7 +1638,7 @@ assert_contains "$personal_home/.config/zsh/opencode.zsh" "alias warpconf='code 
 test -f "$personal_home/.config/git/portable.inc"
 test ! -e "$personal_home/README.md"
 test ! -e "$personal_home/tests"
- jq -e --arg plannotator "$plannotator_version" --arg handoff "$handoff_version" --arg warp "$warp_version" '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == ["-opencode.provider.openai-context-caps", {"package": ("@plannotator/opencode@" + $plannotator), "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@" + $handoff, "@warp-dot-dev/opencode-warp@" + $warp, "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
+ jq -e --arg plannotator "$plannotator_version" --arg handoff "$handoff_version" --arg warp "$warp_version" '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == ["-opencode.provider.openai-context-caps", {"package": ("@plannotator/opencode@" + $plannotator), "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@" + $handoff, "@warp-dot-dev/opencode-warp@" + $warp, "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "subagent_depth": 2, "background_compaction": true}) and (has("plugin") | not) and .provider.openai and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$personal_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$personal_home/.config/opencode/cli.json" 'opencode-todo'
 personal_managed=$(chezmoi managed --source "$source_dir" --config "$source_dir/tests/fixtures/personal.toml" --cache "$cache" --include files)
 printf '%s\n' "$personal_managed" | grep -Fxq '.config/opencode/cli.json'
@@ -1808,7 +1811,7 @@ assert_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/conf
 assert_not_contains "$work_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" '{{'
 assert_not_contains "$work_home/.config/zsh/opencode.zsh" 'alias warpconf='
- jq -e --arg plannotator "$plannotator_version" --arg handoff "$handoff_version" '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == ["-opencode.provider.openai-context-caps", {"package": ("@plannotator/opencode@" + $plannotator), "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@" + $handoff, "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "background_compaction": true}) and (has("plugin") | not) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
+ jq -e --arg plannotator "$plannotator_version" --arg handoff "$handoff_version" '(.plugins[0] | startswith("@slkiser/opencode-quota@")) and (.plugins[1:] == ["-opencode.provider.openai-context-caps", {"package": ("@plannotator/opencode@" + $plannotator), "options": {"planningAgents": ["plan", "architect"]}}, "opencode-handoff@" + $handoff, "../../.local/share/opencode/orchestration-tracking/src"]) and (.experimental == {"todo": true, "subagent_depth": 2, "background_compaction": true}) and (has("plugin") | not) and (.agent.title.model == "openai/gpt-5.6-luna") and (has("permission") | not) and (.agent | has("plan") | not)' "$work_home/.config/opencode/portable.jsonc" >/dev/null
 assert_not_contains "$work_home/.config/opencode/cli.json" 'opencode-todo'
 python3 -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb"))' "$work_home/.config/herdr/config.toml"
 zsh -n "$work_home"/.config/zsh/*.zsh
@@ -1898,6 +1901,7 @@ cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/commands/orchestrate-epic.md
 .config/opencode/skills/decomposition-rules/SKILL.md
 .config/opencode/skills/memex-quick-search/SKILL.md
+.config/opencode/skills/scope-complexity-rules/SKILL.md
 .config/opencode/skills/terminal-mermaid/SKILL.md
 .config/opencode/skills/testing-rules/SKILL.md
 .config/opencode/skills/update-agent-models/SKILL.md
