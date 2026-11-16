@@ -20,6 +20,7 @@ personal, work = (json.load(open(path)) for path in sys.argv[2:])
 plugin = f"@warp-dot-dev/opencode-warp@{pins['warp']}"
 baseline = [
     f"@slkiser/opencode-quota@{pins['quota']}",
+    "-opencode.provider.openai-context-caps",
     {
         "package": f"@plannotator/opencode@{pins['plannotator']}",
         "options": {"planningAgents": ["plan", "architect"]},
