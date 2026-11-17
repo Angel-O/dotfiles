@@ -4,6 +4,7 @@
 {{- $warp := promptBoolOnce . "modules.warp" "Enable the Warp module" false -}}
 {{- $herdr := promptBoolOnce . "modules.herdr" "Enable the Herdr module" false -}}
 {{- $opencode := promptBoolOnce . "modules.opencode" "Enable the OpenCode module" false -}}
+{{- $serena := promptBoolOnce . "modules.serena" "Enable the Serena module" false -}}
 {{- $starship := promptBoolOnce . "modules.starship" "Enable the Starship module" false -}}
 {{- $shell := promptBoolOnce . "modules.shell" "Enable the Zsh shell module" false -}}
 {{- $git := promptBoolOnce . "modules.git" "Enable the Git module" false -}}
@@ -61,6 +62,7 @@ helix = {{ $helix }}
 warp = {{ $warp }}
 herdr = {{ $herdr }}
 opencode = {{ $opencode }}
+serena = {{ $serena }}
 starship = {{ $starship }}
 shell = {{ $shell }}
 git = {{ $git }}

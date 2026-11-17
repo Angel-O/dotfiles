@@ -1,6 +1,9 @@
 brew "eza"
 brew "elio"
 brew "helix"
+{{- if (dig "modules" "serena" false .) }}
+brew "uv"
+{{- end }}
 {{- if .modules.beads }}
 brew "go"
 {{- end }}

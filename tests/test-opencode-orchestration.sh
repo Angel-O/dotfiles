@@ -27,7 +27,7 @@ assert body.count("$ARGUMENTS") == 1
 assert not re.search(r"/orchestrate-(?:task|epic)|\b(?:orchestrator|architect)\b", body)
 PY
 python3 - "$commands_dir/orchestrate-task.md.tmpl" "$commands_dir/orchestrate-epic.md.tmpl" \
-  "$source_dir/dot_config/opencode/agents/worker.md" \
+  "$source_dir/dot_config/opencode/agents/worker.md.tmpl" \
   "$source_dir/dot_config/opencode/agents/test-scope-reviewer.md" \
   "$source_dir/dot_config/opencode/agents/reviewer.md" \
   "$source_dir/dot_config/opencode/agents/scope-complexity-reviewer.md" <<'PY'
