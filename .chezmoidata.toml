@@ -18,7 +18,7 @@ ref = "34c62c38958787db870d7eec4f8d203b43185a7c"
 
 [pins.openCodePlugins]
 quota = "6.3.0"
-plannotator = "0.28.66"
+plannotator = "0.28.67"
 handoff = "0.7.0"
 warp = "0.2.0"
 
