@@ -17,6 +17,20 @@
     {{ if .modules.warp }}"@warp-dot-dev/opencode-warp@{{ .pins.openCodePlugins.warp }}",{{ end }}
     "../../.local/share/opencode/orchestration-tracking/src"
   ],
+  {{ if and (dig "modules" "serena" false .) .modules.opencode }}
+  "mcp": {
+    "servers": {
+      "serena": {
+        "type": "local",
+        "command": ["{env:HOME}/.local/bin/serena", "start-mcp-server", "--transport", "stdio", "--agent-interface", "tools", "--enable-web-dashboard", "false"],
+        "codemode": false
+      }
+    }
+  },
+  "permissions": [
+    { "action": "serena_*", "resource": "*", "effect": "deny" }
+  ],
+  {{ end }}
   "agent": {
     "title": {
       "model": "openai/gpt-5.6-luna",
@@ -44,7 +58,18 @@
     },
     "worker": {
       "color": "#FF757F",
-      "model": "{env:OPENCODE_AGENT_MODEL_WORKER}"
+      "model": "{env:OPENCODE_AGENT_MODEL_WORKER}"{{ if and (dig "modules" "serena" false .) .modules.opencode }},
+      "permissions": [
+        { "action": "serena_activate_project", "resource": "*", "effect": "allow" },
+        { "action": "serena_initial_instructions", "resource": "*", "effect": "allow" },
+        { "action": "serena_get_symbols_overview", "resource": "*", "effect": "allow" },
+        { "action": "serena_find_symbol", "resource": "*", "effect": "allow" },
+        { "action": "serena_find_referencing_symbols", "resource": "*", "effect": "allow" },
+        { "action": "serena_replace_symbol_body", "resource": "*", "effect": "allow" },
+        { "action": "serena_insert_before_symbol", "resource": "*", "effect": "allow" },
+        { "action": "serena_insert_after_symbol", "resource": "*", "effect": "allow" },
+        { "action": "serena_replace_content", "resource": "*", "effect": "allow" }
+      ]{{ end }}
     },
     "investigator": {
       "model": "{env:OPENCODE_AGENT_MODEL_INVESTIGATOR}"

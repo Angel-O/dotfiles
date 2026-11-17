@@ -39,6 +39,7 @@ bash "$source_dir/tests/test-add-linear-id.sh"
 bash "$source_dir/tests/test-env-protection.sh"
 [[ "${TEST_SCOPE:-}" != env-protection ]] || exit 0
 bash "$source_dir/tests/test-opencode-tracker.sh"
+bash "$source_dir/tests/test-serena.sh"
 [[ "${TEST_SCOPE:-}" != opencode-tracker ]] || exit 0
 bash "$source_dir/tests/test-opencode-warp.sh"
 [[ "${TEST_SCOPE:-}" != opencode-warp ]] || exit 0

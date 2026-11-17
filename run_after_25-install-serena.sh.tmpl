@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+{{- if (dig "modules" "serena" false .) }}
+
+if ! command -v uv >/dev/null 2>&1; then
+  printf 'uv is required to install Serena.\n' >&2
+  exit 1
+fi
+
+UV_TOOL_BIN_DIR="$HOME/.local/bin" uv tool install --python 3.12 --upgrade "serena-agent=={{ .pins.serena }}"
+{{- end }}

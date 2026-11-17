@@ -77,3 +77,9 @@ For conflicts, a later clear user testing direction supersedes an older Bead or 
 Report changed files, exact validation commands and results, blockers, and unrelated pre-existing failures. Use read-only Git commands when needed to inspect history, status, or diffs. Do not perform Git operations that modify the worktree, index, branches, remotes, or repository history.
 
 A denied command does not mean other shell commands are unavailable: isolate it, continue permitted implementation and validation, and report optional Git inspection limits to the orchestrator.
+
+{{ if and (dig "modules" "serena" false .) .modules.opencode }}
+## Serena tools
+
+For coding work, first call `serena_initial_instructions` and activate the supplied target project or worktree with `serena_activate_project` using its absolute path. You must use Serena's symbolic search tools (`serena_get_symbols_overview`, `serena_find_symbol`, and `serena_find_referencing_symbols`) and editing tools (`serena_replace_symbol_body`, `serena_insert_before_symbol`, `serena_insert_after_symbol`, and `serena_replace_content`) whenever they support the operation. Use native read/search/edit tools or shell-based equivalents only when Serena cannot perform the needed operation, the file/language is unsupported, or Serena is unavailable or fails; briefly report the reason for falling back. Do not bypass Serena merely for convenience. Keep all operations within the supplied scope and existing validation requirements.
+{{ end }}

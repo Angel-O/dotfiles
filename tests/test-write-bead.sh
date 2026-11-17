@@ -20,7 +20,7 @@ PY
 python3 - "$source_dir/dot_config/opencode/agents/architect.md.tmpl" \
   "$source_dir/dot_config/opencode/agents/planner.md" \
   "$source_dir/dot_config/opencode/skills/decomposition-rules/SKILL.md" \
-  "$source_dir/dot_config/opencode/agents/worker.md" \
+  "$source_dir/dot_config/opencode/agents/worker.md.tmpl" \
   "$source_dir/dot_local/bin/executable_opencode-env.tmpl" <<'PY'
 from pathlib import Path
 import re

@@ -143,7 +143,7 @@ for agent, variable in expected.items():
     assert portable["agents"][agent]["model"] == "{env:" + variable + "}"
     if agent in {"plan", "build"}:
         continue
-    suffix = ".md.tmpl" if agent in {"orchestrator", "architect"} else ".md"
+    suffix = ".md.tmpl" if agent in {"orchestrator", "architect", "worker"} else ".md"
     frontmatter = (Path(sys.argv[2]) / f"{agent}{suffix}").read_text().split("---", 2)[1]
     assert "model:" not in frontmatter
     assert "reasoningEffort:" not in frontmatter
