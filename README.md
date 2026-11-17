@@ -50,7 +50,7 @@ The `opencode` module installs the V2-native environment-protection plugin plus 
 
 OpenCode uses the managed dark-only native V2 `tokyonight-mauve` theme. Its rendered dark surfaces are pinned to OpenCode V2.0.28's bundled `packages/tui/src/theme/assets/tokyonight.json` Tokyo Night baseline, materialized as a complete native V2 document using OpenCode's V2 `migrateV1` derivation. Only shared primary interactive states move from Azure to mauve `#C099FF`, including focused/selected actions and hovered/focused/pressed/selected form fields. Non-interactive informational feedback, syntax functions, and Markdown links, list items, and images explicitly retain the baseline Azure reference `#82AAFF`; backgrounds, foregrounds, diffs, borders, and other syntax/Markdown colors remain pinned baseline values. Keep the full artifact in sync with the upstream theme schema when updating OpenCode; do not replace it with a V1 compatibility file or runtime override. Normal composer rails follow the active agent color: `orchestrator` `#C099FF`, `build` `#82AAFF`, built-in `plan` `#FF966C`, `architect` `#C3E88D`, and `worker` `#FF757F`. Built-in `plan` is overridden independently of the custom architect role.
 
-The portable OpenCode configuration starts new sessions with the custom `orchestrator` agent. For architecture-backed decomposition, the architect owns the proposal; the canonical DEC-01–DEC-05 rules are installed as the managed `decomposition-rules` skill, with independent reviewer assessment before publication or launch. The architect owns decomposition and publication after independent review.
+The portable OpenCode configuration starts new sessions with the custom `orchestrator` agent. For architecture-backed decomposition, the architect owns the proposal; the canonical DEC-01–DEC-05 rules are installed as the managed `decomposition-rules` skill, with independent reviewer assessment before publication or launch. The architect owns decomposition and publication after independent review. Paired implementation reviewers also use a dedicated scope/complexity child to assess candidate corrections against task and epic goals, including cumulative drift; it does not inspect repository code, and the orchestrator retains final correction authorization.
 
 ### Per-machine agent model selectors
 
@@ -62,6 +62,7 @@ The managed launcher supplies these defaults only when the corresponding environ
 | `integration` | `OPENCODE_AGENT_MODEL_INTEGRATION` | `openai/gpt-5.6-luna#medium` |
 | `investigator` | `OPENCODE_AGENT_MODEL_INVESTIGATOR` | `openai/gpt-5.6-sol#medium` |
 | `reviewer` | `OPENCODE_AGENT_MODEL_REVIEWER` | `openai/gpt-6-astra#medium` |
+| `scope-complexity-reviewer` | inherits `reviewer` | `openai/gpt-6-astra#medium` |
 | `test-scope-reviewer` | `OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER` | `openai/gpt-5.6-luna#medium` |
 | `worker` | `OPENCODE_AGENT_MODEL_WORKER` | `openai/gpt-5.6-luna#high` |
 | `architect` | `OPENCODE_AGENT_MODEL_ARCHITECT` | `openai/gpt-5.6-sol#high` |

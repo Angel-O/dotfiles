@@ -28,7 +28,9 @@ assert not re.search(r"/orchestrate-(?:task|epic)|\b(?:orchestrator|architect)\b
 PY
 python3 - "$commands_dir/orchestrate-task.md.tmpl" "$commands_dir/orchestrate-epic.md.tmpl" \
   "$source_dir/dot_config/opencode/agents/worker.md" \
-  "$source_dir/dot_config/opencode/agents/test-scope-reviewer.md" <<'PY'
+  "$source_dir/dot_config/opencode/agents/test-scope-reviewer.md" \
+  "$source_dir/dot_config/opencode/agents/reviewer.md" \
+  "$source_dir/dot_config/opencode/agents/scope-complexity-reviewer.md" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -60,6 +62,26 @@ assert scope_rules == [
     ('skill', 'testing-rules', 'allow'),
 ]
 assert "mode: subagent" in Path(sys.argv[4]).read_text().split("---", 2)[1]
+reviewer_text = Path(sys.argv[5]).read_text()
+reviewer_rules = re.findall(
+    r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+    reviewer_text.split("---", 2)[1], re.MULTILINE
+)
+assert ('subagent', 'scope-complexity-reviewer', 'allow') in reviewer_rules
+gate_text = Path(sys.argv[6]).read_text()
+gate_rules = re.findall(
+    r'^  - action: (.+)\n    resource: (.+)\n    effect: (.+)$',
+    gate_text.split("---", 2)[1], re.MULTILINE
+)
+assert gate_rules == [
+    ('"*"', '"*"', 'deny'),
+    ('skill', 'ponytail', 'allow'),
+    ('skill', 'beads-hub', 'allow'),
+    ('skill', 'scope-complexity-rules', 'allow'),
+    ('shell', '"wbd show * --json"', 'allow'),
+]
+assert not any(action in {'read', 'glob', 'grep', 'edit', 'external_directory', 'subagent'}
+               and effect == 'allow' for action, _, effect in gate_rules)
 PY
 
 apply_fixture() {
@@ -79,6 +101,7 @@ test -f "$root/personal/home/.config/opencode/commands/dry-code.md"
 test ! -e "$root/personal/home/.config/opencode/commands/refactoring.md"
 ! grep -Eq '^agent:' "$root/personal/home/.config/opencode/commands/dry-code.md"
 test -f "$root/personal/home/.config/opencode/agents/test-scope-reviewer.md"
+test -f "$root/personal/home/.config/opencode/agents/scope-complexity-reviewer.md"
 test ! -e "$root/personal/home/.config/opencode/commands/orchestrate-epic.md"
 test ! -e "$root/personal/home/.config/opencode/agents/planner.md"
 test ! -e "$root/personal/home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
@@ -86,6 +109,8 @@ cmp -s "$source_dir/dot_config/opencode/skills/decomposition-rules/SKILL.md" \
   "$root/personal/home/.config/opencode/skills/decomposition-rules/SKILL.md"
 cmp -s "$source_dir/dot_config/opencode/skills/testing-rules/SKILL.md" \
   "$root/personal/home/.config/opencode/skills/testing-rules/SKILL.md"
+cmp -s "$source_dir/dot_config/opencode/skills/scope-complexity-rules/SKILL.md" \
+  "$root/personal/home/.config/opencode/skills/scope-complexity-rules/SKILL.md"
 
 apply_fixture external-opencode-beads
 test ! -e "$root/external-opencode-beads/home/.config/opencode/commands/orchestrate-task.md"

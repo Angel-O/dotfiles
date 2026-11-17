@@ -33,7 +33,11 @@ plugin_pins = tomllib.loads(pin_text)["pins"]["openCodePlugins"]
 quota_version = plugin_pins["quota"]
 renovate = json.load(open(sys.argv[4]))
 assert "plugin" not in portable
-assert portable["experimental"] == {"todo": True, "background_compaction": True}
+assert portable["experimental"] == {
+    "todo": True,
+    "subagent_depth": 2,
+    "background_compaction": True,
+}
 plugins = portable["plugins"]
 assert "../../.local/share/opencode/opencode-todo/src" not in plugins
 tracker = [entry for entry in plugins if "orchestration-tracking" in str(entry)]

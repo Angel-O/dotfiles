@@ -3,6 +3,7 @@
   "default_agent": "orchestrator",
   "experimental": {
     "todo": true,
+    "subagent_depth": 2,
     "background_compaction": true
   },
   "plugins": [
@@ -56,6 +57,9 @@
     },
     "test-scope-reviewer": {
       "model": "{env:OPENCODE_AGENT_MODEL_TEST_SCOPE_REVIEWER}"
+    },
+    "scope-complexity-reviewer": {
+      "model": "{env:OPENCODE_AGENT_MODEL_REVIEWER}"
     }
   }{{ if eq .role "personal" }},
   "disabled_providers": ["opencode"],
