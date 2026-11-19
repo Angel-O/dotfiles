@@ -6,6 +6,11 @@ grillingSkill = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
 ponytailSkill = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
 explainThisSkill = "fbae95a979f517838af6d65ff4e2ed746895dbec"
 
+# Renovate visibility only; the Homebrew cask updates independently.
+[pins.hex]
+source = "anomalyco/hex"
+version = "3.4.0"
+
 [pins.beads]
 source = "Angel-O/beads"
 branch = "feat/bulk-history-read"
