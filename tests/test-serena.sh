@@ -143,7 +143,11 @@ assert "serena_activate_project" not in worker_disabled
 assert 'brew "uv"' in (root / "Brewfile").read_text()
 assert 'brew "uv"' not in (root / "Brewfile-disabled").read_text()
 installer = (root / "install.sh").read_text()
-assert "UV_TOOL_BIN_DIR=\"$HOME/.local/bin\" uv tool install --python 3.12 --upgrade \"serena-agent==2.1.0\"" in installer
+assert 'UV_TOOL_BIN_DIR="$HOME/.local/bin" uv tool install --upgrade "serena-agent==2.1.0"' in installer
+assert "--python" not in installer
+assert not re.search(r"\buv\s+python\b", installer)
+assert not re.search(r"\b(rm|kill|pkill)\b|uv\s+tool\s+uninstall", installer)
+assert (root / "install-disabled.sh").read_text().strip() == "#!/bin/sh\nset -eu"
 renovate = json.loads((source / "renovate.json").read_text())
 managers = [
     item for item in renovate["customManagers"]
@@ -160,17 +164,19 @@ assert match and match.group("currentValue") == "2.1.0"
 assert re.search(pattern, pin_text.replace('serena = "2.1.0"', 'serena = "2.1.1"')).group("currentValue") == "2.1.1"
 PY
 
-mkdir -p "$root/bin" "$root/home/.local/share/uv/tools/serena-agent" "$root/home/.cache/uv"
+mkdir -p "$root/bin"
 cat >"$root/bin/uv" <<'EOF'
 #!/bin/sh
 printf 'UV_TOOL_BIN_DIR=%s %s\n' "$UV_TOOL_BIN_DIR" "$*" >>"$UV_CALLS"
 EOF
 chmod +x "$root/bin/uv"
 HOME="$root/home" PATH="$root/bin:$PATH" UV_CALLS="$root/calls" sh "$root/install.sh"
+mkdir -p "$root/home/.local/share/uv/tools/serena-agent"
 HOME="$root/home" PATH="$root/bin:$PATH" UV_CALLS="$root/calls" sh "$root/install.sh"
-HOME="$root/home" PATH="$root/bin:$PATH" UV_CALLS="$root/calls" sh "$root/install-disabled.sh"
-test "$(wc -l <"$root/calls" | tr -d ' ')" = 2
-grep -Fqx "UV_TOOL_BIN_DIR=$root/home/.local/bin tool install --python 3.12 --upgrade serena-agent==2.1.0" "$root/calls"
-test -d "$root/home/.local/share/uv/tools/serena-agent"
-test -d "$root/home/.cache/uv"
+mkdir -p "$root/compatible-home/.local/share/uv/tools/serena-agent"
+HOME="$root/compatible-home" PATH="$root/bin:$PATH" UV_CALLS="$root/calls" sh "$root/install.sh"
+HOME="$root/disabled-home" PATH="$root/bin:$PATH" UV_CALLS="$root/calls" sh "$root/install-disabled.sh"
+test "$(wc -l <"$root/calls" | tr -d ' ')" = 3
+grep -Fqx "UV_TOOL_BIN_DIR=$root/home/.local/bin tool install --upgrade serena-agent==2.1.0" "$root/calls"
+grep -Fqx "UV_TOOL_BIN_DIR=$root/compatible-home/.local/bin tool install --upgrade serena-agent==2.1.0" "$root/calls"
 ! grep -Eq 'uv (tool uninstall|cache clean)' "$root/install.sh"

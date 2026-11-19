@@ -2,7 +2,6 @@
 serena = "2.1.0"
 ohMyZsh = "7ea697fd8138550ddf7262456d412f0dcd1cbf84"
 zshTransientPrompt = "bdd5917f38db4b4995134e8fb0251ce01cd9a068"
-grillingSkill = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
 ponytailSkill = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
 explainThisSkill = "fbae95a979f517838af6d65ff4e2ed746895dbec"
 
@@ -23,14 +22,14 @@ ref = "34c62c38958787db870d7eec4f8d203b43185a7c"
 
 [pins.openCodePlugins]
 quota = "6.3.0"
-plannotator = "0.29.0"
+plannotator = "0.29.1"
 handoff = "0.7.0"
 warp = "0.2.0"
 
 [pins.openCodeTracker]
 source = "Angel-O/orchestration-tracking"
-tag = "v0.7.2"
-archiveSha256 = "679093a020a186c0d8a328aebe36cca46625dddf1b31db064ac77a26cf4f2de5"
+tag = "v0.8.0"
+archiveSha256 = "c2a04c0aa5e6386bb208bd82441c5b8598ff7cab2f690334269d391bbf3ddd5e"
 
 [pins.openCodePlugins.todo]
 source = "https://github.com/afriemann/opencode-todo.git"
