@@ -31,7 +31,7 @@ For a non-empty selection, ask a separate explicit confirmation question after d
 Only after explicit confirmation, load the `herdr` skill, choose a semantic name unique among live agents (including retained completed lanes), and launch the managed worker using the existing convention:
 
 ```text
-~/.local/bin/herdr-agent-launch worker tab <worker-name> <absolute-delivery-worktree-path>
+~/.local/bin/herdr-agent-launch worker worktree <worker-name> <absolute-delivery-worktree-path>
 herdr agent prompt <worker-name> "<bounded alignment contract>" --wait
 ```
 

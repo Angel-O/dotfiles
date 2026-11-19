@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 # One deliberately small adapter owns the allowed primary-agent layouts.
 usage() {
-  printf 'usage: %s architect sibling NAME [--tracking-bead BEAD_ID]\n       %s worker tab NAME [ABSOLUTE_PATH] [--tracking-bead BEAD_ID]\n       %s worker worktree NAME ABSOLUTE_PATH [--tracking-bead BEAD_ID]\n' "$0" "$0" "$0" >&2
+  printf 'usage: %s architect sibling NAME [--tracking-bead BEAD_ID]\n       %s worker worktree NAME ABSOLUTE_PATH [--tracking-bead BEAD_ID]\n' "$0" "$0" >&2
   exit 2
 }
 
@@ -28,7 +28,6 @@ role=$1
 topology=$2
 case "$role/$topology" in
   architect/sibling) [[ $# -eq 3 ]] || usage ;;
-  worker/tab) [[ $# -eq 3 || $# -eq 4 ]] || usage ;;
   worker/worktree) [[ $# -eq 4 ]] || usage ;;
   *) usage ;;
 esac
@@ -41,16 +40,10 @@ if [[ -n "$tracking_bead" ]]; then
 fi
 
 worktree_path=
-worker_cwd=
 source_repo=
 if [[ "$role/$topology" == worker/worktree ]]; then
   worktree_path=$4
   [[ "$worktree_path" == /* ]] || fail 'worktree path must be absolute'
-elif [[ "$role/$topology" == worker/tab && $# -eq 4 ]]; then
-  worktree_path=$4
-  [[ "$worktree_path" == /* ]] || fail 'worktree path must be absolute'
-  [[ -d "$worktree_path" ]] || fail 'worktree path must be an existing directory'
-  worker_cwd=$worktree_path
 fi
 
 [[ "${HERDR_ENV:-}" == 1 ]] || fail 'must run inside a Herdr-managed pane'
@@ -124,10 +117,26 @@ caller_tab=$(jq_value '.result.pane.tab_id')
 caller_cwd=$(jq_value '.result.pane.cwd')
 [[ "$caller_pane" == "$HERDR_PANE_ID" && "$caller_workspace" == "$HERDR_WORKSPACE_ID" &&
   "$caller_tab" == "$HERDR_TAB_ID" ]] || fail "caller context mismatch: $response"
-if [[ "$role/$topology" == worker/tab && -n "$worker_cwd" ]]; then
-  [[ "$worker_cwd" != "$caller_cwd" ]] || fail 'worker tab path must differ from caller cwd'
+relationship_orchestrator=
+relationship_warning() {
+  printf 'herdr-agent-launch: relationship not recorded: %s\n' "$*" >&2
+}
+if caller_session=$(jq -er \
+  '.result.pane.agent_session |
+   select(type == "object" and .agent == "opencode" and .kind == "id") | .value |
+   select(type == "string" and test("^ses[A-Za-z0-9_-]+$"))' <<<"$response" 2>/dev/null) &&
+  { [[ -z "${OPENCODE_SESSION_ID:-}" ]] || [[ "$OPENCODE_SESSION_ID" == "$caller_session" ]]; }; then
+  if caller_session_response=$(opencode api session.get --param "sessionID=$caller_session" 2>/dev/null) &&
+    jq -e --arg id "$caller_session" \
+      '.data | type == "object" and .id == $id and .agent == "orchestrator"' \
+      <<<"$caller_session_response" >/dev/null 2>&1; then
+    relationship_orchestrator=$caller_session
+  else
+    relationship_warning 'caller session could not be verified as an orchestrator'
+  fi
+else
+  relationship_warning 'caller session identity is missing, ambiguous, or mismatched'
 fi
-
 case "$role/$topology" in
   architect/sibling)
     herdr_call pane_info \
@@ -142,23 +151,6 @@ case "$role/$topology" in
     herdr_call pane_info 'true' pane rename "$pane_id" architect
     workspace_id=$caller_workspace
     tab_id=$caller_tab
-    ;;
-  worker/tab)
-    # Herdr's tab label is the visible tab title; the agent argument only selects the role.
-    herdr_call tab_created \
-      '.result | (.tab | type == "object") and (.root_pane | type == "object") and
-       (.tab.tab_id | type == "string") and (.tab.workspace_id | type == "string") and
-       (.tab.label | type == "string") and
-       (.tab.focused == false) and (.root_pane.focused == false)' \
-      tab create --workspace "$caller_workspace" --cwd "${worker_cwd:-$caller_cwd}" --label "$agent_name" --no-focus
-    tab_id=$(jq_value '.result.tab.tab_id')
-    workspace_id=$(jq_value '.result.tab.workspace_id')
-    pane_id=$(jq_value '.result.root_pane.pane_id')
-    [[ "$workspace_id" == "$caller_workspace" && "$tab_id" != "$caller_tab" ]] ||
-      fail "tab placement mismatch: $response"
-    jq -e --arg name "$agent_name" '.result.tab.label == $name' <<<"$response" >/dev/null ||
-      fail "tab label mismatch: $response"
-    check_pane .result.root_pane "$caller_workspace" "$tab_id" "${worker_cwd:-$caller_cwd}" false
     ;;
   worker/worktree)
     if [[ -e "$worktree_path" ]]; then
@@ -200,7 +192,6 @@ esac
 
 agent_cwd=$caller_cwd
 [[ "$role/$topology" == worker/worktree ]] && agent_cwd=$worktree_path
-[[ "$role/$topology" == worker/tab && -n "$worker_cwd" ]] && agent_cwd=$worker_cwd
 session_request=$(jq -cn --arg agent "$role" --arg directory "$agent_cwd" \
   '{agent:$agent, location:{directory:$directory}}')
 if ! session_response=$("$opencode_launcher" api session.create --data "$session_request" 2>&1); then
@@ -208,7 +199,7 @@ if ! session_response=$("$opencode_launcher" api session.create --data "$session
 fi
 session_id=$(jq -er --arg role "$role" --arg cwd "$agent_cwd" \
   '.data | select(.agent == $role and .location.directory == $cwd) | .id |
-   select(type == "string" and startswith("ses") and length > 3)' \
+   select(type == "string" and test("^ses[A-Za-z0-9_-]+$"))' \
   <<<"$session_response") || fail "opencode session creation returned malformed or unexpected JSON: $session_response"
 
 if [[ -n "$tracking_bead" ]]; then
@@ -243,21 +234,45 @@ herdr_call agent_info \
   agent get "$agent_name"
 check_agent "$workspace_id" "$tab_id" "$pane_id" "$agent_cwd"
 
+publish_relationship() {
+  local socket_path=${HERDR_SOCKET_PATH:-} socket_partition relationship_dir temporary
+  [[ -n "$relationship_orchestrator" ]] || return 0
+  if [[ "$socket_path" != /* ]]; then
+    relationship_warning 'Herdr socket identity is unavailable'
+    return 0
+  fi
+  socket_partition=$(jq -rn --arg socket "$socket_path" '$socket | @uri') || {
+    relationship_warning 'could not encode Herdr socket identity'
+    return 0
+  }
+  relationship_dir="$HOME/.local/state/herdr/session-relationships/$socket_partition"
+  if ! (
+    umask 077
+    mkdir -p "$relationship_dir" &&
+      chmod 700 "$HOME/.local/state/herdr" "$HOME/.local/state/herdr/session-relationships" "$relationship_dir"
+  ); then
+    relationship_warning 'could not create private relationship state'
+    return 0
+  fi
+  temporary=$(mktemp "$relationship_dir/.$session_id.XXXXXX") || {
+    relationship_warning 'could not create relationship record'
+    return 0
+  }
+  if ! jq -cn --arg orchestrator "$relationship_orchestrator" --arg delegate "$session_id" \
+    --arg role "$role" --arg name "$agent_name" \
+    '{schemaVersion:1,orchestratorSessionID:$orchestrator,delegateSessionID:$delegate,
+      delegateRole:$role,launchName:$name}' >"$temporary" ||
+    ! chmod 600 "$temporary" ||
+    ! mv -f "$temporary" "$relationship_dir/$session_id.json"; then
+    rm -f "$temporary"
+    relationship_warning 'could not atomically publish relationship record'
+  fi
+}
+publish_relationship
+
 open_reviewr() {
   local reviewr_response
   case "$topology" in
-    tab)
-      # Target the worker pane so Herdr keeps its default split orientation.
-      if ! reviewr_response=$(herdr plugin pane open \
-        --plugin persiyanov.reviewr \
-        --entrypoint pane \
-        --placement split \
-        --target-pane "$pane_id" \
-        --cwd "$agent_cwd" \
-        --no-focus 2>&1); then
-        printf 'herdr-agent-launch: Reviewr open failed: %s\n' "$reviewr_response" >&2
-      fi
-      ;;
     worktree)
       if ! reviewr_response=$(herdr plugin pane open \
         --plugin persiyanov.reviewr \

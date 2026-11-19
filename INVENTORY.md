@@ -124,7 +124,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `orchestrate-task.md` | `~/.config/opencode/commands/` | Starts ordinary work under the custom orchestrator with Ponytail-aware delegates | Track when OpenCode and Herdr are enabled | Shared/conditional |
 | `orchestrate-epic.md` | `~/.config/opencode/commands/` | Validates epics, schedules concrete children, and performs epic-level acceptance without assigning the epic to a worker | Track when Herdr, Beads, and the OpenCode Beads integration are enabled | Shared/conditional |
 | `tracking-report.md` | `~/.config/opencode/commands/` | Read-only current-session, Bead, session, and time-window report interface | Track when OpenCode is enabled | Shared/conditional |
-| `herdr-agent-launch` | `~/.local/bin/` | Single managed launcher for verified architect sibling, worker tab, and worker worktree Herdr topologies | Track when OpenCode and Herdr are enabled | Shared/conditional |
+| `herdr-agent-launch` | `~/.local/bin/` | Single managed launcher for verified architect sibling and worker worktree Herdr topologies | Track when OpenCode and Herdr are enabled | Shared/conditional |
 | `agents/*.md` | `~/.config/opencode/agents/` | Defines the additive orchestrator, reviewer, worker, architect, and architect roles | Track when OpenCode is enabled | Shared |
 | `grilling` | `~/.config/opencode/skills/` | Structured, one-question-at-a-time requirements/design interview workflow | Track in dotfiles source | Shared |
 | `ponytail` | `~/.config/opencode/skills/` | Minimal, YAGNI-first coding workflow | Install from pinned source | Shared |
