@@ -2,7 +2,7 @@ import { execFile } from "node:child_process"
 import { readFile, readdir } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import { encodedSocket, incomingTargets, outgoingTargets, validRecord } from "./navigation.js"
+import { encodedSocket, focusLiveTarget, incomingTargets, outgoingTargets, validRecord } from "./navigation.js"
 
 const RELATIONSHIP_ROOT = ".local/state/herdr/session-relationships"
 
@@ -58,6 +58,49 @@ export async function discoverIncomingTargets(sessionID, socket, home = homedir(
 export function focusPane(paneID, run = runHerdr) {
   if (typeof paneID !== "string" || !paneID) throw new Error("missing Herdr pane")
   return run(["agent", "focus", paneID])
+}
+
+export function registerNavigationCommand(api, readRows, focusTarget) {
+  api.keymap.layer(() => ({
+    mode: "global",
+    commands: [{
+      id: "dotfiles.herdr-delegates.navigate-linked-session",
+      title: "Navigate linked session",
+      group: "Navigation",
+      palette: true,
+      run: async () => {
+        const rows = readRows()
+        if (!rows.length) {
+          await api.ui.dialog.alert({
+            title: "No linked sessions",
+            message: "No linked delegate or orchestrator sessions are available.",
+          })
+          return
+        }
+        const target = await api.ui.dialog.select({
+          title: "Navigate linked session",
+          options: rows.map((row) => ({
+            title: row.label,
+            value: row.target,
+            category: row.target.destinationRole ?? row.target.record.delegateRole,
+          })),
+        })
+        if (target) await focusTarget(target)
+      },
+    }],
+  }))
+}
+
+export async function focusSafely(target, resolve, focusPane, warn) {
+  if (typeof target.agent?.pane_id !== "string" || !target.agent.pane_id) {
+    warn()
+    return
+  }
+  try {
+    return await focusLiveTarget(target, resolve, focusPane)
+  } catch {
+    warn()
+  }
 }
 
 export function startRefresh(load, publish, warn, interval, clock = globalThis) {

@@ -1,7 +1,7 @@
 import { Plugin } from "@opencode/plugin/tui"
 import { createSignal, For, Show } from "solid-js"
-import { createSidebarRows, focusLiveTarget, isInitiatingSession, sidebarHeading } from "./navigation.js"
-import { discoverIncomingTargets, discoverTargets, focusPane, startRefresh } from "./herdr.js"
+import { createSidebarRows, isInitiatingSession, sidebarHeading } from "./navigation.js"
+import { discoverIncomingTargets, discoverTargets, focusPane, focusSafely, registerNavigationCommand, startRefresh } from "./herdr.js"
 
 const REFRESH_MS = 4_000
 
@@ -21,13 +21,7 @@ async function refresh(api: any, sessionID: string) {
 }
 
 function focus(api: any, target: any) {
-  const paneID = target.agent.pane_id
-  if (typeof paneID !== "string" || !paneID) {
-    api.ui.toast.show({ message: "Session is no longer available", variant: "warning" })
-    return
-  }
-  void focusLiveTarget(
-    target,
+  return focusSafely(target,
     () => {
       const route = api.ui.router.current()
       return route?.type === "session" && isInitiatingSession(target, route.sessionID)
@@ -35,9 +29,10 @@ function focus(api: any, target: any) {
         : []
     },
     (id) => focusPane(id),
-  ).catch(() => {
-    api.ui.toast.show({ message: "Session is no longer available", variant: "warning" })
-  })
+    () => {
+      api.ui.toast.show({ message: "Session is no longer available", variant: "warning" })
+    },
+  )
 }
 
 export default Plugin.define({
@@ -50,6 +45,7 @@ export default Plugin.define({
       (location: any) => api.data.location.agent.list(location ?? api.location) ?? [],
       api.theme.text.base,
     )
+    registerNavigationCommand(api, rows, (target: any) => focus(api, target))
     const disposeRefresh = startRefresh(() => {
       const route = api.ui.router.current()
       const sessionID = route?.type === "session" ? route.sessionID : undefined

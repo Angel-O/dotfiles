@@ -10,7 +10,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 const { outgoingTargets, incomingTargets, isInitiatingSession, sidebarHeading, encodedSocket, focusLiveTarget, createSidebarRows, validRecord } = await import(pathToFileURL(process.argv[2]))
-const { discoverTargets, discoverIncomingTargets, focusPane, readRecords, startRefresh } = await import(pathToFileURL(process.argv[2].replace("navigation.js", "herdr.js")))
+const { discoverTargets, discoverIncomingTargets, focusPane, focusSafely, readRecords, registerNavigationCommand, startRefresh } = await import(pathToFileURL(process.argv[2].replace("navigation.js", "herdr.js")))
 const record = {
   schemaVersion: 1,
   orchestratorSessionID: "sesOrch",
@@ -179,6 +179,81 @@ try {
   assert.deepEqual(focusCalls, [["agent", "focus", "w:p1"]])
   assert.throws(() => focusPane("", async (args) => focusCalls.push(args)), /missing Herdr pane/)
   assert.deepEqual(focusCalls, [["agent", "focus", "w:p1"]])
+
+  let availableTargets = targets
+  let liveTargets = targets
+  let selection = targets[0]
+  const keymapLayers = []
+  const selections = []
+  const alerts = []
+  const focusedPanes = []
+  const focusWarnings = []
+  const targetRows = createSidebarRows(
+    () => availableTargets,
+    agentConfigAt,
+    "theme-text",
+  )
+  const api = {
+    keymap: { layer: (createLayer) => keymapLayers.push(createLayer()) },
+    ui: { dialog: {
+      select: async (options) => {
+        selections.push(options)
+        return selection
+      },
+      alert: async (options) => alerts.push(options),
+    } },
+  }
+  registerNavigationCommand(api, targetRows, (target) => focusSafely(
+    target,
+    async () => liveTargets,
+    async (paneID) => focusedPanes.push(paneID),
+    () => focusWarnings.push("warning"),
+  ))
+  assert.equal(keymapLayers.length, 1)
+  const layer = keymapLayers[0]
+  assert.equal(layer.mode, "global")
+  assert.equal(layer.commands.length, 1)
+  const command = layer.commands[0]
+  assert.equal(command.id, "dotfiles.herdr-delegates.navigate-linked-session")
+  assert.equal(command.title, "Navigate linked session")
+  assert.equal(command.group, "Navigation")
+  assert.equal(command.palette, true)
+
+  await command.run()
+  assert.equal(selections[0].title, "Navigate linked session")
+  assert.deepEqual(selections[0].options.map(({ title, category }) => ({ title, category })), [
+    { title: "worker · worker-one", category: "worker" },
+    { title: "architect · worker-one", category: "architect" },
+  ])
+  assert.deepEqual(focusedPanes, ["w:p1"])
+
+  availableTargets = incoming
+  liveTargets = incoming
+  selection = incoming[0]
+  await command.run()
+  assert.deepEqual(selections[1].options.map(({ title, category }) => ({ title, category })), [
+    { title: "orchestrator · main", category: "orchestrator" },
+  ])
+  assert.deepEqual(focusedPanes, ["w:p1", "o:p1"])
+
+  selection = undefined
+  await command.run()
+  assert.deepEqual(focusedPanes, ["w:p1", "o:p1"])
+
+  availableTargets = []
+  await command.run()
+  assert.deepEqual(alerts, [{
+    title: "No linked sessions",
+    message: "No linked delegate or orchestrator sessions are available.",
+  }])
+  assert.equal(selections.length, 3)
+
+  availableTargets = targets
+  liveTargets = []
+  selection = targets[0]
+  await command.run()
+  assert.deepEqual(focusedPanes, ["w:p1", "o:p1"])
+  assert.deepEqual(focusWarnings, ["warning"])
 } finally {
   await rm(home, { recursive: true, force: true })
 }
