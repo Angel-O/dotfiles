@@ -7,5 +7,5 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
-UV_TOOL_BIN_DIR="$HOME/.local/bin" uv tool install --python 3.12 --upgrade "serena-agent=={{ .pins.serena }}"
+UV_TOOL_BIN_DIR="$HOME/.local/bin" uv tool install --upgrade "serena-agent=={{ .pins.serena }}"
 {{- end }}
