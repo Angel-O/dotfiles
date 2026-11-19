@@ -631,6 +631,8 @@ assert_herdr_agent_launcher() {
   local delivery_worktree="$test_dir/delivery-worktree"
   local process_repo="$test_dir/process-repo"
   local pane_repo="$test_dir/pane-repo"
+  local real_mv
+  real_mv=$(command -v mv)
   mkdir -p "$fake_bin" "$canned"
   mkdir -p "$process_repo" "$pane_repo"
   mkdir -p "$delivery_worktree"
@@ -639,7 +641,7 @@ assert_herdr_agent_launcher() {
   process_repo=$(git -C "$process_repo" rev-parse --show-toplevel)
 
   cat >"$canned/caller.json" <<EOF
-{"result":{"type":"pane_current","pane":{"pane_id":"w1:p1","terminal_id":"term1","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"$pane_repo","agent_status":"working","revision":1}}}
+{"result":{"type":"pane_current","pane":{"pane_id":"w1:p1","terminal_id":"term1","workspace_id":"w1","tab_id":"w1:t1","focused":true,"cwd":"$pane_repo","agent_status":"working","revision":1,"agent_session":{"source":"opencode","agent":"opencode","kind":"id","value":"ses_orchestrator"}}}}
 EOF
   cat >"$canned/split.json" <<EOF
 {"result":{"type":"pane_info","pane":{"pane_id":"w1:p2","terminal_id":"term2","workspace_id":"w1","tab_id":"w1:t1","focused":false,"cwd":"$pane_repo","agent_status":"idle","revision":2}}}
@@ -703,6 +705,8 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   reviewr-rename:"tab rename") printf '{"error":{"code":"tab_rename_failed","message":"tab unavailable"}}\n' >&2; exit 1 ;;
   wrong-agent-cwd:"agent start"|wrong-agent-cwd:"agent get") ;;
   wrong-identity:"agent get") jq '.result.agent.name = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
+  missing-session:"pane current") jq 'del(.result.pane.agent_session)' "$FAKE_HERDR_CANNED/$file"; exit 0 ;;
+  ambiguous-session:"pane current") jq '.result.pane.agent_session.kind = "path"' "$FAKE_HERDR_CANNED/$file"; exit 0 ;;
 esac
 if [[ "$1 $2" == "worktree open" ]]; then
   output=$(jq '.result.type = "worktree_opened"' "$FAKE_HERDR_CANNED/$file")
@@ -732,9 +736,10 @@ if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
   output=$(printf '%s\n' "$output" | jq \
     --arg name "$FAKE_HERDR_NAME" --arg workspace "$FAKE_HERDR_WORKSPACE" \
     --arg tab "$FAKE_HERDR_TAB" --arg pane "$FAKE_HERDR_PANE" --arg cwd "$FAKE_HERDR_CWD" \
+    --arg session "${FAKE_DELEGATE_SESSION:-ses_test}" \
     '.result.agent.name = $name | .result.agent.workspace_id = $workspace |
      .result.agent.tab_id = $tab | .result.agent.pane_id = $pane |
-     .result.agent.cwd = $cwd')
+     .result.agent.cwd = $cwd | .result.argv[2] = $session')
   if [[ "${FAKE_HERDR_FAILURE:-}" == wrong-agent-cwd ]]; then
     output=$(printf '%s\n' "$output" | jq '.result.agent.cwd = "/wrong-cwd"')
   fi
@@ -770,6 +775,12 @@ if [[ "$1 $2 $3" == "api session.update --param" ]]; then
       {version:1,targetSessionID:$session,beadID:$bead}' <<<"$6" >/dev/null
   exit 0
 fi
+if [[ "$1 $2 $3" == "api session.get --param" ]]; then
+  [[ $# -eq 4 && "$4" == sessionID=ses_orchestrator ]] || exit 2
+  jq -cn --arg role "${FAKE_OPENCODE_CALLER_ROLE:-orchestrator}" \
+    '{data:{id:"ses_orchestrator",agent:$role}}'
+  exit 0
+fi
 [[ "$1 $2 $3" == "api session.create --data" && $# -eq 4 ]] || exit 2
 case "${FAKE_OPENCODE_FAILURE:-}" in
   unavailable-role) printf 'agent not found\n' >&2; exit 1 ;;
@@ -777,13 +788,22 @@ case "${FAKE_OPENCODE_FAILURE:-}" in
   missing-session) jq -cn --arg role "$FAKE_HERDR_ROLE" --arg cwd "$FAKE_HERDR_CWD" '{data:{agent:$role,location:{directory:$cwd}}}'; exit 0 ;;
   wrong-role) jq -cn --arg cwd "$FAKE_HERDR_CWD" '{data:{id:"ses_test",agent:"build",location:{directory:$cwd}}}'; exit 0 ;;
   wrong-location) jq -cn --arg role "$FAKE_HERDR_ROLE" '{data:{id:"ses_test",agent:$role,location:{directory:"/wrong"}}}'; exit 0 ;;
+  unsafe-session) jq -cn --arg role "$FAKE_HERDR_ROLE" --arg cwd "$FAKE_HERDR_CWD" \
+    '{data:{id:"ses/../unsafe",agent:$role,location:{directory:$cwd}}}'; exit 0 ;;
 esac
 jq -e --arg role "$FAKE_HERDR_ROLE" --arg cwd "$FAKE_HERDR_CWD" \
   '. == {agent:$role,location:{directory:$cwd}}' <<<"$4" >/dev/null
 jq -cn --arg role "$FAKE_HERDR_ROLE" --arg cwd "$FAKE_HERDR_CWD" \
-  '{data:{id:"ses_test",agent:$role,location:{directory:$cwd}}}'
+  --arg session "${FAKE_DELEGATE_SESSION:-ses_test}" \
+  '{data:{id:$session,agent:$role,location:{directory:$cwd}}}'
 EOF
   chmod +x "$fake_bin/opencode"
+  cat >"$fake_bin/mv" <<'EOF'
+#!/usr/bin/env bash
+[[ "${FAKE_FAIL_RELATIONSHIP_MV:-}" != 1 ]] || exit 1
+exec "$FAKE_REAL_MV" "$@"
+EOF
+  chmod +x "$fake_bin/mv"
   assert_not_contains "$launcher" ' --agent '
 
   run_launcher() {
@@ -810,8 +830,13 @@ EOF
     : >"$log"
     (
       CDPATH= cd -- "$process_repo"
-      HOME="$test_dir/home" PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+      HOME="${FAKE_RELATIONSHIP_HOME:-$test_dir/home}" PATH="$fake_bin:$PATH" \
+        HERDR_ENV=1 HERDR_SOCKET_PATH="${FAKE_RELATIONSHIP_SOCKET:-$test_dir/herdr.sock}" \
+        HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 OPENCODE_SESSION_ID=ses_orchestrator \
         FAKE_HERDR_FAILURE="${FAKE_HERDR_FAILURE:-}" FAKE_OPENCODE_FAILURE="${FAKE_OPENCODE_FAILURE:-}" \
+        FAKE_OPENCODE_CALLER_ROLE="${FAKE_OPENCODE_CALLER_ROLE:-orchestrator}" \
+        FAKE_DELEGATE_SESSION="${FAKE_DELEGATE_SESSION:-ses_test}" \
+        FAKE_FAIL_RELATIONSHIP_MV="${FAKE_FAIL_RELATIONSHIP_MV:-}" FAKE_REAL_MV="$real_mv" \
         FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE="$role" \
         FAKE_HERDR_SOURCE_REPO="$process_repo" \
         FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
@@ -824,6 +849,15 @@ EOF
 
   metadata=$(run_launcher architect sibling architect-agent)
   jq -e --arg cwd "$pane_repo" ' . == {role:"architect",topology:"sibling",agent_name:"architect-agent",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t1",pane_id:"w1:p2",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
+  relationship_dir="$test_dir/home/.local/state/herdr/session-relationships/$(jq -rn --arg socket "$test_dir/herdr.sock" '$socket | @uri')"
+  jq -e '. == {schemaVersion:1,orchestratorSessionID:"ses_orchestrator",delegateSessionID:"ses_test",delegateRole:"architect",launchName:"architect-agent"}' \
+    "$relationship_dir/ses_test.json" >/dev/null
+  directory_mode=$(stat -c '%a' "$relationship_dir" 2>/dev/null || stat -f '%Lp' "$relationship_dir")
+  record_mode=$(stat -c '%a' "$relationship_dir/ses_test.json" 2>/dev/null || stat -f '%Lp' "$relationship_dir/ses_test.json")
+  test "$directory_mode" = 700
+  test "$record_mode" = 600
+  test -z "$(find "$relationship_dir" -maxdepth 1 -name '.*.??????' -print -quit)"
+
   assert_contains "$log" "pane split --current --direction right --cwd $pane_repo --no-focus"
   test "$(grep -Fc 'pane rename ' "$log")" -eq 2
   grep -Fxq 'pane rename w1:p1 orchestrator' "$log"
@@ -832,6 +866,23 @@ EOF
   assert_contains "$log" 'managed opencode-env api session.create'
   assert_contains "$log" 'agent start architect-agent --kind opencode --pane w1:p2 -- --session ses_test'
   assert_not_contains "$log" 'plugin pane open'
+
+  atomic_warning="$test_dir/atomic-warning"
+  FAKE_FAIL_RELATIONSHIP_MV=1 metadata=$(run_launcher architect sibling replacement-name 2>"$atomic_warning")
+  jq -e '.session_id == "ses_test"' <<<"$metadata" >/dev/null
+  assert_contains "$atomic_warning" 'relationship not recorded: could not atomically publish relationship record'
+  jq -e '. == {schemaVersion:1,orchestratorSessionID:"ses_orchestrator",delegateSessionID:"ses_test",delegateRole:"architect",launchName:"architect-agent"}' \
+    "$relationship_dir/ses_test.json" >/dev/null
+  test -z "$(find "$relationship_dir" -maxdepth 1 -name '.*.??????' -print -quit)"
+  unset FAKE_FAIL_RELATIONSHIP_MV
+
+  other_partition="$test_dir/home/.local/state/herdr/session-relationships/$(jq -rn --arg socket "$test_dir/other.sock" '$socket | @uri')"
+  FAKE_RELATIONSHIP_SOCKET="$test_dir/other.sock" FAKE_DELEGATE_SESSION=ses_other_server \
+    metadata=$(run_launcher architect sibling other-server)
+  jq -e '.session_id == "ses_other_server"' <<<"$metadata" >/dev/null
+  jq -e '.delegateSessionID == "ses_other_server"' "$other_partition/ses_other_server.json" >/dev/null
+  test ! -e "$relationship_dir/ses_other_server.json"
+  unset FAKE_RELATIONSHIP_SOCKET FAKE_DELEGATE_SESSION
 
   tracking_bead=$(printf '%s%s%s' 'fixture' '-' 'bead')
   metadata=$(run_launcher worker worktree worker "$worktree" --tracking-bead "$tracking_bead")
@@ -858,6 +909,31 @@ EOF
   if run_launcher worker worktree worker "$worktree" --tracking-bead 'bad/identity' >/dev/null 2>&1; then exit 1; fi
   if run_launcher worker worktree worker "$worktree" --tracking-bead "$tracking_bead" --tracking-bead "$tracking_bead" >/dev/null 2>&1; then exit 1; fi
   if run_launcher worker worktree worker "$worktree" --unknown-flag >/dev/null 2>&1; then exit 1; fi
+  for failure in missing-session ambiguous-session; do
+    error_file="$test_dir/relationship-warning"
+    FAKE_HERDR_FAILURE=$failure FAKE_DELEGATE_SESSION="ses_${failure//-/_}" \
+      metadata=$(run_launcher architect sibling missing-identity 2>"$error_file")
+    jq -e --arg session "ses_${failure//-/_}" '.session_id == $session' <<<"$metadata" >/dev/null
+    assert_contains "$error_file" 'relationship not recorded:'
+    test ! -e "$relationship_dir/ses_${failure//-/_}.json"
+  done
+  error_file="$test_dir/non-orchestrator-warning"
+  FAKE_HERDR_FAILURE= FAKE_OPENCODE_CALLER_ROLE=worker FAKE_DELEGATE_SESSION=ses_non_orchestrator \
+    metadata=$(run_launcher architect sibling non-orchestrator 2>"$error_file")
+  jq -e '.session_id == "ses_non_orchestrator"' <<<"$metadata" >/dev/null
+  assert_contains "$error_file" 'relationship not recorded: caller session could not be verified as an orchestrator'
+  test ! -e "$relationship_dir/ses_non_orchestrator.json"
+
+  blocked_socket="$test_dir/blocked.sock"
+  : >"$test_dir/home/.local/state/herdr/session-relationships/$(jq -rn --arg socket "$blocked_socket" '$socket | @uri')"
+  error_file="$test_dir/write-warning"
+  FAKE_OPENCODE_CALLER_ROLE=orchestrator FAKE_HERDR_FAILURE= \
+    FAKE_RELATIONSHIP_SOCKET="$blocked_socket" FAKE_DELEGATE_SESSION=ses_write_failure \
+    metadata=$(run_launcher architect sibling write-failure 2>"$error_file")
+  jq -e '.session_id == "ses_write_failure"' <<<"$metadata" >/dev/null
+  assert_contains "$error_file" 'relationship not recorded: could not create private relationship state'
+  assert_contains "$log" 'agent start write-failure --kind opencode --pane w1:p2 -- --session ses_write_failure'
+  unset FAKE_DELEGATE_SESSION FAKE_RELATIONSHIP_SOCKET FAKE_OPENCODE_CALLER_ROLE FAKE_HERDR_FAILURE
 
   # worker/tab tests are obsolete with that mode removed; equivalent launch,
   # tracking, retry, and failure behavior remains covered through worktree.
@@ -867,6 +943,8 @@ EOF
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,session_id:"ses_test",worktree_path:$path}' <<<"$metadata" >/dev/null
+  jq -e '.delegateRole == "worker" and .launchName == "worker-agent" and .orchestratorSessionID == "ses_orchestrator"' \
+    "$relationship_dir/ses_test.json" >/dev/null
   assert_contains "$log" "worktree create --cwd $process_repo --branch worktree/worker-agent --path $worktree --label worker-agent --no-focus"
   assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$worktree\"}}"
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --session ses_test'
@@ -881,6 +959,17 @@ EOF
   FAKE_HERDR_FAILURE=busy-once metadata=$(run_launcher worker worktree worker-agent "$worktree")
   test "$(grep -Fc 'agent start ' "$log")" -eq 2
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+  FAKE_DELEGATE_SESSION=ses_parallel_one run_launcher worker worktree parallel-one "$worktree" >/dev/null &
+  first_pid=$!
+  FAKE_DELEGATE_SESSION=ses_parallel_two run_launcher worker worktree parallel-two "$worktree" >/dev/null &
+  second_pid=$!
+  wait "$first_pid"
+  wait "$second_pid"
+  for session in ses_parallel_one ses_parallel_two; do
+    jq -e --arg session "$session" \
+      '.delegateSessionID == $session and .orchestratorSessionID == "ses_orchestrator"' \
+      "$relationship_dir/$session.json" >/dev/null
+  done
 
   metadata=$(FAKE_HERDR_FAILURE=reviewr-no-tab run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' .cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
@@ -972,11 +1061,17 @@ EOF
     if FAKE_OPENCODE_FAILURE=$failure run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
     assert_not_contains "$log" 'agent start '
   done
+  : >"$log"
+  if FAKE_OPENCODE_FAILURE=unsafe-session run_launcher architect sibling invalid-session >/dev/null 2>&1; then exit 1; fi
+  assert_not_contains "$log" 'agent start '
   for failure in start-failed not-ready missing-ready pending malformed-pending; do
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
     assert_not_contains "$log" 'agent get '
   done
+  if FAKE_HERDR_FAILURE=start-failed FAKE_DELEGATE_SESSION=ses_failed_launch \
+    run_launcher architect sibling failed-launch >/dev/null 2>&1; then exit 1; fi
+  test ! -e "$relationship_dir/ses_failed_launch.json"
   for failure in wrong-worktree wrong-repository; do
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
@@ -989,6 +1084,7 @@ EOF
 }
 
 assert_herdr_agent_launcher
+[[ "${TEST_SCOPE:-}" != herdr-agent-launch ]] || exit 0
 
 elio_source="$source_dir/dot_config/herdr/plugins/local/angel-o.elio"
 test -f "$elio_source/herdr-plugin.toml"
