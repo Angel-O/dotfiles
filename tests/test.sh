@@ -20,17 +20,9 @@ mkdir -p "$root"
 cache="$root/chezmoi-cache"
 export CHEZMOI_TEST_CACHE="$cache"
 
-safety_pattern='(/'"Users/|1628"'1580|Opa'"rah|8f84"'64|sk-[A-Za-z0-9]{16,})'
-if grep -R -E \
-  --exclude-dir=.git \
-  --exclude=.git \
-  --exclude-dir=.idea \
-  --exclude='*.iml' \
-  "$safety_pattern" \
-  "$source_dir" >/dev/null; then
-  printf 'public-safety scan found a personal path, identifier, or credential-like value.\n' >&2
-  exit 1
-fi
+bash "$source_dir/tests/check-public-safety.sh" "$source_dir"
+bash "$source_dir/tests/test-public-safety-scan.sh"
+[[ "${TEST_SCOPE:-}" != public-safety-scan ]] || exit 0
 
 bash "$source_dir/tests/test-explain-this.sh"
 bash "$source_dir/tests/test-agents-modifier.sh"
