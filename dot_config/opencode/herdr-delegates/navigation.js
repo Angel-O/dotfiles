@@ -21,7 +21,7 @@ export function outgoingTargets(records, currentSessionID, agents) {
         agent.agent_session?.source === "herdr:opencode" &&
         agent.agent_session?.value === record.delegateSessionID)
       if (matches.length !== 1 || typeof matches[0].pane_id !== "string" || !matches[0].pane_id) return
-      return { record, agent: matches[0] }
+      return { record, agent: matches[0], destinationSessionID: record.delegateSessionID, destinationRole: record.delegateRole }
     })
     .filter(Boolean)
 
@@ -49,9 +49,50 @@ export function outgoingTargets(records, currentSessionID, agents) {
   return targets
 }
 
+export function incomingTargets(records, currentSessionID, agents) {
+  const targets = records
+    .filter(({ record, filename }) => validRecord(record, filename) &&
+      record.delegateSessionID === currentSessionID)
+    .map(({ record }) => {
+      const matches = agents.filter((agent) =>
+        agent.agent_session?.agent === "opencode" &&
+        agent.agent_session?.kind === "id" &&
+        agent.agent_session?.source === "herdr:opencode" &&
+        agent.agent_session?.value === record.orchestratorSessionID)
+      if (matches.length !== 1 || typeof matches[0].pane_id !== "string" || !matches[0].pane_id) return
+      return {
+        record,
+        agent: matches[0],
+        destinationSessionID: record.orchestratorSessionID,
+        destinationRole: "orchestrator",
+      }
+    })
+    .filter(Boolean)
+  for (const target of targets) {
+    const name = target.agent.name?.trim()
+    target.label = name && name.toLowerCase() !== "orchestrator"
+      ? `orchestrator · ${name}`
+      : "orchestrator"
+  }
+  return targets
+}
+
+export function isInitiatingSession(target, sessionID) {
+  const expected = target.destinationRole === "orchestrator"
+    ? target.record.delegateSessionID
+    : ["worker", "architect"].includes(target.destinationRole)
+      ? target.record.orchestratorSessionID
+      : undefined
+  return expected === sessionID
+}
+
+export function sidebarHeading(targets) {
+  return targets[0]?.destinationRole === "orchestrator" ? "Delegator" : "Delegates"
+}
+
 export async function focusLiveTarget(target, resolve, focusPane) {
   const live = (await resolve()).filter((item) =>
-    item.record.delegateSessionID === target.record.delegateSessionID)
+    item.destinationSessionID === target.destinationSessionID)
   if (live.length !== 1 || typeof live[0].agent.pane_id !== "string" || !live[0].agent.pane_id) {
     throw new Error("delegate is no longer uniquely live")
   }
@@ -64,7 +105,7 @@ export function roleColor(role, agents) {
 
 export function destinationColor(target, agentsAt, fallback) {
   const location = target.agent.cwd ? { directory: target.agent.cwd } : undefined
-  return roleColor(target.record.delegateRole, agentsAt(location)) ?? fallback
+  return roleColor(target.destinationRole ?? target.record.delegateRole, agentsAt(location)) ?? fallback
 }
 
 export function createSidebarRows(readTargets, agentsAt, fallback) {

@@ -9,8 +9,8 @@ import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-const { outgoingTargets, encodedSocket, focusLiveTarget, createSidebarRows, validRecord } = await import(pathToFileURL(process.argv[2]))
-const { discoverTargets, focusPane, readRecords, startRefresh } = await import(pathToFileURL(process.argv[2].replace("navigation.js", "herdr.js")))
+const { outgoingTargets, incomingTargets, isInitiatingSession, sidebarHeading, encodedSocket, focusLiveTarget, createSidebarRows, validRecord } = await import(pathToFileURL(process.argv[2]))
+const { discoverTargets, discoverIncomingTargets, focusPane, readRecords, startRefresh } = await import(pathToFileURL(process.argv[2].replace("navigation.js", "herdr.js")))
 const record = {
   schemaVersion: 1,
   orchestratorSessionID: "sesOrch",
@@ -30,10 +30,20 @@ const architect = {
   name: "worker-one", pane_id: "w:p2",
   agent_session: { agent: "opencode", kind: "id", source: "herdr:opencode", value: "sesArchitect" },
 }
+const orchestrator = {
+  name: "main", pane_id: "o:p1", cwd: "/orchestrator",
+  agent_session: { agent: "opencode", kind: "id", source: "herdr:opencode", value: "sesOrch" },
+}
+const otherOrchestrator = {
+  ...orchestrator, pane_id: "o:p2",
+  agent_session: { ...orchestrator.agent_session, value: "sesOther" },
+}
 const locations = []
 const agentConfigAt = (location) => {
   locations.push(location)
-  return location?.directory === "/worker" ? [{ name: "worker", color: "#configured" }] : []
+  if (location?.directory === "/worker") return [{ name: "worker", color: "#configured" }]
+  if (location?.directory === "/orchestrator") return [{ name: "orchestrator", color: "#orchestrator" }]
+  return []
 }
 let rowState = []
 const displayedRows = createSidebarRows(() => rowState, agentConfigAt, "theme-text")
@@ -42,13 +52,21 @@ rowState = [{ record, agent: worker, label: "worker · worker-one" }]
 assert.deepEqual(displayedRows().map(({ label, color }) => ({ label, color })), [
   { label: "worker · worker-one", color: "#configured" },
 ])
+rowState = [{
+  record, agent: orchestrator, destinationRole: "orchestrator", label: "orchestrator · main",
+}]
+assert.deepEqual(displayedRows().map(({ label, color }) => ({ label, color })), [
+  { label: "orchestrator · main", color: "#orchestrator" },
+])
 rowState = [{ record, agent: { ...worker, cwd: undefined }, label: "worker · fallback" }]
 assert.deepEqual(displayedRows().map(({ label, color }) => ({ label, color })), [
   { label: "worker · fallback", color: "theme-text" },
 ])
 rowState = []
 assert.deepEqual(displayedRows(), [])
-assert.deepEqual(locations, [{ directory: "/worker" }, undefined])
+assert.deepEqual(locations, [
+  { directory: "/worker" }, { directory: "/orchestrator" }, undefined,
+])
 for (const [field, value] of [["agent", "codex"], ["kind", "path"], ["source", "herdr:other"]]) {
   assert.equal(outgoingTargets([{ record, filename: "sesWorker.json" }], "sesOrch", [
     { ...worker, agent_session: { ...worker.agent_session, [field]: value } },
@@ -62,7 +80,37 @@ const records = [
 ]
 const targets = outgoingTargets(records, "sesOrch", [worker, architect])
 assert.deepEqual(targets.map(({ label }) => label), ["worker · worker-one", "architect · worker-one"])
+assert.equal(sidebarHeading(targets), "Delegates")
 assert.equal(outgoingTargets(records, "sesOther", [worker, architect]).length, 1)
+const incoming = incomingTargets(records.slice(0, 2), "sesWorker", [orchestrator, otherOrchestrator])
+assert.deepEqual(incoming.map(({ destinationSessionID, label }) => ({ destinationSessionID, label })), [
+  { destinationSessionID: "sesOrch", label: "orchestrator · main" },
+])
+assert.equal(sidebarHeading(incoming), "Delegator")
+const unnamedOrchestrator = incomingTargets(records.slice(0, 1), "sesWorker", [
+  { ...orchestrator, name: undefined },
+])[0]
+assert.equal(unnamedOrchestrator.label, "orchestrator")
+assert.equal(unnamedOrchestrator.destinationSessionID, "sesOrch")
+assert.equal(incomingTargets(records.slice(0, 1), "sesWorker", [
+  { ...orchestrator, name: "orchestrator" },
+])[0].label, "orchestrator")
+assert.deepEqual(incomingTargets([records[0], records[2]], "sesWorker", [
+  { ...orchestrator, name: undefined },
+  { ...otherOrchestrator, name: undefined },
+]).map(({ label }) => label), ["orchestrator", "orchestrator"])
+assert.equal(isInitiatingSession(targets[0], "sesOrch"), true)
+assert.equal(isInitiatingSession(incoming[0], "sesWorker"), true)
+assert.equal(isInitiatingSession(targets[0], "sesWorker"), false)
+assert.equal(isInitiatingSession(incoming[0], "sesOrch"), false)
+assert.deepEqual(incomingTargets(records.slice(0, 2), "sesArchitect", [orchestrator, otherOrchestrator])
+  .map(({ record: target }) => target.delegateRole), ["architect"])
+assert.deepEqual(incomingTargets(records.slice(0, 2), "sesUnlinked", [orchestrator]), [])
+assert.deepEqual(incomingTargets(records.slice(0, 2), "sesWorker", [
+  orchestrator, { ...orchestrator, pane_id: "o:p3" },
+]), [])
+assert.deepEqual(incomingTargets(records.slice(0, 2), "sesWorker", []), [])
+assert.deepEqual(incomingTargets(records.slice(0, 2), "sesSubagent", [orchestrator]), [])
 assert.equal(outgoingTargets([{ record, filename: "sesWorker.json" }], "sesOrch", [worker, { ...worker, pane_id: "w:p3" }]).length, 0)
 assert.equal(outgoingTargets([{ record, filename: "sesWorker.json" }], "sesOrch", []).length, 0)
 const duplicate = { record: { ...record, delegateSessionID: "sesOtherWorker" }, filename: "sesOtherWorker.json" }
@@ -76,6 +124,8 @@ assert.deepEqual(duplicateTargets.map(({ label }) => label), [
 const calls = []
 await focusLiveTarget(targets[0], async () => targets, async (paneID) => calls.push(["focus", paneID]))
 assert.deepEqual(calls, [["focus", "w:p1"]])
+await focusLiveTarget(incoming[0], async () => incoming, async (paneID) => calls.push(["focus", paneID]))
+assert.deepEqual(calls.at(-1), ["focus", "o:p1"])
 await assert.rejects(
   focusLiveTarget(targets[0], async () => [], async (paneID) => calls.push(["focus", paneID])),
   /no longer uniquely live/,
@@ -85,7 +135,7 @@ await focusLiveTarget(
   async () => [{ ...targets[0], agent: { ...worker, pane_id: "moved" } }],
   async (paneID) => calls.push(["focus", paneID]),
 )
-assert.deepEqual(calls, [["focus", "w:p1"], ["focus", "moved"]])
+assert.deepEqual(calls, [["focus", "w:p1"], ["focus", "o:p1"], ["focus", "moved"]])
 
 const home = await mkdtemp(join(tmpdir(), "delegate-sidebar-"))
 try {
@@ -108,6 +158,15 @@ try {
   })
   assert.deepEqual(discovered.map(({ record: target }) => target.delegateSessionID), ["sesWorker"])
   assert.deepEqual(listCalls, [["agent", "list"]])
+  assert.deepEqual((await discoverIncomingTargets("sesWorker", socketA, home, async () =>
+    JSON.stringify({ agents: [orchestrator, otherOrchestrator] })))
+    .map(({ destinationSessionID }) => destinationSessionID), ["sesOrch"])
+  assert.deepEqual((await discoverIncomingTargets("sesWorker", socketA, home, async () =>
+    JSON.stringify({ agents: [orchestrator] }))).map(({ record: target }) => target.delegateSessionID), ["sesWorker"])
+  assert.deepEqual(await discoverIncomingTargets("sesWorker", socketA, home, async () =>
+    JSON.stringify({ agents: [orchestrator, { ...orchestrator, pane_id: "o:p3" }] })), [])
+  assert.deepEqual((await discoverIncomingTargets("sesWorker", socketA, home, async () =>
+    JSON.stringify({ agents: [orchestrator] }))).map(({ destinationSessionID }) => destinationSessionID), ["sesOrch"])
   assert.deepEqual(await discoverTargets("sesOrch", socketB, home, async () => {
     throw new Error("must not list agents without a same-server relationship")
   }), [])

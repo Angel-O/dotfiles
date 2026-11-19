@@ -2,7 +2,7 @@ import { execFile } from "node:child_process"
 import { readFile, readdir } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import { encodedSocket, outgoingTargets, validRecord } from "./navigation.js"
+import { encodedSocket, incomingTargets, outgoingTargets, validRecord } from "./navigation.js"
 
 const RELATIONSHIP_ROOT = ".local/state/herdr/session-relationships"
 
@@ -43,6 +43,16 @@ export async function discoverTargets(sessionID, socket, home = homedir(), run =
   const agents = Array.isArray(parsed) ? parsed : parsed.agents ?? parsed.result?.agents
   if (!Array.isArray(agents)) throw new Error("invalid Herdr agent list")
   return outgoingTargets(records, sessionID, agents)
+}
+
+export async function discoverIncomingTargets(sessionID, socket, home = homedir(), run = runHerdr) {
+  const records = await readRecords(socket, home)
+  if (!records.some(({ record }) => record.delegateSessionID === sessionID)) return []
+  const output = await run(["agent", "list"])
+  const parsed = JSON.parse(output)
+  const agents = Array.isArray(parsed) ? parsed : parsed.agents ?? parsed.result?.agents
+  if (!Array.isArray(agents)) throw new Error("invalid Herdr agent list")
+  return incomingTargets(records, sessionID, agents)
 }
 
 export function focusPane(paneID, run = runHerdr) {

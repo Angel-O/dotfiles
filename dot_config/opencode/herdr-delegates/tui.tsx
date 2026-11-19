@@ -1,14 +1,17 @@
 import { Plugin } from "@opencode/plugin/tui"
 import { createSignal, For, Show } from "solid-js"
-import { createSidebarRows, focusLiveTarget } from "./navigation.js"
-import { discoverTargets, focusPane, startRefresh } from "./herdr.js"
+import { createSidebarRows, focusLiveTarget, isInitiatingSession, sidebarHeading } from "./navigation.js"
+import { discoverIncomingTargets, discoverTargets, focusPane, startRefresh } from "./herdr.js"
 
 const REFRESH_MS = 4_000
 
 async function refresh(api: any, sessionID: string) {
   const socket = process.env.HERDR_SOCKET_PATH
   if (!socket || process.env.HERDR_ENV !== "1") return []
-  const targets = await discoverTargets(sessionID, socket)
+  const session = api.data.session.get(sessionID)
+  const targets = session?.agent === "orchestrator"
+    ? await discoverTargets(sessionID, socket)
+    : await discoverIncomingTargets(sessionID, socket)
   for (const location of new Set(targets.map((target) => target.agent.cwd).filter(Boolean))) {
     try {
       await api.data.location.agent.sync({ directory: location })
@@ -20,20 +23,20 @@ async function refresh(api: any, sessionID: string) {
 function focus(api: any, target: any) {
   const paneID = target.agent.pane_id
   if (typeof paneID !== "string" || !paneID) {
-    api.ui.toast.show({ message: "Delegate is no longer available", variant: "warning" })
+    api.ui.toast.show({ message: "Session is no longer available", variant: "warning" })
     return
   }
   void focusLiveTarget(
     target,
     () => {
       const route = api.ui.router.current()
-      return route?.type === "session" && route.sessionID === target.record.orchestratorSessionID
+      return route?.type === "session" && isInitiatingSession(target, route.sessionID)
         ? refresh(api, route.sessionID)
         : []
     },
     (id) => focusPane(id),
   ).catch(() => {
-    api.ui.toast.show({ message: "Delegate is no longer available", variant: "warning" })
+    api.ui.toast.show({ message: "Session is no longer available", variant: "warning" })
   })
 }
 
@@ -50,8 +53,7 @@ export default Plugin.define({
     const disposeRefresh = startRefresh(() => {
       const route = api.ui.router.current()
       const sessionID = route?.type === "session" ? route.sessionID : undefined
-      const session = sessionID && api.data.session.get(sessionID)
-      return session?.agent === "orchestrator" ? refresh(api, sessionID!) : []
+      return sessionID ? refresh(api, sessionID) : []
     }, setTargets, () => {
       api.ui.toast.show({ message: "Delegate links temporarily unavailable", variant: "warning" })
     }, REFRESH_MS)
@@ -60,7 +62,7 @@ export default Plugin.define({
       render: () => (
         <Show when={rows().length > 0}>
           <box flexDirection="column">
-            <text fg={api.theme.text.base}>Delegates</text>
+            <text fg={api.theme.text.base}><strong>{sidebarHeading(targets())}</strong></text>
             <For each={rows()}>{(row) => {
               return (
                 <box
