@@ -68,6 +68,8 @@ run_once_after_25-migrate-ghostty-config.sh
 .local/bin/opencode-env-restart
 !.config/opencode/commands
 !.config/opencode/skills
+.config/opencode/skills/grilling
+.config/opencode/skills/grilling/**
 {{- if or (not .modules.beads) (not $opencodeBeads) }}
 .config/opencode/skills/*
 {{- end }}
