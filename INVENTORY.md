@@ -126,7 +126,7 @@ Every managed plugin is a machine-local selection independent of role. Disabling
 | `tracking-report.md` | `~/.config/opencode/commands/` | Read-only current-session, Bead, session, and time-window report interface | Track when OpenCode is enabled | Shared/conditional |
 | `herdr-agent-launch` | `~/.local/bin/` | Single managed launcher for verified architect sibling, worker tab, and worker worktree Herdr topologies | Track when OpenCode and Herdr are enabled | Shared/conditional |
 | `agents/*.md` | `~/.config/opencode/agents/` | Defines the additive orchestrator, reviewer, worker, architect, and architect roles | Track when OpenCode is enabled | Shared |
-| `grilling` | `~/.config/opencode/skills/` | Structured requirements/design interview workflow | Install from pinned source | Shared |
+| `grilling` | `~/.config/opencode/skills/` | Structured, one-question-at-a-time requirements/design interview workflow | Track in dotfiles source | Shared |
 | `ponytail` | `~/.config/opencode/skills/` | Minimal, YAGNI-first coding workflow | Install from pinned source | Shared |
 | `explain-this` | `~/.config/opencode/skills/explain-this/` | Visual review skill and local HTML builder | Install five files from an immutable pin when OpenCode is enabled; adopt the existing same-path copy | Shared; builder requires preinstalled Node.js 18+ |
 | `write-bead` | `~/.config/opencode/skills/` | Structured epic and concrete Bead authoring contract | Track when Beads and the OpenCode Beads integration are enabled | Shared/conditional |
