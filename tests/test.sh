@@ -257,7 +257,7 @@ assert cli["session"] == {
 }
 assert cli["animations"] is True
 assert "plugin" not in cli
-assert cli["plugins"] == ["./herdr-opencode"]
+assert cli["plugins"] == ["./herdr-opencode", "./herdr-delegates"]
 assert cli["tabs"] == {
     "layout": "horizontal",
     "mode": "auto",
