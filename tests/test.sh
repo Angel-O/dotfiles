@@ -12,7 +12,7 @@ todo_ref=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], 
 plannotator_version=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["plannotator"])' "$source_dir/.chezmoidata.toml")
 handoff_version=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["handoff"])' "$source_dir/.chezmoidata.toml")
 warp_version=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1], "rb"))["pins"]["openCodePlugins"]["warp"])' "$source_dir/.chezmoidata.toml")
-root=/tmp/dotfiles-test
+root=${TEST_ROOT:-/tmp/dotfiles-test}
 rm -rf "$root"
 mkdir -p "$root"
 # Keep fixture homes and persistent state isolated; share only chezmoi's
@@ -647,9 +647,6 @@ EOF
   cat >"$canned/rename.json" <<'EOF'
 {"result":{"type":"pane_info"}}
 EOF
-  cat >"$canned/tab.json" <<EOF
-{"result":{"type":"tab_created","tab":{"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w1:p3","terminal_id":"term3","workspace_id":"w1","tab_id":"w1:t2","focused":false,"cwd":"$pane_repo","agent_status":"idle","revision":3}}}
-EOF
   cat >"$canned/worktree.json" <<EOF
 {"result":{"type":"worktree_created","workspace":{"workspace_id":"w2","number":2,"label":"worker-agent","focused":false,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1","agent_status":"idle","worktree":{"repo_key":"process-repo","repo_name":"process-repo","repo_root":"$process_repo","checkout_path":"$worktree","is_linked_worktree":true}},"tab":{"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"worker","focused":false,"pane_count":1,"agent_status":"idle"},"root_pane":{"pane_id":"w2:p1","terminal_id":"term4","workspace_id":"w2","tab_id":"w2:t1","focused":false,"cwd":"$worktree","agent_status":"idle","revision":4},"worktree":{"path":"$worktree","branch":"worker","is_bare":false,"is_detached":false,"is_prunable":false,"is_linked_worktree":true,"open_workspace_id":"w2","label":"worker"}}}
 EOF
@@ -670,7 +667,6 @@ case "$1 $2" in
   "pane current") file=caller.json ;;
   "pane split") file=split.json ;;
   "pane rename") file=rename.json ;;
-  "tab create") file=tab.json ;;
   "worktree create"|"worktree open") file=worktree.json ;;
   "agent start") file=start.json ;;
   "agent get") file=get.json ;;
@@ -690,18 +686,13 @@ case "${FAKE_HERDR_FAILURE:-}:$1 $2" in
   wrong-type:"pane current") jq '.result.type = "wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   missing:"pane split") jq 'del(.result.pane.cwd)' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-placement:"pane split") jq '.result.pane.workspace_id = "w9"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
-  wrong-focus:"tab create") jq '.result.root_pane.focused = true' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
-  wrong-cwd:"tab create") jq '.result.root_pane.cwd = "/wrong-cwd"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
-  wrong-workspace:"tab create") jq '.result.tab.workspace_id = "w9"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-worktree:"worktree create") jq '.result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-worktree:"worktree open") jq '.result.type = "worktree_opened" | .result.worktree.path = "/wrong"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-repository:"worktree create") jq '.result.workspace.worktree.repo_root = "/wrong-repository"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-repository:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.worktree.repo_root = "/wrong-repository"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
-  wrong-label:"tab create") jq '.result.tab.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-label:"worktree create") jq '.result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-label:"worktree open") jq '.result.type = "worktree_opened" | .result.workspace.label = "other-agent"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   wrong-argv:"agent start") jq '.result.argv = ["opencode", "--session", "ses_wrong"]' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
-  explicit-false:"agent start") jq '.result.agent.launch_pending = false' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   pending:"agent start") jq '.result.agent.launch_pending = true' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   malformed-pending:"agent start") jq '.result.agent.launch_pending = "false"' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
   not-ready:"agent start") jq '.result.agent.interactive_ready = false' "$FAKE_HERDR_CANNED/$file" ; exit 0 ;;
@@ -718,14 +709,6 @@ if [[ "$1 $2" == "worktree open" ]]; then
 else
   output=$(<"$FAKE_HERDR_CANNED/$file")
 fi
-if [[ "$1 $2" == "tab create" ]]; then
-  test "$5 $6" = "--cwd $FAKE_HERDR_TAB_CWD" || { printf 'tab cwd argument mismatch\n' >&2; exit 1; }
-  test "$7 $8" = "--label $FAKE_HERDR_NAME" || { printf 'tab label argument mismatch\n' >&2; exit 1; }
-  if [[ "${FAKE_HERDR_FAILURE:-}" != wrong-cwd ]]; then
-    output=$(printf '%s\n' "$output" | jq --arg cwd "$FAKE_HERDR_TAB_CWD" '.result.root_pane.cwd = $cwd')
-  fi
-  output=$(printf '%s\n' "$output" | jq --arg label "$FAKE_HERDR_NAME" '.result.tab.label = $label')
-fi
 if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
   # The caller workspace represents a different repository in this fixture.
   test "$3 $4" = "--cwd $FAKE_HERDR_SOURCE_REPO" || { printf 'worktree repository selector mismatch\n' >&2; exit 1; }
@@ -737,6 +720,13 @@ if [[ "$1 $2" == "worktree create" || "$1 $2" == "worktree open" ]]; then
     test "$7 $8" = "--label $FAKE_HERDR_NAME" || { printf 'worktree label argument mismatch\n' >&2; exit 1; }
     test "$9" = "--no-focus" && test "$#" -eq 9 || { printf 'worktree open arguments mismatch\n' >&2; exit 1; }
   fi
+  output=$(printf '%s\n' "$output" | jq --arg label "$FAKE_HERDR_NAME" \
+    '.result.workspace.label = $label | .result.worktree.label = $label')
+  case "${FAKE_HERDR_FAILURE:-}" in
+    wrong-focus) output=$(printf '%s\n' "$output" | jq '.result.root_pane.focused = true') ;;
+    wrong-cwd) output=$(printf '%s\n' "$output" | jq '.result.root_pane.cwd = "/wrong-cwd"') ;;
+    wrong-workspace) output=$(printf '%s\n' "$output" | jq '.result.tab.workspace_id = "w9"') ;;
+  esac
 fi
 if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
   output=$(printf '%s\n' "$output" | jq \
@@ -747,6 +737,9 @@ if [[ "$1 $2" == "agent start" || "$1 $2" == "agent get" ]]; then
      .result.agent.cwd = $cwd')
   if [[ "${FAKE_HERDR_FAILURE:-}" == wrong-agent-cwd ]]; then
     output=$(printf '%s\n' "$output" | jq '.result.agent.cwd = "/wrong-cwd"')
+  fi
+  if [[ "${FAKE_HERDR_FAILURE:-}" == explicit-false && "$1 $2" == "agent start" ]]; then
+    output=$(printf '%s\n' "$output" | jq '.result.agent.launch_pending = false')
   fi
 fi
 printf '%s\n' "$output"
@@ -809,10 +802,9 @@ EOF
     local -a launcher_args=("$role" "$topology" "$name")
     [[ -n "$launcher_path" ]] && launcher_args+=("$launcher_path")
     [[ -n "$tracking_bead" ]] && launcher_args+=(--tracking-bead "$tracking_bead")
-    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=$pane_repo fake_tab_cwd=$pane_repo
+    local fake_workspace=w1 fake_tab=w1:t2 fake_pane=w1:p3 fake_cwd=$pane_repo
     case "$topology" in
       sibling) fake_tab=w1:t1; fake_pane=w1:p2 ;;
-      tab) [[ -z "$launcher_path" ]] || { fake_cwd=$launcher_path; fake_tab_cwd=$launcher_path; } ;;
       worktree) fake_workspace=w2; fake_tab=w2:t1; fake_pane=w2:p1; fake_cwd=$worktree ;;
     esac
     : >"$log"
@@ -824,7 +816,7 @@ EOF
         FAKE_HERDR_SOURCE_REPO="$process_repo" \
         FAKE_HERDR_NAME="$name" FAKE_HERDR_WORKSPACE="$fake_workspace" \
         FAKE_HERDR_TAB="$fake_tab" FAKE_HERDR_PANE="$fake_pane" FAKE_HERDR_CWD="$fake_cwd" \
-        FAKE_HERDR_TAB_CWD="$fake_tab_cwd" FAKE_HERDR_BUSY_MARKER="$test_dir/busy-marker" \
+        FAKE_HERDR_BUSY_MARKER="$test_dir/busy-marker" \
         FAKE_TRACKING_BEAD="$tracking_bead" \
         bash "$launcher" "${launcher_args[@]}"
     )
@@ -842,10 +834,10 @@ EOF
   assert_not_contains "$log" 'plugin pane open'
 
   tracking_bead=$(printf '%s%s%s' 'fixture' '-' 'bead')
-  metadata=$(run_launcher worker tab worker --tracking-bead "$tracking_bead")
-  jq -e --arg cwd "$pane_repo" --arg bead "$tracking_bead" \
-    '. == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"} and
-     (tostring | contains($bead) | not)' <<<"$metadata" >/dev/null
+  metadata=$(run_launcher worker worktree worker "$worktree" --tracking-bead "$tracking_bead")
+  jq -e --arg path "$worktree" --arg bead "$tracking_bead" \
+    '. == {role:"worker",topology:"worktree",agent_name:"worker",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,session_id:"ses_test",worktree_path:$path} and
+      (tostring | contains($bead) | not)' <<<"$metadata" >/dev/null
   create_line=$(grep -n 'opencode api session.create ' "$log" | cut -d: -f1)
   update_line=$(grep -n 'opencode api session.update ' "$log" | cut -d: -f1)
   start_line=$(grep -n 'agent start ' "$log" | cut -d: -f1)
@@ -855,46 +847,23 @@ EOF
   assert_contains "$log" "beadID\":\"$tracking_bead\""
 
   metadata_error="$test_dir/metadata-error"
-  metadata=$(FAKE_OPENCODE_FAILURE=metadata-update run_launcher worker tab worker --tracking-bead "$tracking_bead" \
+  metadata=$(FAKE_OPENCODE_FAILURE=metadata-update run_launcher worker worktree worker "$worktree" --tracking-bead "$tracking_bead" \
     2>"$metadata_error")
-  jq -e --arg bead "$tracking_bead" '.session_id == "ses_test" and (tostring | contains($bead) | not)' \
+  jq -e --arg path "$worktree" --arg bead "$tracking_bead" '.session_id == "ses_test" and .worktree_path == $path and (tostring | contains($bead) | not)' \
     <<<"$metadata" >/dev/null
   assert_contains "$metadata_error" 'tracking metadata update failed; continuing launch.'
   assert_not_contains "$metadata_error" "$tracking_bead"
-  assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
+  assert_contains "$log" 'agent start worker --kind opencode --pane w2:p1 -- --session ses_test'
 
-  if run_launcher worker tab worker --tracking-bead 'bad/identity' >/dev/null 2>&1; then exit 1; fi
-  if run_launcher worker tab worker --tracking-bead "$tracking_bead" --tracking-bead "$tracking_bead" >/dev/null 2>&1; then exit 1; fi
-  if run_launcher worker tab worker --unknown-flag >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker worktree worker "$worktree" --tracking-bead 'bad/identity' >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker worktree worker "$worktree" --tracking-bead "$tracking_bead" --tracking-bead "$tracking_bead" >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker worktree worker "$worktree" --unknown-flag >/dev/null 2>&1; then exit 1; fi
 
-  metadata=$(run_launcher worker tab worker)
-  jq -e --arg cwd "$pane_repo" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
-  assert_contains "$log" "tab create --workspace w1 --cwd $pane_repo --label worker --no-focus"
-  assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
-  assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement split --target-pane w1:p3 --cwd $pane_repo --no-focus"
-  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
-  assert_not_contains "$log" 'tab rename '
-
-  metadata=$(FAKE_HERDR_FAILURE=explicit-false run_launcher worker tab worker-agent)
-  jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
-
-  metadata=$(run_launcher worker tab worker "$delivery_worktree")
-  jq -e --arg cwd "$delivery_worktree" ' . == {role:"worker",topology:"tab",agent_name:"worker",agent_kind:"opencode",workspace_id:"w1",tab_id:"w1:t2",pane_id:"w1:p3",cwd:$cwd,session_id:"ses_test"}' <<<"$metadata" >/dev/null
-  assert_contains "$log" "tab create --workspace w1 --cwd $delivery_worktree --label worker --no-focus"
-  assert_contains "$log" "opencode api session.create --data {\"agent\":\"worker\",\"location\":{\"directory\":\"$delivery_worktree\"}}"
-  assert_contains "$log" 'agent start worker --kind opencode --pane w1:p3 -- --session ses_test'
-
-  rm -f "$test_dir/busy-marker"
-  FAKE_HERDR_FAILURE=busy-once metadata=$(run_launcher worker tab worker "$delivery_worktree")
-  test "$(grep -Fc 'agent start ' "$log")" -eq 2
-  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
-
+  # worker/tab tests are obsolete with that mode removed; equivalent launch,
+  # tracking, retry, and failure behavior remains covered through worktree.
   : >"$log"
-  if FAKE_HERDR_FAILURE=wrong-label run_launcher worker tab worker >/dev/null 2>&1; then exit 1; fi
-  assert_not_contains "$log" 'agent start '
-
-  if run_launcher worker tab worker "$test_dir/missing-worktree" >/dev/null 2>&1; then exit 1; fi
-  if run_launcher worker tab worker "$pane_repo" >/dev/null 2>&1; then exit 1; fi
+  if run_launcher worker tab worker >/dev/null 2>&1; then exit 1; fi
+  test ! -s "$log"
 
   metadata=$(run_launcher worker worktree worker-agent "$worktree")
   jq -e --arg path "$worktree" ' . == {role:"worker",topology:"worktree",agent_name:"worker-agent",agent_kind:"opencode",workspace_id:"w2",tab_id:"w2:t1",pane_id:"w2:p1",cwd:$path,session_id:"ses_test",worktree_path:$path}' <<<"$metadata" >/dev/null
@@ -903,6 +872,14 @@ EOF
   assert_contains "$log" 'agent start worker-agent --kind opencode --pane w2:p1 -- --session ses_test'
   assert_contains "$log" "plugin pane open --plugin persiyanov.reviewr --entrypoint pane --placement tab --workspace w2 --cwd $worktree --no-focus"
   assert_contains "$log" 'tab rename w2:t99 reviewr'
+  test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
+
+  metadata=$(FAKE_HERDR_FAILURE=explicit-false run_launcher worker worktree worker-agent "$worktree")
+  jq -e --arg path "$worktree" '.cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
+
+  rm -f "$test_dir/busy-marker"
+  FAKE_HERDR_FAILURE=busy-once metadata=$(run_launcher worker worktree worker-agent "$worktree")
+  test "$(grep -Fc 'agent start ' "$log")" -eq 2
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
 
   metadata=$(FAKE_HERDR_FAILURE=reviewr-no-tab run_launcher worker worktree worker-agent "$worktree")
@@ -915,8 +892,8 @@ EOF
   assert_contains "$log" 'tab rename w2:t99 reviewr'
 
   reviewr_error="$test_dir/reviewr-error"
-  metadata=$(FAKE_HERDR_FAILURE=reviewr-open run_launcher worker tab worker-agent 2>"$reviewr_error")
-  jq -e --arg cwd "$pane_repo" ' .cwd == $cwd and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
+  metadata=$(FAKE_HERDR_FAILURE=reviewr-open run_launcher worker worktree worker-agent "$worktree" 2>"$reviewr_error")
+  jq -e --arg path "$worktree" ' .cwd == $path and .agent_name == "worker-agent"' <<<"$metadata" >/dev/null
   test "$(grep -Fc 'plugin pane open' "$log")" -eq 1
   assert_contains "$reviewr_error" 'herdr-agent-launch: Reviewr open failed:'
 
@@ -940,33 +917,40 @@ EOF
   test ! -s "$log"
   if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker worktree worker-agent relative 2>/dev/null; then exit 1; fi
   test ! -s "$log"
-  if PATH="$fake_bin:$PATH" HERDR_ENV=1 FAKE_HERDR_LOG="$log" bash "$launcher" worker tab worker relative 2>/dev/null; then exit 1; fi
-  test ! -s "$log"
-  if PATH="$fake_bin:$PATH" HERDR_ENV=0 bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+  if PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
+    FAKE_HERDR_LOG="$log" bash "$launcher" worker tab worker-agent "$delivery_worktree" 2>/dev/null; then exit 1; fi
   test ! -s "$log"
 
   for failure in malformed wrong-type; do
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
-      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$pane_repo" \
-      FAKE_HERDR_TAB_CWD="$pane_repo" \
-      bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w2 FAKE_HERDR_TAB=w2:t1 FAKE_HERDR_PANE=w2:p1 FAKE_HERDR_CWD="$worktree" \
+      FAKE_HERDR_SOURCE_REPO="$process_repo" \
+      bash "$launcher" worker worktree worker-agent "$worktree" 2>/dev/null; then exit 1; fi
   done
   for failure in wrong-focus wrong-cwd wrong-workspace; do
+    rm -rf "$worktree"
     : >"$log"
-    if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
-      FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
-      FAKE_HERDR_NAME=worker FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$delivery_worktree" \
-      FAKE_HERDR_TAB_CWD="$delivery_worktree" bash "$launcher" worker tab worker "$delivery_worktree" 2>/dev/null; then exit 1; fi
+    failure_error="$test_dir/$failure-error"
+    if FAKE_HERDR_FAILURE=$failure run_launcher worker worktree worker "$worktree" \
+      >/dev/null 2>"$failure_error"; then exit 1; fi
+    assert_contains "$log" "worktree create --cwd $process_repo --branch worktree/worker --path $worktree --label worker --no-focus"
+    assert_not_contains "$log" 'worktree open '
     assert_not_contains "$log" 'agent start '
+    case "$failure" in
+      wrong-focus) assert_contains "$failure_error" 'returned malformed or unexpected JSON' ;;
+      wrong-cwd) assert_contains "$failure_error" 'pane placement mismatch' ;;
+      wrong-workspace) assert_contains "$failure_error" 'worktree placement mismatch' ;;
+    esac
   done
+  mkdir -p "$worktree"
   for failure in wrong-agent-cwd; do
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
-      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$delivery_worktree" \
-      FAKE_HERDR_TAB_CWD="$delivery_worktree" bash "$launcher" worker tab worker-agent "$delivery_worktree" 2>/dev/null; then exit 1; fi
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w2 FAKE_HERDR_TAB=w2:t1 FAKE_HERDR_PANE=w2:p1 FAKE_HERDR_CWD="$worktree" \
+      FAKE_HERDR_SOURCE_REPO="$process_repo" bash "$launcher" worker worktree worker-agent "$worktree" 2>/dev/null; then exit 1; fi
     assert_not_contains "$log" 'agent get '
   done
   for failure in missing wrong-placement; do
@@ -979,18 +963,18 @@ EOF
     : >"$log"
     if FAKE_HERDR_FAILURE=$failure PATH="$fake_bin:$PATH" HERDR_ENV=1 HERDR_WORKSPACE_ID=w1 HERDR_TAB_ID=w1:t1 HERDR_PANE_ID=w1:p1 \
       FAKE_HERDR_LOG="$log" FAKE_HERDR_CANNED="$canned" FAKE_HERDR_ROLE=worker \
-      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w1 FAKE_HERDR_TAB=w1:t2 FAKE_HERDR_PANE=w1:p3 FAKE_HERDR_CWD="$pane_repo" \
-      FAKE_HERDR_TAB_CWD="$pane_repo" \
-      bash "$launcher" worker tab worker-agent 2>/dev/null; then exit 1; fi
+      FAKE_HERDR_NAME=worker-agent FAKE_HERDR_WORKSPACE=w2 FAKE_HERDR_TAB=w2:t1 FAKE_HERDR_PANE=w2:p1 FAKE_HERDR_CWD="$worktree" \
+      FAKE_HERDR_SOURCE_REPO="$process_repo" \
+      bash "$launcher" worker worktree worker-agent "$worktree" 2>/dev/null; then exit 1; fi
   done
   for failure in unavailable-role malformed missing-session wrong-role wrong-location; do
     : >"$log"
-    if FAKE_OPENCODE_FAILURE=$failure run_launcher worker tab worker-agent >/dev/null 2>&1; then exit 1; fi
+    if FAKE_OPENCODE_FAILURE=$failure run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
     assert_not_contains "$log" 'agent start '
   done
   for failure in start-failed not-ready missing-ready pending malformed-pending; do
     : >"$log"
-    if FAKE_HERDR_FAILURE=$failure run_launcher worker tab worker-agent >/dev/null 2>&1; then exit 1; fi
+    if FAKE_HERDR_FAILURE=$failure run_launcher worker worktree worker-agent "$worktree" >/dev/null 2>&1; then exit 1; fi
     assert_not_contains "$log" 'agent get '
   done
   for failure in wrong-worktree wrong-repository; do

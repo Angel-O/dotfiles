@@ -25,7 +25,7 @@ required = [
     "`all`, `none`, `inclusions`, or `exclusions`",
     "same questionnaire",
     "separate explicit confirmation question",
-    "~/.local/bin/herdr-agent-launch worker tab <worker-name> <absolute-delivery-worktree-path>",
+    "~/.local/bin/herdr-agent-launch worker worktree <worker-name> <absolute-delivery-worktree-path>",
     "herdr agent prompt <worker-name>",
     "semantic name unique among live agents (including retained completed lanes)",
     "Record the exact name and use it for every subsequent prompt, wait, or correction",

@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 # One deliberately small adapter owns the allowed primary-agent layouts.
 usage() {
-  printf 'usage: %s architect sibling NAME [--tracking-bead BEAD_ID]\n       %s worker tab NAME [ABSOLUTE_PATH] [--tracking-bead BEAD_ID]\n       %s worker worktree NAME ABSOLUTE_PATH [--tracking-bead BEAD_ID]\n' "$0" "$0" "$0" >&2
+  printf 'usage: %s architect sibling NAME [--tracking-bead BEAD_ID]\n       %s worker worktree NAME ABSOLUTE_PATH [--tracking-bead BEAD_ID]\n' "$0" "$0" >&2
   exit 2
 }
 
@@ -28,7 +28,6 @@ role=$1
 topology=$2
 case "$role/$topology" in
   architect/sibling) [[ $# -eq 3 ]] || usage ;;
-  worker/tab) [[ $# -eq 3 || $# -eq 4 ]] || usage ;;
   worker/worktree) [[ $# -eq 4 ]] || usage ;;
   *) usage ;;
 esac
@@ -41,16 +40,10 @@ if [[ -n "$tracking_bead" ]]; then
 fi
 
 worktree_path=
-worker_cwd=
 source_repo=
 if [[ "$role/$topology" == worker/worktree ]]; then
   worktree_path=$4
   [[ "$worktree_path" == /* ]] || fail 'worktree path must be absolute'
-elif [[ "$role/$topology" == worker/tab && $# -eq 4 ]]; then
-  worktree_path=$4
-  [[ "$worktree_path" == /* ]] || fail 'worktree path must be absolute'
-  [[ -d "$worktree_path" ]] || fail 'worktree path must be an existing directory'
-  worker_cwd=$worktree_path
 fi
 
 [[ "${HERDR_ENV:-}" == 1 ]] || fail 'must run inside a Herdr-managed pane'
@@ -124,10 +117,6 @@ caller_tab=$(jq_value '.result.pane.tab_id')
 caller_cwd=$(jq_value '.result.pane.cwd')
 [[ "$caller_pane" == "$HERDR_PANE_ID" && "$caller_workspace" == "$HERDR_WORKSPACE_ID" &&
   "$caller_tab" == "$HERDR_TAB_ID" ]] || fail "caller context mismatch: $response"
-if [[ "$role/$topology" == worker/tab && -n "$worker_cwd" ]]; then
-  [[ "$worker_cwd" != "$caller_cwd" ]] || fail 'worker tab path must differ from caller cwd'
-fi
-
 case "$role/$topology" in
   architect/sibling)
     herdr_call pane_info \
@@ -142,23 +131,6 @@ case "$role/$topology" in
     herdr_call pane_info 'true' pane rename "$pane_id" architect
     workspace_id=$caller_workspace
     tab_id=$caller_tab
-    ;;
-  worker/tab)
-    # Herdr's tab label is the visible tab title; the agent argument only selects the role.
-    herdr_call tab_created \
-      '.result | (.tab | type == "object") and (.root_pane | type == "object") and
-       (.tab.tab_id | type == "string") and (.tab.workspace_id | type == "string") and
-       (.tab.label | type == "string") and
-       (.tab.focused == false) and (.root_pane.focused == false)' \
-      tab create --workspace "$caller_workspace" --cwd "${worker_cwd:-$caller_cwd}" --label "$agent_name" --no-focus
-    tab_id=$(jq_value '.result.tab.tab_id')
-    workspace_id=$(jq_value '.result.tab.workspace_id')
-    pane_id=$(jq_value '.result.root_pane.pane_id')
-    [[ "$workspace_id" == "$caller_workspace" && "$tab_id" != "$caller_tab" ]] ||
-      fail "tab placement mismatch: $response"
-    jq -e --arg name "$agent_name" '.result.tab.label == $name' <<<"$response" >/dev/null ||
-      fail "tab label mismatch: $response"
-    check_pane .result.root_pane "$caller_workspace" "$tab_id" "${worker_cwd:-$caller_cwd}" false
     ;;
   worker/worktree)
     if [[ -e "$worktree_path" ]]; then
@@ -200,7 +172,6 @@ esac
 
 agent_cwd=$caller_cwd
 [[ "$role/$topology" == worker/worktree ]] && agent_cwd=$worktree_path
-[[ "$role/$topology" == worker/tab && -n "$worker_cwd" ]] && agent_cwd=$worker_cwd
 session_request=$(jq -cn --arg agent "$role" --arg directory "$agent_cwd" \
   '{agent:$agent, location:{directory:$directory}}')
 if ! session_response=$("$opencode_launcher" api session.create --data "$session_request" 2>&1); then
@@ -246,18 +217,6 @@ check_agent "$workspace_id" "$tab_id" "$pane_id" "$agent_cwd"
 open_reviewr() {
   local reviewr_response
   case "$topology" in
-    tab)
-      # Target the worker pane so Herdr keeps its default split orientation.
-      if ! reviewr_response=$(herdr plugin pane open \
-        --plugin persiyanov.reviewr \
-        --entrypoint pane \
-        --placement split \
-        --target-pane "$pane_id" \
-        --cwd "$agent_cwd" \
-        --no-focus 2>&1); then
-        printf 'herdr-agent-launch: Reviewr open failed: %s\n' "$reviewr_response" >&2
-      fi
-      ;;
     worktree)
       if ! reviewr_response=$(herdr plugin pane open \
         --plugin persiyanov.reviewr \
