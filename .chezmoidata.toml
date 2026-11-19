@@ -28,8 +28,8 @@ warp = "0.2.0"
 
 [pins.openCodeTracker]
 source = "Angel-O/orchestration-tracking"
-tag = "v0.7.2"
-archiveSha256 = "679093a020a186c0d8a328aebe36cca46625dddf1b31db064ac77a26cf4f2de5"
+tag = "v0.8.0"
+archiveSha256 = "c2a04c0aa5e6386bb208bd82441c5b8598ff7cab2f690334269d391bbf3ddd5e"
 
 [pins.openCodePlugins.todo]
 source = "https://github.com/afriemann/opencode-todo.git"
