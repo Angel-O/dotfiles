@@ -104,6 +104,16 @@
     },
     {
       "customType": "regex",
+      "description": "Track Hex releases",
+      "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
+      "matchStrings": [
+        "\\[pins\\.hex\\]\\s+source = \\\"(?<depName>[^\\\"]+)\\\"\\s+version = \\\"(?<currentValue>[^\\\"]+)\\\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
       "description": "Update the OpenCode tracker release asset",
       "managerFilePatterns": ["/^\\.chezmoidata\\.toml$/"],
       "matchStrings": [
