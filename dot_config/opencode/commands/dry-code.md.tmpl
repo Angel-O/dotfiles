@@ -2,12 +2,16 @@
 description: Find and coordinate evidence-based duplicate reduction
 ---
 
-Treat `$ARGUMENTS` only as the code inspection target—files, directories, packages, or an entire repository—not as a Beads named scope. For example, `/dry-code crates/application` or `/dry-code the entire repository`. If no target is supplied, ask what code to inspect; do not silently assume one.
+Treat `$ARGUMENTS` as the code target, not a Beads scope. Resolve it to the requested path(s); ask only if missing or ambiguous. Scan only that target, using the repository root only when the whole project is requested.
 
-First check whether an IntelliJ/JetBrains duplicate-warning inspection capability is available, identifying it by what it can do rather than assuming a tool name. If none is available, clearly state that no scan was performed and ask the user whether they approve an alternative; do not infer, simulate, or claim inspection results.
+Run local jscpd with the managed config and compact reporter:
 
-For an available inspection, present evidence-based opportunities with their scanned scope, exclusions, limitations, and locations. Distinguish individual warning locations from clone groups, preserve evidence, and give each group an explicit disposition (reduce, retain with reason, or investigate); do not use a warning-removal quota.
+```sh
+jscpd --config "$HOME/.config/opencode/jscpd.json" --reporters ai --no-tips --fail-on-empty -- "<resolved-target>"
+```
 
-Based on the breadth of those findings, recommend either a bounded task or a multi-slice epic and ask the user which to create. Do not create it, start implementation, or invoke another command; the user will choose and invoke their execution workflow separately.
+Replace the placeholder with the resolved path; for multiple targets, pass each as a separate quoted argument. Keep the managed exclusions and local-only detection: do not substitute project configuration, use MCP or remote analysis services, or enable embeddings or downloads.
 
-For an epic, explain useful ownership-aware parallel batches and only genuine implementation prerequisites. Recommend promptly cleaning up completed worker worktrees and build outputs. Recommend one aggregate integration run on the final accumulated result, not after each increment; preserve final outcome verification. Do not launch or coordinate execution.
+Read reported source fragments and nearby context as needed to judge worthwhile changes. Report clone locations, actual scope and material limitations, including excluded code, unavailable cross-target matches, scan failures, empty analysis or truncated output. Do not treat incomplete results as a complete scan.
+
+Recommend reduction only where it simplifies genuinely equivalent behavior; retain intentional repetition with a reason and flag uncertain candidates. No worthwhile change is a valid outcome. Suggest follow-up work only when useful. Do not edit code, create a Bead unless explicitly asked, or launch execution.
