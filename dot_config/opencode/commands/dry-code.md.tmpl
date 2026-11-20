@@ -2,12 +2,17 @@
 description: Find and coordinate evidence-based duplicate reduction
 ---
 
-Treat `$ARGUMENTS` only as the code inspection target—files, directories, packages, or an entire repository—not as a Beads named scope. For example, `/dry-code crates/application` or `/dry-code the entire repository`. If no target is supplied, ask what code to inspect; do not silently assume one.
+Treat `$ARGUMENTS` only as the code inspection target—files, directories, packages, or an entire repository—not as a Beads named scope. For example, `/dry-code crates/application` or `/dry-code .`. If no target is supplied, ask what code to inspect; do not silently assume one.
 
-First check whether an IntelliJ/JetBrains duplicate-warning inspection capability is available, identifying it by what it can do rather than assuming a tool name. If none is available, clearly state that no scan was performed and ask the user whether they approve an alternative; do not infer, simulate, or claim inspection results.
+Run the managed local scanner against exactly that target (never use MCP or scan the whole repository unless requested). Pass the supplied path as the final CLI argument:
 
-For an available inspection, present evidence-based opportunities with their scanned scope, exclusions, limitations, and locations. Distinguish individual warning locations from clone groups, preserve evidence, and give each group an explicit disposition (reduce, retain with reason, or investigate); do not use a warning-removal quota.
+```sh
+target='<supplied-target>'
+jscpd --config "$HOME/.config/opencode/jscpd.json" --reporters ai --no-tips --fail-on-empty "$target"
+```
 
-Based on the breadth of those findings, recommend either a bounded task or a multi-slice epic and ask the user which to create. Do not create it, start implementation, or invoke another command; the user will choose and invoke their execution workflow separately.
+Replace the placeholder with the supplied path; do not ask for the target again. The managed config excludes `node_modules`, `vendor`, `build`, `dist`, `target`, `coverage` and `.next`, and honors Git ignores; project-local jscpd settings cannot enable semantic embeddings or override these defaults. The documented basic CLI scan is local; runtime network behavior was not independently verified. The CLI analyzes only the requested path(s), so a target-only scan cannot identify clones outside those paths. If `jscpd` is unavailable, exits unsuccessfully, analyzes no files, or output is truncated, report that accurately; do not describe an empty, failed, or partial result as a complete successful scan. Name the target and these exclusions in the result.
 
-For an epic, explain useful ownership-aware parallel batches and only genuine implementation prerequisites. Recommend promptly cleaning up completed worker worktrees and build outputs. Recommend one aggregate integration run on the final accumulated result, not after each increment; preserve final outcome verification. Do not launch or coordinate execution.
+The `ai` reporter is compact and identifies clone locations, not a recommendation to refactor. Review whether each clone group is worthwhile to change; retain clear or intentional duplication with a reason, investigate uncertain cases, and allow reporting that no change is worthwhile. Never automatically edit code or launch an execution workflow. A hosted AI provider may receive findings or code you provide to it; the local detector itself is separate from that model boundary.
+
+Summarize findings with their clone locations, actual scope, exclusions and material limitations. Recommend a bounded task or multi-slice epic only when useful, without forcing a task-versus-epic choice. Do not create a Bead unless explicitly asked. For a subsequent explicit Bead request, follow current Beads Hub and authoring rules; do not categorically prohibit a ready Bead. Do not invoke an execution command.

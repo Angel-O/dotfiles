@@ -1,6 +1,9 @@
 brew "eza"
 brew "elio"
 brew "helix"
+{{- if .modules.opencode }}
+brew "jscpd"
+{{- end }}
 cask "anomalyco/tap/hex"
 {{- if (dig "modules" "serena" false .) }}
 brew "uv"
