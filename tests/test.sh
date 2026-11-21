@@ -1973,6 +1973,10 @@ cat >"$root/external-opencode-beads/managed.expected" <<'EOF'
 .config/opencode/AGENTS.md
 .config/opencode/commands/orchestrate-epic.md
 .config/opencode/skills/decomposition-rules/SKILL.md
+.config/opencode/skills/delivery-closeout-router/SKILL.md
+.config/opencode/skills/delivery-sync-and-cleanup/SKILL.md
+.config/opencode/skills/delivery-sync-and-cleanup/scripts/dispose-environment
+.config/opencode/skills/delivery-sync-and-cleanup/scripts/sync-reference
 .config/opencode/skills/memex-quick-search/SKILL.md
 .config/opencode/skills/scope-complexity-rules/SKILL.md
 .config/opencode/skills/terminal-mermaid/SKILL.md
