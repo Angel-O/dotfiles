@@ -117,6 +117,10 @@ cat <<'BLOCK'
 
 Detailed testing guidance is in the on-demand `testing-rules` skill; load it only when needed, not by default.
 
+## Merged PR closeout
+
+When an identified PR is reported merged, automatically use `delivery-closeout-router` if available; it verifies merge before closeout. Before merge or at a pre-merge endpoint, report closeout pending. Never merge automatically.
+
 ## Tools guardrails
 
 Never invoke `handoff_session` spontaneously; invoke it only when the user explicitly requests a session handoff.

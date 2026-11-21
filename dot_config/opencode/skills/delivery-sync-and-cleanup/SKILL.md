@@ -1,28 +1,22 @@
 ---
 name: delivery-sync-and-cleanup
-description: Safely synchronize a recorded reference checkout and optionally dispose of a completed delivery worktree and Herdr workspace.
+description: Safely synchronize a verified merged PR's recorded reference checkout and optionally remove its recorded delivery worktrees and Herdr workspaces.
 ---
 
 # Delivery Sync and Cleanup
 
-Run after the delivery is no longer needed and its requested endpoint is
-complete. For Bead-backed work, proceed only after successful
-`beads-hub-closeout`; that workflow already synchronizes the reference
-checkout. Do not repeat its pull. A failed or partial Bead closeout is not
-eligible for cleanup.
+This procedure is independent of issue tracking. Run it only after the router
+has verified a merged PR and supplies its full URL, merge SHA, actual base
+branch, recorded reference checkout, and any recorded delivery environments.
+Do not query or mutate an issue tracker here, infer a base, or accept unverified
+merge details.
 
-## Reference synchronization (non-Bead only)
+## Reference synchronization
 
-Use the merged pull request as the authority for the actual base:
-
-```sh
-gh pr view <full-pr-url> --json state,mergedAt,mergeCommit,baseRefName
-```
-
-Require merged state, non-empty merge time, a 40-character merge SHA, and a
-valid base branch. Use only the recorded reference checkout. Verify it is clean
-and already on that exact base, fetch only the actual PR base, and verify both
-the current `HEAD` and merge SHA are ancestors of `FETCH_HEAD`:
+Require the supplied merge SHA to be 40 hex characters and the base to be the
+verified PR base. Use only the recorded reference checkout; require it to be
+clean and already on that exact branch. Fetch only the base and verify both the
+current `HEAD` and merge SHA are ancestors of `FETCH_HEAD`:
 
 ```sh
 git -C <recorded-reference-checkout> status --porcelain
@@ -33,50 +27,49 @@ git -C <recorded-reference-checkout> merge-base --is-ancestor <merge-sha> FETCH_
 ```
 
 Require empty status output and an exact branch match. Recheck cleanliness,
-then run exactly:
+then synchronize exactly once per repository and PR:
 
 ```sh
 git -C <recorded-reference-checkout> pull --ff-only origin <base>
 ```
 
-Do not switch branches, merge, reset, overwrite local work, retry a failed
-pull, or use a guessed branch. Recheck cleanliness before the pull. Report
-verification or pull failure distinctly; do not claim synchronization succeeded
-or offer cleanup after a failed prerequisite.
+Reuse a recorded successful synchronization for the same repository/PR; never
+repeat its pull. Do not switch branches, merge, reset, overwrite local work, or
+retry a failed pull. If verification or the pull fails, report the sync phase
+failure distinctly and do not proceed to cleanup.
 
 ## Optional recorded environment cleanup
 
-Offer cleanup only when the delivery environment is no longer needed and the
-recorded dedicated implementation worktree and its Herdr workspace are
-eligible. State the exact recorded branch, worktree path, and workspace ID,
-and explain that acceptance removes the worktree and workspace and then
-attempts safe local branch deletion. Ask for an explicit Yes/No; a default,
-silence, ambiguity, or No is not consent.
+Only after successful synchronization and when the delivery environment is no
+longer needed, consider the runtime-recorded delivery environments associated
+with this PR. For a shared PR, sync once, then consider each recorded worktree
+and workspace separately. Never discover or substitute a target.
 
-Before offering or acting, verify from the orchestration record and Herdr's
-current worktree listing that the workspace ID, path, and branch all identify
-the same target. Require the recorded worktree to exist, remain on its recorded
-branch, and be clean. Missing or mismatched identities, dirty work, a missing
-target, or failed prerequisites mean no cleanup; never force removal or choose
-a substitute. Never remove the reference checkout.
+Before asking, verify that the recorded Herdr workspace ID, path, and branch
+identify the same existing worktree, and require that worktree to remain on its
+recorded branch and be clean. Missing, dirty, or mismatched targets, or any
+failed prerequisite, mean skip and report; never force removal or remove the
+reference checkout.
 
-Only after explicit Yes, use Herdr's non-forced combined removal for the exact
-recorded workspace:
+For each eligible target, state its exact branch, path, and workspace ID, and
+explain that Yes removes that worktree and Herdr workspace and then attempts
+safe local branch deletion. Ask for explicit Yes/No consent. Silence,
+ambiguity, or No is not consent and leaves that target intact.
+
+Only after an explicit Yes, remove the exact workspace without force:
 
 ```sh
 herdr worktree remove --workspace <recorded-workspace-id>
 ```
 
-If it fails, stop and report that no branch deletion was attempted. After
-successful removal, safely delete only the recorded local branch from the
-recorded reference checkout:
+If removal fails, report it and do not attempt branch deletion. After successful
+removal, safely delete only the recorded local branch from the recorded
+reference checkout:
 
 ```sh
 git -C <recorded-reference-checkout> branch -d <recorded-branch>
 ```
 
-Report worktree/workspace removal and branch-deletion outcomes separately.
-Never delete a remote branch. If no Herdr workspace was recorded (including
-standalone Bead closeout), do not guess one; retain the existing procedure's
-standalone worktree behavior and report that combined Herdr cleanup was
-unavailable.
+Report worktree/workspace removal and branch deletion separately. Never delete
+a remote branch. If no eligible Herdr workspace identity was recorded, skip
+combined cleanup and report that no eligible target was available.

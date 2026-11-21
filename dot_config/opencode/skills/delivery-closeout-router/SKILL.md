@@ -1,46 +1,84 @@
 ---
 name: delivery-closeout-router
-description: Route completed Bead and non-Bead deliveries through safe reference and environment closeout.
+description: Automatically route an identified merged pull request through required Bead closeout and safe environment synchronization and cleanup.
 ---
 
 # Delivery Closeout Router
 
-Use only after implementation and review are complete and the user has reached
-the requested delivery endpoint. Never merge automatically. Load
-`delivery-sync-and-cleanup` for every path.
+Trigger automatically when the user or orchestration reports that an identified
+pull request has merged. Do not ask the user to select a skill or closeout mode.
+Never merge automatically. Require the full PR URL and verify it before any
+closeout work:
+
+```sh
+gh pr view <full-pr-url> --json state,mergedAt,mergeCommit,baseRefName
+```
+
+Require merged state, non-empty merge time, a valid 40-hex merge SHA, and a
+valid actual base branch. If the PR is open, closed-but-unmerged, the URL is
+missing, or verification fails, report **closeout pending** (or the exact
+verification failure) and do not correlate, synchronize, or offer cleanup.
+Record the verified PR URL, repository, merge SHA, and base for this run.
 
 ```mermaid
 flowchart TD
-  R["delivery-closeout-router"] --> B{"Bead-backed?"}
-  B -->|Yes, not already closed| H["beads-hub-closeout"]
-  H -->|successful closeout + sync| S["delivery-sync-and-cleanup"]
-  B -->|Yes, successful closeout recorded| S
-  B -->|No| S
-  S --> C{"cleanup eligible and explicitly consented?"}
-  C -->|Yes| X["Remove recorded Herdr workspace/worktree"]
-  C -->|No| K["Retain environment"]
+  R["Reported PR merged"] --> V["Verify PR state and actual base"]
+  V -->|not merged / invalid| P["Report closeout pending"]
+  V -->|merged| T{"Tracking context sufficient?"}
+  T -->|Bead-backed; exact item IDs known| H["beads-hub-closeout per concrete Bead<br/>verify, correlate, close"]
+  T -->|verified non-Bead| S["delivery-sync-and-cleanup once per repository/PR"]
+  T -->|missing or ambiguous| Q["Ask/report only missing tracking info<br/>stop before sync or cleanup"]
+  H -->|all required operations succeed| S
+  S -->|sync succeeds| C{"Recorded environment eligible?<br/>Ask explicit informed consent"}
+  C -->|yes| X["Remove exact worktree and Herdr workspace"]
+  C -->|no / ineligible| K["Retain and report"]
 ```
 
-A successful Hub closeout includes synchronization; never repeat it. Shared-handoff
-mode is used only through this router, while standalone `beads-hub-closeout`
-retains its own disposal questionnaire. Cleanup in the shared procedure always
-requires the user's explicit consent.
+Use existing orchestration context to establish whether tracking is Bead-backed
+or verified non-Bead; absence of a Bead ID alone does not prove non-Bead work.
+If classification is missing or ambiguous, ask only whether this delivery is
+Bead-backed and stop before synchronization or cleanup. If it is Bead-backed but
+exact item IDs (or known relevant child IDs for a shared PR) are missing, ask
+only for those IDs and stop. When context is sufficient, route automatically
+without a routine mode question.
 
-- **Bead-backed:** if this concrete item's successful Bead closeout is already
-  recorded in the current orchestration state, retain its evidence and go
-  directly to the shared skill with reference synchronization marked complete;
-  do not rerun Hub closeout or pull. Otherwise, run `beads-hub-closeout` in
-  **shared-handoff mode**. It owns verification, correlation, closure, and
-  reference synchronization. On success, it returns without its standalone
-  disposal questionnaire, and this entry point continues to the shared skill,
-  which owns the single combined cleanup consent. On failure or partial success,
-  stop and report it; do not retry synchronization or clean up. Never answer a
-  disposal question on the user's behalf or treat a decline as consent.
-- **Non-Bead:** use the shared skill directly; no Hub command or Bead dependency
-  is needed.
+## Bead operations
 
-Pass only runtime-recorded checkout, branch, worktree path, and Herdr workspace
-identities. Never persist private Bead IDs or `ctx:` identities in files or Git
-metadata, and do not invent or discover a substitute cleanup target. The user
-must inspect and explicitly approve this skill composition before it is treated
-as accepted; do not claim that approval on the user's behalf.
+For a single concrete Bead, use the existing `beads-hub-closeout` operation
+with exactly its two established inputs: the exact private item ID and full PR
+URL. From that repository's registered context, run:
+
+```sh
+skills/beads-hub-closeout/closeout.sh <private-work-item-id> <full-pr-url>
+```
+
+It owns Bead verification, merge correlation, and closure; do not supply a mode
+or add reference synchronization, disposal, or questionnaire behavior to that
+operation. A failed operation is reported as a Bead-phase failure and blocks
+later phases for that PR.
+
+For an epic PR shared by multiple concrete children, use only the known relevant
+child IDs already recorded by orchestration. Run the same operation once for
+each child not already recorded as successfully closed. Do not invoke concrete
+closeout against the epic or discover/infer children. Report per-child results;
+only proceed when every required child operation succeeded or has recorded
+successful evidence. For an epic, do not invoke the concrete-item script against
+the epic itself; follow the closeout skill's Epic dispatch for each explicit,
+already-known relevant child merge SHA. Do not discover children or infer SHAs.
+Require child closures and required epic links to succeed before synchronization.
+
+## Shared repository/PR closeout
+
+After all required Bead operations succeed (or immediately for non-Bead work),
+run `delivery-sync-and-cleanup` once for this repository and PR, passing the
+verified merge details and only runtime-recorded reference checkout and delivery
+environments. A shared epic PR still gets one synchronization, not one per
+child. Reuse a recorded successful synchronization for the same repository/PR;
+never repeat a successful pull. The shared skill owns synchronization and
+consent-based environment cleanup.
+
+Report Bead, synchronization, and each cleanup outcome distinctly. A Bead
+failure blocks synchronization; a synchronization failure blocks cleanup. Do
+not retry or undo completed phases, force removal, guess missing identities, or
+claim a later phase succeeded when it did not. Before merge or at any pre-merge
+delivery endpoint, report closeout as pending.
