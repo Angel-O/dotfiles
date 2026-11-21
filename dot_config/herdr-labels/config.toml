@@ -2,8 +2,8 @@
 ignored_processes = ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]
 
 [process_aliases]
-# Keep Beads and Hub Viewer commands grouped under the AI board label.
-bd = "ai board"
-bv = "ai board"
-wbd = "ai board"
-wbv = "ai board"
+# Keep Beads and Hub Viewer commands grouped under the Hub Viewer label.
+bd = "hub viewer"
+bv = "hub viewer"
+wbd = "hub viewer"
+wbv = "hub viewer"
