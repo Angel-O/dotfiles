@@ -1651,12 +1651,12 @@ assert_contains "$personal_home/.config/herdr/config.toml" 'command = "annotate.
 
 assert_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'markdown_view = "rendered"'
 assert_not_contains "$personal_home/.config/herdr/plugins/config/persiyanov.reviewr/config.toml" 'file_markdown_renderer = "glow -s dracula -w {width} -"'
-assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
-assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
-assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
-assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bd = "hub viewer"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'bv = "hub viewer"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbd = "hub viewer"'
+assert_contains "$personal_home/.config/herdr-labels/config.toml" 'wbv = "hub viewer"'
 assert_contains "$personal_home/.config/herdr-labels/config.toml" 'ignored_processes = ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]'
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["ignored_processes"] == ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]; assert data["process_aliases"] == {"bd": "ai board", "bv": "ai board", "wbd": "ai board", "wbv": "ai board"}' "$personal_home/.config/herdr-labels/config.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["ignored_processes"] == ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]; assert data["process_aliases"] == {"bd": "hub viewer", "bv": "hub viewer", "wbd": "hub viewer", "wbv": "hub viewer"}' "$personal_home/.config/herdr-labels/config.toml"
 assert_contains "$personal_home/.config/zsh/starship.zsh" '[[ ${TERM_PROGRAM:-} == "WarpTerminal" && ${HERDR_ENV:-} != 1 ]]'
 assert_contains "$personal_home/.config/zsh/starship.zsh" "TRANSIENT_PROMPT_PROMPT=''"
 assert_contains "$personal_home/.config/zsh/starship.zsh" 'Keep completed prompts compact in every terminal, including Warp.'
@@ -1754,12 +1754,12 @@ assert_contains "$personal_beads_home/.config/opencode/commands/orchestrate-epic
 test ! -e "$personal_beads_home/.config/opencode/skills/orchestration-worker-delivery/SKILL.md"
 assert_contains "$personal_beads_home/.config/opencode/AGENTS.md" 'Preserve personal Beads guidance.'
 test "$(grep -Fc '<!-- portable-beads-hub:start -->' "$personal_beads_home/.config/opencode/AGENTS.md")" -eq 1
-assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
-assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
-assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
-assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bd = "hub viewer"'
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'bv = "hub viewer"'
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbd = "hub viewer"'
+assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'wbv = "hub viewer"'
 assert_contains "$personal_beads_home/.config/herdr-labels/config.toml" 'ignored_processes = ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]'
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["ignored_processes"] == ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]; assert data["process_aliases"] == {"bd": "ai board", "bv": "ai board", "wbd": "ai board", "wbv": "ai board"}' "$personal_beads_home/.config/herdr-labels/config.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["ignored_processes"] == ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]; assert data["process_aliases"] == {"bd": "hub viewer", "bv": "hub viewer", "wbd": "hub viewer", "wbv": "hub viewer"}' "$personal_beads_home/.config/herdr-labels/config.toml"
 apply_fixture personal-with-beads
 personal_beads_diff=$(chezmoi diff \
   --source "$source_dir" \
@@ -1837,12 +1837,12 @@ assert_contains "$work_home/.zshrc" 'portable chezmoi early setup'
 assert_contains "$work_home/.zshrc" 'portable chezmoi setup'
 assert_contains "$work_home/.config/zsh/early.zsh" 'herdr-labels.zsh'
 assert_contains "$work_home/.config/zsh/herdr-labels.zsh" 'angel-o.labels-*/shell/hook.zsh'
-assert_contains "$work_home/.config/herdr-labels/config.toml" 'bd = "ai board"'
-assert_contains "$work_home/.config/herdr-labels/config.toml" 'bv = "ai board"'
-assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbd = "ai board"'
-assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbv = "ai board"'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'bd = "hub viewer"'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'bv = "hub viewer"'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbd = "hub viewer"'
+assert_contains "$work_home/.config/herdr-labels/config.toml" 'wbv = "hub viewer"'
 assert_contains "$work_home/.config/herdr-labels/config.toml" 'ignored_processes = ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]'
-python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["ignored_processes"] == ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]; assert data["process_aliases"] == {"bd": "ai board", "bv": "ai board", "wbd": "ai board", "wbv": "ai board"}' "$work_home/.config/herdr-labels/config.toml"
+python3 -c 'import tomllib,sys; data=tomllib.load(open(sys.argv[1], "rb")); assert data["ignored_processes"] == ["ls", "cat", "pwd", "clear", "git", "direnv", "scutil", "starship"]; assert data["process_aliases"] == {"bd": "hub viewer", "bv": "hub viewer", "wbd": "hub viewer", "wbv": "hub viewer"}' "$work_home/.config/herdr-labels/config.toml"
 assert_not_contains "$work_home/.config/zsh/herdr.zsh" 'hook.zsh'
 assert_contains "$work_home/.gitconfig" 'email = work@example.invalid'
 assert_contains "$work_home/.gitconfig" '.config/git/portable.inc'
