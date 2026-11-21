@@ -1,75 +1,59 @@
 ---
 name: delivery-sync-and-cleanup
-description: Safely synchronize a verified merged PR's recorded reference checkout and optionally remove its recorded delivery worktrees and Herdr workspaces.
+description: Synchronize a verified merged PR's recorded reference checkout and consent-dispose of its exact Herdr delivery environments.
 ---
 
 # Delivery Sync and Cleanup
 
-This procedure is independent of issue tracking. Run it only after the router
-has verified a merged PR and supplies its full URL, merge SHA, actual base
-branch, recorded reference checkout, and any recorded delivery environments.
-Do not query or mutate an issue tracker here, infer a base, or accept unverified
-merge details.
+This procedure is independent of tracking. Run it after the router verifies a
+merged PR and provides its full URL and the runtime-recorded reference checkout
+and delivery environments. Do not infer missing identities or reconstruct the
+helpers' shell sequencing.
 
-## Reference synchronization
+## Synchronization
 
-Require the supplied merge SHA to be 40 hex characters and the base to be the
-verified PR base. Use only the recorded reference checkout; require it to be
-clean and already on that exact branch. Fetch only the base and verify both the
-current `HEAD` and merge SHA are ancestors of `FETCH_HEAD`:
+Run the bundled executable once per repository and PR:
 
 ```sh
-git -C <recorded-reference-checkout> status --porcelain
-git -C <recorded-reference-checkout> branch --show-current
-git -C <recorded-reference-checkout> fetch --no-tags origin refs/heads/<base>
-git -C <recorded-reference-checkout> merge-base --is-ancestor HEAD FETCH_HEAD
-git -C <recorded-reference-checkout> merge-base --is-ancestor <merge-sha> FETCH_HEAD
+"$HOME/.config/opencode/skills/delivery-sync-and-cleanup/scripts/sync-reference" \
+  <full-pr-url> <recorded-reference-checkout>
 ```
 
-Require empty status output and an exact branch match. Recheck cleanliness,
-then synchronize exactly once per repository and PR:
+The helper revalidates the merged PR and actual base, then verifies the recorded
+checkout is clean, already on that base, and contains both its current `HEAD`
+and the merge result in the fetched base history before the single
+fast-forward-only pull. Reuse a recorded successful sync for the same
+repository/PR; never repeat the pull. Report a nonzero result as a synchronization
+failure and do not offer cleanup.
+
+## Consent-based Herdr cleanup
+
+After successful synchronization and when the delivery environments are no
+longer needed, consider only runtime-recorded Herdr workspace ID, worktree path,
+branch, and reference checkout identities. For a shared PR, sync once, then
+consider each recorded environment separately. Missing identities, a dirty or
+mismatched target, or an environment without a Herdr workspace means retain and
+report it; there is no Git-only worktree-removal fallback.
+
+For each eligible target, run the helper's non-mutating check before offering
+cleanup:
 
 ```sh
-git -C <recorded-reference-checkout> pull --ff-only origin <base>
+"$HOME/.config/opencode/skills/delivery-sync-and-cleanup/scripts/dispose-environment" \
+  --check <herdr-workspace-id> <recorded-worktree-path> <recorded-branch> \
+  <recorded-reference-checkout>
 ```
 
-Reuse a recorded successful synchronization for the same repository/PR; never
-repeat its pull. Do not switch branches, merge, reset, overwrite local work, or
-retry a failed pull. If verification or the pull fails, report the sync phase
-failure distinctly and do not proceed to cleanup.
+Only after that check succeeds, state the exact branch, path, and workspace ID;
+explain that Yes removes the Herdr worktree and workspace, then attempts safe
+local branch deletion. Ask for explicit Yes/No consent. Silence, ambiguity, or
+No leaves the environment intact. On Yes, invoke the same helper with the same
+four recorded identities and without `--check`; it repeats all identity and
+dirty-state checks immediately before mutation.
 
-## Optional recorded environment cleanup
-
-Only after successful synchronization and when the delivery environment is no
-longer needed, consider the runtime-recorded delivery environments associated
-with this PR. For a shared PR, sync once, then consider each recorded worktree
-and workspace separately. Never discover or substitute a target.
-
-Before asking, verify that the recorded Herdr workspace ID, path, and branch
-identify the same existing worktree, and require that worktree to remain on its
-recorded branch and be clean. Missing, dirty, or mismatched targets, or any
-failed prerequisite, mean skip and report; never force removal or remove the
-reference checkout.
-
-For each eligible target, state its exact branch, path, and workspace ID, and
-explain that Yes removes that worktree and Herdr workspace and then attempts
-safe local branch deletion. Ask for explicit Yes/No consent. Silence,
-ambiguity, or No is not consent and leaves that target intact.
-
-Only after an explicit Yes, remove the exact workspace without force:
-
-```sh
-herdr worktree remove --workspace <recorded-workspace-id>
-```
-
-If removal fails, report it and do not attempt branch deletion. After successful
-removal, safely delete only the recorded local branch from the recorded
-reference checkout:
-
-```sh
-git -C <recorded-reference-checkout> branch -d <recorded-branch>
-```
-
-Report worktree/workspace removal and branch deletion separately. Never delete
-a remote branch. If no eligible Herdr workspace identity was recorded, skip
-combined cleanup and report that no eligible target was available.
+The helper never uses force. It removes the recorded Herdr target before
+attempting `git branch -d`; a Herdr removal failure prevents branch deletion,
+and a later branch-deletion failure is reported as partial success with the
+worktree/workspace removed and branch retained. Report sync, eligibility, and
+each cleanup outcome separately. Never delete a remote branch or choose a
+substitute target.

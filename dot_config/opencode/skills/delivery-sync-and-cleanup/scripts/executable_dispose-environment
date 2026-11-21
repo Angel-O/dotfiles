@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'dispose failed: %s\n' "$1" >&2
+  exit 1
+}
+
+mode=remove
+if [[ ${1:-} == --check ]]; then
+  mode=check
+  shift
+fi
+if [[ $# -ne 4 ]]; then
+  printf 'usage: dispose-environment [--check] <herdr-workspace-id> <recorded-worktree-path> <recorded-branch> <recorded-reference-checkout>\n' >&2
+  exit 2
+fi
+
+workspace_id=$1
+worktree_path=$2
+branch=$3
+reference_checkout=$4
+[[ -n $workspace_id ]] || fail 'recorded Herdr workspace ID is missing'
+[[ $worktree_path == /* && -d $worktree_path ]] || fail 'recorded worktree path is unavailable'
+[[ $reference_checkout == /* && -d $reference_checkout ]] || fail 'recorded reference checkout is unavailable'
+[[ $branch != -* ]] || fail 'recorded branch is invalid'
+git check-ref-format "refs/heads/$branch" >/dev/null 2>&1 || fail 'recorded branch is invalid'
+[[ ${HERDR_ENV:-} == 1 ]] || fail 'Herdr cleanup requires a Herdr-managed pane'
+
+worktree_path=$(cd -- "$worktree_path" && pwd -P) || fail 'cannot resolve recorded worktree path'
+reference_checkout=$(cd -- "$reference_checkout" && pwd -P) ||
+  fail 'cannot resolve recorded reference checkout'
+[[ $worktree_path != "$reference_checkout" ]] || fail 'reference checkout cannot be disposed'
+
+worktree_root=$(git -C "$worktree_path" rev-parse --show-toplevel 2>/dev/null) ||
+  fail 'recorded path is not a Git worktree'
+worktree_root=$(cd -- "$worktree_root" && pwd -P) || fail 'cannot resolve worktree root'
+[[ $worktree_root == "$worktree_path" ]] || fail 'recorded path is not the worktree root'
+reference_root=$(git -C "$reference_checkout" rev-parse --show-toplevel 2>/dev/null) ||
+  fail 'recorded reference path is not a Git checkout'
+reference_root=$(cd -- "$reference_root" && pwd -P) || fail 'cannot resolve reference checkout root'
+[[ $reference_root == "$reference_checkout" ]] ||
+  fail 'recorded path is not the reference checkout root'
+
+reference_branch=$(git -C "$reference_checkout" symbolic-ref --quiet --short HEAD 2>/dev/null) ||
+  fail 'reference checkout must be on a branch'
+[[ $reference_branch != "$branch" ]] || fail 'recorded delivery branch is checked out in the reference checkout'
+worktree_branch=$(git -C "$worktree_path" symbolic-ref --quiet --short HEAD 2>/dev/null) ||
+  fail 'recorded worktree must be on a branch'
+[[ $worktree_branch == "$branch" ]] || fail 'recorded worktree is not on the recorded branch'
+status=$(git -C "$worktree_path" status --porcelain=v1 --untracked-files=all 2>/dev/null) ||
+  fail 'cannot verify recorded worktree cleanliness'
+[[ -z $status ]] || fail 'recorded worktree is not clean'
+git -C "$reference_checkout" show-ref --verify --quiet "refs/heads/$branch" ||
+  fail 'recorded local branch does not exist'
+git_listing=$(git -C "$reference_checkout" worktree list --porcelain 2>/dev/null) ||
+  fail 'cannot inspect repository worktrees'
+python3 -c '
+import sys
+path, branch = sys.argv[1:]
+records = []
+for block in sys.stdin.read().strip().split("\n\n"):
+    fields = {}
+    for line in block.splitlines():
+        key, _, value = line.partition(" ")
+        fields[key] = value
+    records.append(fields)
+same_branch = [row for row in records if row.get("branch") == "refs/heads/" + branch]
+matches = [row for row in same_branch
+           if row.get("worktree") == path and "detached" not in row and "prunable" not in row]
+sys.exit(0 if len(same_branch) == 1 and len(matches) == 1 else 1)
+' "$worktree_path" "$branch" <<<"$git_listing" ||
+  fail 'recorded path and branch are not one eligible worktree in the reference repository'
+
+herdr_listing=$(herdr worktree list --workspace="$workspace_id" 2>/dev/null) ||
+  fail 'cannot inspect recorded Herdr workspace'
+python3 -c '
+import json, sys
+workspace_id, path, branch = sys.argv[1:]
+try:
+    listing = json.load(sys.stdin)
+    result = listing["result"]
+    worktrees = result["worktrees"]
+    if result.get("type") != "worktree_list" or not isinstance(worktrees, list):
+        raise ValueError
+    same_branch = [item for item in worktrees
+                   if isinstance(item, dict) and item.get("branch") == branch]
+    matches = [item for item in same_branch
+               if item.get("path") == path and
+                  item.get("open_workspace_id") == workspace_id and
+                  item.get("is_linked_worktree") is True and
+                  item.get("is_bare") is False and
+                  item.get("is_detached") is False and
+                  item.get("is_prunable") is False]
+    if len(same_branch) != 1 or len(matches) != 1:
+        raise ValueError
+except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+    sys.exit(1)
+' "$workspace_id" "$worktree_path" "$branch" <<<"$herdr_listing" ||
+  fail 'Herdr workspace, worktree path, and branch do not identify one eligible target'
+
+status=$(git -C "$worktree_path" status --porcelain=v1 --untracked-files=all 2>/dev/null) ||
+  fail 'cannot recheck worktree cleanliness before removal'
+[[ -z $status ]] || fail 'recorded worktree became dirty before removal'
+
+if [[ $mode == check ]]; then
+  printf 'dispose check complete: recorded Herdr workspace, worktree, and branch match\n'
+  exit 0
+fi
+
+if ! herdr worktree remove --workspace "$workspace_id"; then
+  printf '%s\n' 'dispose failed: Herdr worktree/workspace removal failed; branch deletion was not attempted' >&2
+  exit 1
+fi
+if ! git -C "$reference_checkout" branch -d -- "$branch" >/dev/null 2>&1; then
+  printf '%s\n' 'dispose partial success: Herdr worktree/workspace removed; local branch retained' >&2
+  exit 1
+fi
+
+printf '%s\n' 'dispose complete: recorded Herdr worktree/workspace and local branch removed'

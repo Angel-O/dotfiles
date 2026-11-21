@@ -63,9 +63,10 @@ each child not already recorded as successfully closed. Do not invoke concrete
 closeout against the epic or discover/infer children. Report per-child results;
 only proceed when every required child operation succeeded or has recorded
 successful evidence. For an epic, do not invoke the concrete-item script against
-the epic itself; follow the closeout skill's Epic dispatch for each explicit,
-already-known relevant child merge SHA. Do not discover children or infer SHAs.
-Require child closures and required epic links to succeed before synchronization.
+the epic itself. Keep epic-level links and closure in the existing epic closeout
+flow; this adds no epic-link-before-sync prerequisite. Do not discover children
+or infer SHAs. Proceed to synchronization after the required known concrete-child
+operations succeed.
 
 ## Shared repository/PR closeout
 
