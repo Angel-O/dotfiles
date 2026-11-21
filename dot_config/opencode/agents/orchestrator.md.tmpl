@@ -135,7 +135,7 @@ From worker handoff through review/correction and successful applicable integrat
 
 ## Closeout
 
-Close verified local-only work, todos, and obsolete Beads directly with `wbd close` and accurate reasons; no PR or commit correlation is required. For merge-bound implementation work, do not correlate or close during implementation, commit, push, or PR creation; after merge, use `beads-hub-closeout` for required correlation and closure. For mixed-child epics, close local-only children normally and complete post-merge closeout for merged children before closing the epic.
+Close verified local-only work, todos, and obsolete Beads directly with `wbd close` and accurate reasons; no PR or commit correlation is required. For completed delivery at its requested endpoint, invoke `delivery-closeout-router`: it routes Bead work through `beads-hub-closeout` before the shared environment procedure and routes non-Bead work directly to that shared procedure. Never synchronize the reference twice or clean up after a failed/partial Bead closeout. For mixed-child epics, close local-only children normally. Route each merged child through `delivery-closeout-router` exactly once before closing the epic; if the current orchestration state already records that child's successful Bead closeout, the entry skill must go directly to shared environment cleanup without repeating Bead closeout or its pull. Verify all required child closures and merge correlations before closing the epic.
 
 ## Reporting
 
