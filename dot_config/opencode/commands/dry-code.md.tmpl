@@ -2,7 +2,17 @@
 description: Find, assess, and resolve worthwhile duplicate code
 ---
 
-Treat `$ARGUMENTS` as the requested scope and options, not a Beads scope. At invocation, establish whether to scan the requested target(s) or focus on a Git diff. In target mode, resolve the requested path(s) and scan only those; use the repository root only when the whole project is explicitly requested. In diff mode, use an actual Git diff with the user-specified base and selection, including committed branch changes and/or staged or unstaged changes only as chosen by the user. Ask only for missing or ambiguous inputs; never silently choose a base or equate a Git diff with Git status.
+Treat `$ARGUMENTS` as the requested scope and options, not a Beads scope. Use these invocation forms:
+
+| Invocation | Mode and scope |
+| --- | --- |
+| `/dry-code <module_name>` | Target mode; scan only the requested path(s). Use the repository root only when the whole project is explicitly requested. |
+| `/dry-code diff [<base_branch>]` | Branch diff against the supplied base, defaulting to `main` when omitted. Include staged or unstaged worktree changes only when explicitly selected. |
+| `/dry-code staged` | Staged-only mode; include only staged files and hunks, never unstaged changes. |
+
+Use the actual selected Git diff and its changed-line ranges; do not equate a diff with Git status. Ask only for other missing or ambiguous inputs, not for the diff base when `main` is the default.
+
+In staged-only mode, the index is authoritative, including partially staged files. Build an isolated temporary scan snapshot from the index and use staged diff ranges; never scan working-tree content as staged content or inspect unstaged changes as staged work. Compare against the rest of that index snapshot when needed for unchanged-file matches. If an index-only snapshot or scan cannot be safely produced, stop and report rather than falling back to the worktree. Preserve the real index and all user modifications: do not stage, unstage, reset, or overwrite worktree content. Apply approved edits only when they can be safely confined to the approved staged-code locations without disturbing unstaged work; otherwise stop and report that safe staged-only execution is not possible.
 
 At invocation, provide an explicit choice to include or exclude tests; if the user has not specified it, ask before scanning. This gate is language-agnostic. When tests are included, favor readable, self-contained test stories over extracting helpers solely to reduce duplication. When tests are excluded, identify test files and directories conservatively using repository conventions and exclude them from detection where practical, without broadly suppressing production code. If using `jscpd --ignore`, preserve every existing managed ignore entry because this option replaces the config's ignore list; add only narrow test exclusions. Do not assume an `--include-tests` option changes clone detection. When tests are excluded, discard any remaining findings in test code during assessment, including inline test modules; for mixed production/test files, ignore only test-code locations, not production code. When tests are included, test-code findings remain eligible for assessment, with readability favored over extracting helpers solely to deduplicate.
 
