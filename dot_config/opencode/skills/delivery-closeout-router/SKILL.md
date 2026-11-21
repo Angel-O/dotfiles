@@ -1,15 +1,12 @@
 ---
 name: delivery-closeout-router
-description: Route completed deliveries through verified closeout and safe environment synchronization and cleanup.
+description: Coordinate verified delivery closeout, reference synchronization, and environment cleanup.
 ---
 
 # Delivery Closeout Router
 
-Use automatically when conversation or runtime context indicates the requested
-delivery endpoint is complete; ordinary reports such as “done” or “completed”
-suffice, and the user need not explicitly say “PR merged” or select a skill or
-mode. If the context is merge-bound, verify the PR before any such operation and
-never merge automatically. Require its full URL:
+For merge-bound closeout operations, verify the PR before acting and never
+merge automatically. Require its full URL:
 
 ```sh
 gh pr view <full-pr-url> --json state,mergedAt,mergeCommit,baseRefName
