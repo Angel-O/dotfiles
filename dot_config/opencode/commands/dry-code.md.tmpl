@@ -1,5 +1,5 @@
 ---
-description: Find and coordinate evidence-based duplicate reduction
+description: Find, assess, and resolve worthwhile duplicate code
 ---
 
 Treat `$ARGUMENTS` as the code target, not a Beads scope. Resolve it to the requested path(s); ask only if missing or ambiguous. Scan only that target, using the repository root only when the whole project is requested.
@@ -12,6 +12,8 @@ jscpd --config "$HOME/.config/opencode/jscpd.json" --reporters ai --no-tips --fa
 
 Replace the placeholder with the resolved path; for multiple targets, pass each as a separate quoted argument. Keep the managed exclusions and local-only detection: do not substitute project configuration, use MCP or remote analysis services, or enable embeddings or downloads.
 
-Read reported source fragments and nearby context as needed to judge worthwhile changes. Report clone locations, actual scope and material limitations, including excluded code, unavailable cross-target matches, scan failures, empty analysis or truncated output. Do not treat incomplete results as a complete scan.
+Read reported source fragments and nearby context to assess whether each finding is genuinely equivalent and worth simplifying. Report clone locations, actual scope and material limitations, including excluded code, unavailable cross-target matches, scan failures, empty analysis or truncated output. Do not treat incomplete results as a complete scan.
 
-Recommend reduction only where it simplifies genuinely equivalent behavior; retain intentional repetition with a reason and flag uncertain candidates. No worthwhile change is a valid outcome. Suggest follow-up work only when useful. Do not edit code, create a Bead unless explicitly asked, or launch execution.
+For each candidate, assign a 1–3 value/feasibility score: 3 means clearly worthwhile and feasible to resolve; 2 means a judgment call; 1 means unclear or not worth an unnecessary abstraction. Explain the score briefly. Preserve intentional repetition and never turn superficial similarity into an abstraction.
+
+If there are no 2 or 3 candidates, report that nothing worthwhile is approved and stop without asking for confirmation or editing. Otherwise, show a concise summary of all 3s. When any 2s exist, ask a multi-select question listing them with a recommendation for each. Ask the user to confirm proceeding with all 3s and only the 2s they select; do not execute before that confirmation. On confirmation, implement only those approved candidates within the requested target, then summarize the changes and any remaining findings. Do not execute 1s or unselected 2s. If the user approves no candidates, stop without editing.
