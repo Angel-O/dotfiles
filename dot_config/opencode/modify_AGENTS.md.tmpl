@@ -119,7 +119,7 @@ Detailed testing guidance is in the on-demand `testing-rules` skill; load it onl
 
 ## Merged PR closeout
 
-When an identified PR is reported merged, automatically use `delivery-closeout-router` if available; it verifies merge before closeout. Before merge or at a pre-merge endpoint, report closeout pending. Never merge automatically.
+When delivery is reported done/completed or context indicates its requested endpoint, automatically use `delivery-closeout-router` where available; it verifies merge before merge-bound actions. Before merge or at a pre-merge endpoint, report closeout pending. Never merge automatically.
 
 ## Tools guardrails
 

@@ -1,14 +1,15 @@
 ---
 name: delivery-closeout-router
-description: Automatically route an identified merged pull request through required Bead closeout and safe environment synchronization and cleanup.
+description: Route completed deliveries through verified closeout and safe environment synchronization and cleanup.
 ---
 
 # Delivery Closeout Router
 
-Trigger automatically when the user or orchestration reports that an identified
-pull request has merged. Do not ask the user to select a skill or closeout mode.
-Never merge automatically. Require the full PR URL and verify it before any
-closeout work:
+Use automatically when conversation or runtime context indicates the requested
+delivery endpoint is complete; ordinary reports such as “done” or “completed”
+suffice, and the user need not explicitly say “PR merged” or select a skill or
+mode. If the context is merge-bound, verify the PR before any such operation and
+never merge automatically. Require its full URL:
 
 ```sh
 gh pr view <full-pr-url> --json state,mergedAt,mergeCommit,baseRefName
@@ -22,7 +23,7 @@ Record the verified PR URL, repository, merge SHA, and base for this run.
 
 ```mermaid
 flowchart TD
-  R["Reported PR merged"] --> V["Verify PR state and actual base"]
+  R["Delivery completion indicated"] --> V["Verify PR state and actual base"]
   V -->|not merged / invalid| P["Report closeout pending"]
   V -->|merged| T{"Tracking context sufficient?"}
   T -->|Bead-backed; exact item IDs known| H["beads-hub-closeout per concrete Bead<br/>verify, correlate, close"]
