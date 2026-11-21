@@ -2,15 +2,17 @@
 description: Find, assess, and resolve worthwhile duplicate code
 ---
 
-Treat `$ARGUMENTS` as the code target, not a Beads scope. Resolve it to the requested path(s); ask only if missing or ambiguous. Scan only that target, using the repository root only when the whole project is requested.
+Treat `$ARGUMENTS` as the requested scope and options, not a Beads scope. At invocation, establish whether to scan the requested target(s) or focus on a Git diff. In target mode, resolve the requested path(s) and scan only those; use the repository root only when the whole project is explicitly requested. In diff mode, use an actual Git diff with the user-specified base and selection, including committed branch changes and/or staged or unstaged changes only as chosen by the user. Ask only for missing or ambiguous inputs; never silently choose a base or equate a Git diff with Git status.
 
-Run local jscpd with the managed config and compact reporter:
+At invocation, provide an explicit choice to include or exclude tests; if the user has not specified it, ask before scanning. This gate is language-agnostic. When tests are included, favor readable, self-contained test stories over extracting helpers solely to reduce duplication. When tests are excluded, identify test files and directories conservatively using repository conventions and exclude them from detection where practical, without broadly suppressing production code. If using `jscpd --ignore`, preserve every existing managed ignore entry because this option replaces the config's ignore list; add only narrow test exclusions. Do not assume an `--include-tests` option changes clone detection. When tests are excluded, discard any remaining findings in test code during assessment, including inline test modules; for mixed production/test files, ignore only test-code locations, not production code. When tests are included, test-code findings remain eligible for assessment, with readability favored over extracting helpers solely to deduplicate.
+
+Run local jscpd with the managed config and compact reporter on the resolved target or chosen comparison corpus:
 
 ```sh
-jscpd --config "$HOME/.config/opencode/jscpd.json" --reporters ai --no-tips --fail-on-empty -- "<resolved-target>"
+jscpd --config "$HOME/.config/opencode/jscpd.json" --reporters ai --no-tips --fail-on-empty -- "<resolved-target-or-corpus>"
 ```
 
-Replace the placeholder with the resolved path; for multiple targets, pass each as a separate quoted argument. Keep the managed exclusions and local-only detection: do not substitute project configuration, use MCP or remote analysis services, or enable embeddings or downloads.
+Replace the placeholder with the resolved path or corpus; for multiple paths, pass each as a separate quoted argument. In diff mode, use the actual selected diff to identify changed files and changed-line ranges, and retain only candidates with a duplicate location intersecting those ranges. jscpd does not filter clones by changed lines, so assess its reported locations against the diff. To find duplication between changed and unchanged project code, include an appropriate wider comparison corpus containing both; scanning only changed files cannot find unchanged-file matches. Report the actual corpus, exclusions and limitations, and never claim full-project coverage when only changed files were scanned. Do not use `jscpd --changed` (it follows Git status and may write `.jscpd-baseline.json`) or `--changed-only` (it misses unchanged-file matches); avoid unexpected baseline or worktree side effects. Keep local-only detection: do not substitute project configuration, use MCP or remote analysis services, or enable embeddings or downloads.
 
 Read reported source fragments and nearby context to assess whether each finding is genuinely equivalent and worth simplifying. Report clone locations, actual scope and material limitations, including excluded code, unavailable cross-target matches, scan failures, empty analysis or truncated output. Do not treat incomplete results as a complete scan.
 
