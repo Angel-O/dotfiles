@@ -72,7 +72,7 @@ sys.exit(0 if len(same_branch) == 1 and len(matches) == 1 else 1)
 ' "$worktree_path" "$branch" <<<"$git_listing" ||
   fail 'recorded path and branch are not one eligible worktree in the reference repository'
 
-herdr_listing=$(herdr worktree list --workspace="$workspace_id" 2>/dev/null) ||
+herdr_listing=$(herdr worktree list --workspace "$workspace_id" 2>/dev/null) ||
   fail 'cannot inspect recorded Herdr workspace'
 python3 -c '
 import json, sys
