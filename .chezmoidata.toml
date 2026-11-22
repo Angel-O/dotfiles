@@ -50,7 +50,7 @@ ref = "189b0a75a7dfb86383cd746ab6627d1abba0ce11"
 [pins.herdrPlugins.annotate]
 source = "plannotator/herdr-annotate"
 branch = "main"
-ref = "dd147a9faf5ab7d716a31abca070c80af508ffbc"
+ref = "cb0a8e6225e33f4662096cb450e2c1e18b244b07"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
