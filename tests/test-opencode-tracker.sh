@@ -51,7 +51,6 @@ assert all("qa" not in str(entry).lower() for entry in plugins)
 assert all(not (isinstance(entry, dict) and "orchestration-tracking" in str(entry)) for entry in plugins)
 assert plugins == [
     f"@slkiser/opencode-quota@{quota_version}",
-    "-opencode.provider.openai-context-caps",
     {
         "package": f"@plannotator/opencode@{plugin_pins['plannotator']}",
         "options": {"planningAgents": ["plan", "architect"]},
