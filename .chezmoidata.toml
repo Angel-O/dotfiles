@@ -50,7 +50,7 @@ ref = "189b0a75a7dfb86383cd746ab6627d1abba0ce11"
 [pins.herdrPlugins.annotate]
 source = "plannotator/herdr-annotate"
 branch = "main"
-ref = "40c2cec6141b1108d08aed29ba1beaeaad254f4c"
+ref = "edb799e5d95f6c0652e6df55fa1fe9aeed11931a"
 
 [pins.herdrPlugins.labels]
 source = "Angel-O/herdr-labels"
@@ -74,7 +74,7 @@ ref = "34cb3221c132da53b0af4d14b35c97e8298e66b0"
 [pins.herdrPlugins.bar]
 source = "jeffarese/herdr-bar"
 branch = "main"
-ref = "7ce30f32123a7dda8bd0d14419d5ee258f93dd54"
+ref = "c349e9ae0806c2613491a11edf93fedb7e77b44d"
 
 [pins.herdrPlugins.reviewr]
 source = "persiyanov/herdr-reviewr"
